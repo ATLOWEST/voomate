@@ -6,3 +6,4 @@ export * from './contracts.js';
 export * from './widget-protocol.js';
 export * from './chunking.js';
 export * from './sanitize.js';
+export * from './prompt.js';

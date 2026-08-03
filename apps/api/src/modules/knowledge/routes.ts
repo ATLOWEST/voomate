@@ -23,9 +23,34 @@ import { z } from 'zod';
 import { getDb } from '../../lib/db.js';
 import { tenantOf } from '../../plugins/auth.js';
 import { assertCrawlableUrl } from '../../lib/url-guard.js';
+import { indexPendingDocuments } from './ingest.js';
 
 const agentParams = z.object({ id: uuidSchema });
 const sourceParams = z.object({ id: uuidSchema, sourceId: uuidSchema });
+
+/**
+ * Index a source's documents without failing the request that created them.
+ *
+ * Q&A pairs and manual text need no crawl, so indexing them inline means the merchant's
+ * content is searchable by the time the dashboard refreshes. But an embedding call is a
+ * network call to Bedrock: if it fails, the content is already safely stored and the source
+ * simply stays `pending` for a retry. Turning that into a 500 would make the merchant think
+ * their text was lost.
+ */
+const indexInBackground = (
+  app: Parameters<FastifyPluginAsync>[0],
+  organizationId: OrganizationId,
+  agentId: string,
+  sourceId: string,
+): void => {
+  void indexPendingDocuments(getDb(), organizationId, agentId as never, sourceId)
+    .then((tally) => {
+      app.log.info({ sourceId, ...tally }, 'Indexed knowledge source');
+    })
+    .catch((error: unknown) => {
+      app.log.error({ err: error, sourceId }, 'Indexing failed; source stays pending for retry');
+    });
+};
 
 /** Confirms the agent exists *within the caller's tenant* before touching child rows. */
 const assertAgent = async (organizationId: OrganizationId, agentId: string): Promise<void> => {
@@ -133,6 +158,8 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         return created!;
       });
 
+      indexInBackground(app, tenant.organizationId, id, source.id);
+
       reply.status(201);
       return { source };
     },
@@ -174,8 +201,46 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         return created!;
       });
 
+      indexInBackground(app, tenant.organizationId, id, source.id);
+
       reply.status(201);
       return { source };
+    },
+  );
+
+  /**
+   * Re-index a source on demand.
+   *
+   * The retry path for anything that ended `pending` or `failed` — a Bedrock throttle during
+   * the original request, an embedding-model change that invalidated every stored vector, or
+   * a merchant clearing an injection flag. Idempotent: `replaceDocumentChunks` deletes before
+   * it inserts, so running it twice costs embeddings and changes nothing else.
+   */
+  app.post(
+    '/:id/knowledge/:sourceId/reindex',
+    { preHandler: app.requireTenant(OrgRole.DEVELOPER) },
+    async (request, reply) => {
+      const tenant = tenantOf(request);
+      const { id, sourceId } = sourceParams.parse(request.params);
+      await assertAgent(tenant.organizationId, id);
+
+      const [source] = await getDb()
+        .select({ id: knowledgeSources.id })
+        .from(knowledgeSources)
+        .where(
+          and(
+            tenantScope(knowledgeSources, tenant.organizationId),
+            eq(knowledgeSources.id, sourceId),
+          ),
+        )
+        .limit(1);
+
+      if (source === undefined) throw notFound('Knowledge source', sourceId);
+
+      indexInBackground(app, tenant.organizationId, id, sourceId);
+
+      reply.status(202);
+      return { sourceId, status: IngestionStatus.INDEXING };
     },
   );
 
@@ -234,9 +299,10 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
 
       if (deleted === undefined) throw notFound('Knowledge source', sourceId);
 
-      // TODO(phase-2): remove the corresponding vectors from the Bedrock Knowledge Base.
-      // Deleting rows alone leaves the agent still able to retrieve the deleted content —
-      // which for a GDPR deletion request is a compliance failure, not just a bug.
+      // The vectors go with the row: knowledge_chunks cascades from knowledge_documents,
+      // which cascades from here. That matters beyond tidiness — a deletion request that
+      // left content still retrievable would be a compliance failure, not just a bug, and
+      // making it a foreign key is what stops it depending on anyone remembering.
       reply.status(204);
     },
   );
