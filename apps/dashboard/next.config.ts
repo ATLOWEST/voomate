@@ -44,8 +44,14 @@ const loadPublicEnv = (): void => {
 
 loadPublicEnv();
 
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 const config: NextConfig = {
   reactStrictMode: true,
+  // Pinned because there is a stray package-lock.json in the user's home directory, and
+  // Turbopack's "nearest lockfile wins" inference picks *that* as the workspace root — which
+  // silently changes how the workspace packages resolve.
+  turbopack: { root: repoRoot },
   // The workspace packages ship TypeScript source, not built JS. Next compiles them itself
   // so we don't need a build step in the dependency graph during development.
   transpilePackages: ['@soniq/core', '@soniq/i18n'],
