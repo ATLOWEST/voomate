@@ -40,6 +40,8 @@ export default tseslint.config(
         console: 'readonly',
         process: 'readonly',
         URL: 'readonly',
+        TextDecoder: 'readonly',
+        TextEncoder: 'readonly',
       },
     },
     rules: {

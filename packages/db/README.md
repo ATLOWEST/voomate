@@ -36,17 +36,48 @@ migrations/manual/10_rls_policies.sql      hand-written  → RLS, helpers, signu
 migrations/manual/20_pgvector_retrieval.sql hand-written → HNSW index, match function
 ```
 
+`db:manual` takes filename prefixes, because `00_` has to be interleaved *before* the
+generated schema and the rest *after* it. On a fresh database:
+
 ```bash
-npm run db:generate     # generate SQL from schema.ts changes
-npm run db:migrate      # apply the generated migrations
-npm run db:manual       # apply the hand-written ones, in order
+npm run db:manual -- 00     # pgvector, so the `vector` column type exists
+npm run db:generate         # generate SQL from schema.ts changes
+npm run db:migrate          # apply the generated migrations
+npm run db:manual -- 10 20  # RLS policies, then the HNSW index and match function
 ```
 
-`db:manual` is ordered and idempotent, so re-running it is safe.
+Day to day, only the last step changes: edit a policy, re-run `npm run db:manual -- 10`.
+Every hand-written file is idempotent — `10_` drops and recreates every policy in `public`,
+so the file is the single authority on what the policies are rather than a log of edits.
+
+Then prove it works:
+
+```bash
+npm run db:verify           # cross-tenant read test + live retrieval round-trip
+```
 
 Migrations use the **direct** connection, not the pooler — Supabase's transaction pooler
 doesn't support the session-level statements DDL needs, and pointing at it produces
 intermittent failures that look like network flakiness.
+
+## Verifying
+
+Two scripts, both of which roll back everything they write, so they are safe against a live
+database:
+
+| Script | What it proves |
+|---|---|
+| `scripts/verify-rls.mjs` | A member of org A cannot read, insert into, update or delete org B — checked as the `authenticated` role with a real JWT claim, not as the table owner |
+| `scripts/verify-retrieval.mjs` | A real Titan embedding survives the round trip through pgvector, ranks the right chunk first, respects the similarity floor, and refuses a foreign `organization_id` or `agent_id` |
+
+`verify-rls` is the one that matters most. `relrowsecurity = true` only says RLS is switched
+on; a policy with `using (true)` reports exactly the same. Run it after any change to
+`10_rls_policies.sql`.
+
+`verify-retrieval` costs a few Titan calls (fractions of a cent) and needs AWS credentials.
+It deliberately re-implements the embedding request rather than importing
+`apps/api/src/lib/embeddings.ts` — a test that imports the code it checks agrees with itself
+by construction and cannot notice drift against the real service.
 
 ### Why `manual/` is a separate directory
 

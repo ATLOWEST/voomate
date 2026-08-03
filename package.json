@@ -24,6 +24,8 @@
     "test": "npm run test --workspaces --if-present",
     "db:generate": "npm run generate --workspace @soniq/db",
     "db:migrate": "npm run migrate --workspace @soniq/db",
+    "db:manual": "npm run manual --workspace @soniq/db --",
+    "db:verify": "npm run verify:rls --workspace @soniq/db && npm run verify:retrieval --workspace @soniq/db",
     "dev:api": "npm run dev --workspace @soniq/api",
     "dev:dashboard": "npm run dev --workspace @soniq/dashboard",
     "dev:widget": "npm run dev --workspace @soniq/widget",

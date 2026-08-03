@@ -21,6 +21,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
+    "manual": "node scripts/apply-manual.mjs",
+    "verify:rls": "node scripts/verify-rls.mjs",
+    "verify:retrieval": "node scripts/verify-retrieval.mjs",
     "studio": "drizzle-kit studio",
     "clean": "rm -rf dist"
   },

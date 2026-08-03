@@ -15,6 +15,27 @@
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
+-- Make this file re-runnable.
+--
+-- `create policy` has no `if not exists` form, so without this the file applies once and
+-- every later edit has to be hand-applied — which is how a policy set drifts out of step
+-- with the file that is supposed to define it. Dropping first makes this file the single
+-- authority: whatever is below is exactly what the database ends up with.
+--
+-- Scoped to `public`, so Supabase's own policies on auth/storage schemas are untouched.
+-- -----------------------------------------------------------------------------
+do $$
+declare
+  pol record;
+begin
+  for pol in select policyname, tablename from pg_policies where schemaname = 'public'
+  loop
+    execute format('drop policy if exists %I on public.%I', pol.policyname, pol.tablename);
+  end loop;
+end
+$$;
+
+-- -----------------------------------------------------------------------------
 -- Helper: which organizations does the current user belong to?
 --
 -- SECURITY DEFINER is essential. Without it, a policy on organization_members that
