@@ -26,10 +26,12 @@
     "db:migrate": "npm run migrate --workspace @soniq/db",
     "db:manual": "npm run manual --workspace @soniq/db --",
     "db:verify": "npm run verify:rls --workspace @soniq/db && npm run verify:retrieval --workspace @soniq/db",
+    "dev:user": "node scripts/create-dev-user.mjs",
     "dev:api": "npm run dev --workspace @soniq/api",
     "dev:dashboard": "npm run dev --workspace @soniq/dashboard",
     "dev:widget": "npm run dev --workspace @soniq/widget",
-    "check": "npm run format:check && npm run lint && npm run typecheck"
+    "check": "npm run format:check && npm run lint && npm run typecheck",
+    "smoke": "node scripts/smoke.mjs"
   },
   "overrides": {
     "next": {

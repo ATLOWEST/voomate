@@ -23,7 +23,7 @@ import { organizationMembers, schema } from '@soniq/db';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
-import { jwtVerify } from 'jose';
+import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify, type JWTPayload } from 'jose';
 import { getSupabaseConfig } from '../config.js';
 import { getDb } from '../lib/db.js';
 
@@ -59,13 +59,61 @@ const extractToken = (request: FastifyRequest): string => {
  */
 const ORG_HEADER = 'x-organization-id';
 
+/**
+ * Supabase's published signing keys.
+ *
+ * Projects now sign user tokens asymmetrically (ES256) and publish the public half here, so
+ * the API verifies signatures while holding nothing that could forge one. `createRemoteJWKSet`
+ * caches the fetch and re-fetches on an unrecognised `kid`, which is what makes a key rotation
+ * a non-event rather than an outage.
+ */
+let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
+
+const getJwks = (): ReturnType<typeof createRemoteJWKSet> => {
+  jwks ??= createRemoteJWKSet(
+    new URL('/auth/v1/.well-known/jwks.json', getSupabaseConfig().SUPABASE_URL),
+    // A cold start plus a slow JWKS fetch must not hang a request indefinitely. 5s is
+    // generous for a cached CDN document and still well inside any sane client timeout.
+    { timeoutDuration: 5000, cooldownDuration: 30_000 },
+  );
+  return jwks;
+};
+
+/**
+ * Verify a Supabase access token.
+ *
+ * Two signing schemes, chosen by the token's own `alg` header rather than by configuration —
+ * a project can be mid-migration and issue both, and reading the header is how we handle a
+ * token minted before the switch without a redeploy.
+ *
+ * The `alg` is only used to route to the right key material, never trusted beyond that:
+ * `jwtVerify` is given an explicit algorithm list either way, so a token claiming `alg: none`
+ * or trying to pass an HS256 MAC off against the EC public key is rejected by the library.
+ */
+const verifyToken = async (token: string): Promise<JWTPayload> => {
+  const alg = decodeProtectedHeader(token).alg ?? '';
+
+  if (alg.startsWith('HS')) {
+    const secret = getSupabaseConfig().SUPABASE_JWT_SECRET;
+    if (secret === undefined || secret === '') {
+      throw unauthenticated('Invalid or expired token.');
+    }
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+    });
+    return payload;
+  }
+
+  const { payload } = await jwtVerify(token, getJwks(), { algorithms: ['ES256', 'RS256'] });
+  return payload;
+};
+
 export const authPlugin = fp(async (app: FastifyInstance) => {
   app.decorate('requireAuth', async (request: FastifyRequest): Promise<void> => {
     const token = extractToken(request);
-    const secret = new TextEncoder().encode(getSupabaseConfig().SUPABASE_JWT_SECRET);
 
     try {
-      const { payload } = await jwtVerify(token, secret);
+      const payload = await verifyToken(token);
       if (typeof payload.sub !== 'string') {
         throw unauthenticated('Token is missing a subject claim.');
       }

@@ -42,6 +42,10 @@ export default tseslint.config(
         URL: 'readonly',
         TextDecoder: 'readonly',
         TextEncoder: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        Buffer: 'readonly',
       },
     },
     rules: {

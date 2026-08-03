@@ -4,6 +4,7 @@ import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { isDevelopment, serverConfig } from './config.js';
+import { askRoutes } from './modules/agents/ask.js';
 import { agentRoutes } from './modules/agents/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
@@ -68,6 +69,7 @@ export const buildServer = async (): Promise<FastifyInstance> => {
   await app.register(languageRoutes, { prefix: '/v1/languages' });
   await app.register(organizationRoutes, { prefix: '/v1/organizations' });
   await app.register(agentRoutes, { prefix: '/v1/agents' });
+  await app.register(askRoutes, { prefix: '/v1/agents' });
   await app.register(knowledgeRoutes, { prefix: '/v1/agents' });
   await app.register(widgetRoutes, { prefix: '/v1/widget' });
 

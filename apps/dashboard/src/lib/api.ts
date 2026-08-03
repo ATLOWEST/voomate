@@ -11,7 +11,14 @@
  */
 import { type ErrorResponse } from '@soniq/core';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+/**
+ * Exported because the playground bypasses `call()` — it needs a streaming response body,
+ * which this helper deliberately does not expose (every other endpoint returns JSON, and a
+ * client that sometimes returns a stream is a client nobody can type).
+ */
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+
+const BASE_URL = API_BASE_URL;
 
 export class ApiError extends Error {
   readonly status: number;

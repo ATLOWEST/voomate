@@ -42,7 +42,16 @@ export const supabaseEnvSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: nonEmpty('Supabase anon key is required'),
   SUPABASE_SERVICE_ROLE_KEY: nonEmpty('Supabase service role key is required'),
-  SUPABASE_JWT_SECRET: nonEmpty('Supabase JWT secret is required'),
+  /**
+   * Optional, and preferably left unset.
+   *
+   * Supabase now signs user tokens with an asymmetric key (ES256) and publishes the public
+   * half at `/auth/v1/.well-known/jwks.json`, so the API can verify a signature without
+   * holding any secret — and picks up a key rotation on its own. This variable is only the
+   * fallback for a project still on the legacy shared HS256 secret. A shared symmetric secret
+   * is strictly worse: anything that can verify a token can also mint one.
+   */
+  SUPABASE_JWT_SECRET: z.string().optional(),
   DATABASE_URL: z.string().url(),
   DATABASE_DIRECT_URL: z.string().url().optional(),
 });

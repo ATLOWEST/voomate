@@ -88,6 +88,9 @@ export function AgentTabs({ agentId }: { agentId: string }) {
   const tabs = [
     { href: base, label: 'Overview' },
     { href: `${base}/knowledge`, label: 'Knowledge' },
+    // Sits next to Knowledge on purpose: adding content and testing whether it worked is one
+    // loop, and a merchant runs it a dozen times before publishing.
+    { href: `${base}/playground`, label: 'Playground' },
     { href: `${base}/voice`, label: 'Voice & Languages' },
     { href: `${base}/behaviour`, label: 'Behaviour' },
     { href: `${base}/install`, label: 'Install' },

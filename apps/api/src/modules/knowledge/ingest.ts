@@ -18,7 +18,12 @@ import {
   type KnowledgeDocumentId,
   type OrganizationId,
 } from '@soniq/core';
-import { knowledgeDocuments, replaceDocumentChunks, type Database } from '@soniq/db';
+import {
+  knowledgeDocuments,
+  knowledgeSources,
+  replaceDocumentChunks,
+  type Database,
+} from '@soniq/db';
 import { and, eq } from 'drizzle-orm';
 import { embedBatch } from '../../lib/embeddings.js';
 
@@ -130,11 +135,17 @@ export const indexDocument = async (input: IndexDocumentInput): Promise<IndexDoc
 };
 
 /**
- * Index every pending document of a source.
+ * Index every pending document of a source, then roll the outcome up onto the source itself.
  *
  * Sequential on purpose. `embedBatch` already runs 4 concurrent Bedrock calls per document;
  * multiplying that by the document count is how one merchant's crawl throttles the account
  * and stalls a live conversation on another tenant's site.
+ *
+ * The roll-up matters more than it looks. The source row is the only thing the dashboard shows
+ * — a merchant never sees an individual document status — so a source that stays `pending`
+ * after its documents all indexed successfully is, from where they are standing, a product that
+ * has hung. It also makes the source status honest rather than aspirational: it is set from
+ * what actually happened, after the fact, not optimistically at insert time.
  */
 export const indexPendingDocuments = async (
   db: Database,
@@ -142,6 +153,13 @@ export const indexPendingDocuments = async (
   agentId: AgentId,
   sourceId: string,
 ): Promise<{ indexed: number; failed: number; excluded: number }> => {
+  await db
+    .update(knowledgeSources)
+    .set({ status: IngestionStatus.INDEXING, errorMessage: null, updatedAt: new Date() })
+    .where(
+      and(eq(knowledgeSources.organizationId, organizationId), eq(knowledgeSources.id, sourceId)),
+    );
+
   const pending = await db
     .select()
     .from(knowledgeDocuments)
@@ -170,5 +188,55 @@ export const indexPendingDocuments = async (
     else tally.failed += 1;
   }
 
+  await db
+    .update(knowledgeSources)
+    .set({
+      ...summarize(tally, pending.length),
+      documentCount: pending.length,
+      lastSyncedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(
+      and(eq(knowledgeSources.organizationId, organizationId), eq(knowledgeSources.id, sourceId)),
+    );
+
   return tally;
+};
+
+/**
+ * One source status from many document outcomes.
+ *
+ * A partial success is READY, not FAILED. A 500-page crawl where four pages were JavaScript
+ * shells has produced a working agent, and marking the whole source failed would push the
+ * merchant to delete and re-add it — losing the 496 pages that worked. The count of failures
+ * goes in `errorMessage` so it is visible without being fatal.
+ */
+const summarize = (
+  tally: { indexed: number; failed: number; excluded: number },
+  total: number,
+): { status: IngestionStatus; errorMessage: string | null } => {
+  if (total === 0) {
+    return { status: IngestionStatus.FAILED, errorMessage: 'No content was found to index.' };
+  }
+  if (tally.indexed > 0) {
+    return {
+      status: IngestionStatus.READY,
+      errorMessage:
+        tally.failed + tally.excluded === 0
+          ? null
+          : `${String(tally.failed + tally.excluded)} of ${String(total)} pages could not be used.`,
+    };
+  }
+  if (tally.excluded > 0 && tally.failed === 0) {
+    // Everything tripped the injection heuristics. Held for review, not a failure of ours —
+    // and the merchant needs to know it was a deliberate decision rather than a crash.
+    return {
+      status: IngestionStatus.EXCLUDED,
+      errorMessage: 'All content was held for review. See docs on flagged content.',
+    };
+  }
+  return {
+    status: IngestionStatus.FAILED,
+    errorMessage: 'Nothing could be indexed. The content may be empty or blocked by scripts.',
+  };
 };

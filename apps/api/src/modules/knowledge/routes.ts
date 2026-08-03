@@ -48,7 +48,23 @@ const indexInBackground = (
       app.log.info({ sourceId, ...tally }, 'Indexed knowledge source');
     })
     .catch((error: unknown) => {
-      app.log.error({ err: error, sourceId }, 'Indexing failed; source stays pending for retry');
+      app.log.error({ err: error, sourceId }, 'Indexing failed');
+      // Mark it failed rather than leaving it mid-flight. A source stuck on "working" forever
+      // is indistinguishable from a hung product, and the Retry button on the dashboard only
+      // appears for a source the merchant can see has stopped.
+      void getDb()
+        .update(knowledgeSources)
+        .set({
+          status: IngestionStatus.FAILED,
+          errorMessage: 'Indexing could not complete. Press Retry to try again.',
+          updatedAt: new Date(),
+        })
+        .where(
+          and(tenantScope(knowledgeSources, organizationId), eq(knowledgeSources.id, sourceId)),
+        )
+        .catch((updateError: unknown) => {
+          app.log.error({ err: updateError, sourceId }, 'Could not record the indexing failure');
+        });
     });
 };
 

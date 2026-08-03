@@ -1,3 +1,5 @@
+// Must come first: it populates process.env, and every import below reads config at load time.
+import './load-env.js';
 import { serverConfig } from './config.js';
 import { buildServer } from './server.js';
 
