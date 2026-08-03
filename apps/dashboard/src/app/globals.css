@@ -1,0 +1,145 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens.
+ *
+ * Every colour in the product is defined here and nowhere else. A component that reaches for
+ * a raw hex value is a bug — merchants get theme control over the widget, and the dashboard
+ * itself has a dark mode, so hardcoded colour breaks one of the two.
+ *
+ * The palette is deliberately restrained: one accent, a wide neutral ramp, and semantic
+ * colours used only for state. Enterprise buyers read loud colour as unserious.
+ */
+@theme {
+  /* Neutrals — the ramp that carries almost the entire UI. */
+  --color-ink-50: #f8fafc;
+  --color-ink-100: #f1f5f9;
+  --color-ink-200: #e2e8f0;
+  --color-ink-300: #cbd5e1;
+  --color-ink-400: #94a3b8;
+  --color-ink-500: #64748b;
+  --color-ink-600: #475569;
+  --color-ink-700: #334155;
+  --color-ink-800: #1e293b;
+  --color-ink-900: #0f172a;
+  --color-ink-950: #020617;
+
+  /* Accent — indigo. Used for primary actions and the live-voice state, nothing else. */
+  --color-accent-50: #eef2ff;
+  --color-accent-100: #e0e7ff;
+  --color-accent-200: #c7d2fe;
+  --color-accent-300: #a5b4fc;
+  --color-accent-400: #818cf8;
+  --color-accent-500: #6366f1;
+  --color-accent-600: #4f46e5;
+  --color-accent-700: #4338ca;
+  --color-accent-800: #3730a3;
+  --color-accent-900: #312e81;
+
+  /* Semantic state. */
+  --color-positive: #059669;
+  --color-positive-soft: #ecfdf5;
+  --color-caution: #d97706;
+  --color-caution-soft: #fffbeb;
+  --color-critical: #dc2626;
+  --color-critical-soft: #fef2f2;
+
+  /*
+   * A system font stack, not a webfont. next/font/google fetches at build time, which makes
+   * builds depend on the network and adds a render-blocking request for merchants on slow
+   * connections. The native stack is instant and looks native on every platform.
+   */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Depth. Shadows are soft and low-contrast — heavy shadows read as dated. */
+  --shadow-subtle: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --shadow-raised: 0 2px 4px -1px rgb(15 23 42 / 0.05), 0 8px 24px -6px rgb(15 23 42 / 0.12);
+  --shadow-overlay: 0 12px 48px -12px rgb(15 23 42 / 0.25);
+
+  --radius-panel: 0.875rem;
+}
+
+/*
+ * Semantic surface variables. Components reference these, never the ramp directly, so dark
+ * mode is a single re-binding rather than a `dark:` class on every element.
+ */
+@layer base {
+  :root {
+    --surface-page: var(--color-ink-50);
+    --surface-panel: #ffffff;
+    --surface-sunken: var(--color-ink-100);
+    --surface-hover: var(--color-ink-100);
+    --border-default: var(--color-ink-200);
+    --border-strong: var(--color-ink-300);
+    --text-primary: var(--color-ink-900);
+    --text-secondary: var(--color-ink-600);
+    --text-muted: var(--color-ink-400);
+    color-scheme: light;
+  }
+
+  :root[data-theme='dark'] {
+    --surface-page: var(--color-ink-950);
+    --surface-panel: var(--color-ink-900);
+    --surface-sunken: #0b1220;
+    --surface-hover: var(--color-ink-800);
+    --border-default: var(--color-ink-800);
+    --border-strong: var(--color-ink-700);
+    --text-primary: var(--color-ink-50);
+    --text-secondary: var(--color-ink-400);
+    --text-muted: var(--color-ink-500);
+    color-scheme: dark;
+  }
+
+  * {
+    border-color: var(--border-default);
+  }
+
+  body {
+    background-color: var(--surface-page);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /*
+   * Focus rings are visible and consistent. Enterprise procurement asks about WCAG, and
+   * "we removed the outline because it looked bad" is not an answer that survives review.
+   */
+  :focus-visible {
+    outline: 2px solid var(--color-accent-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Respect the OS setting. Voice UIs animate a lot; some users cannot tolerate it. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .surface-panel {
+    background-color: var(--surface-panel);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-panel);
+  }
+
+  .text-secondary {
+    color: var(--text-secondary);
+  }
+
+  .text-muted {
+    color: var(--text-muted);
+  }
+}

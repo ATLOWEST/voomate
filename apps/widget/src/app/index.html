@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Assistant</title>
+    <!--
+      The iframe sets its own CSP. It is served from our origin, so this constrains only our
+      code — the merchant's page is unaffected. `frame-ancestors` is intentionally permissive
+      here because any merchant site may embed us; the real authorisation is the server-side
+      origin allowlist checked when the session is created, which a CSP cannot express
+      per-tenant.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' https://*.amazonaws.com wss://*.amazonaws.com; media-src 'self' blob: data:; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

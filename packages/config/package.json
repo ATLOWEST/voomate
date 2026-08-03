@@ -1,0 +1,11 @@
+{
+  "name": "@soniq/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared TypeScript config presets",
+  "files": [
+    "tsconfig.node.json",
+    "tsconfig.react.json"
+  ]
+}

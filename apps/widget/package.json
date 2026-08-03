@@ -1,0 +1,24 @@
+{
+  "name": "@soniq/widget",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Embeddable widget — tiny host-page loader plus the isolated iframe app",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:loader && npm run build:app",
+    "build:loader": "vite build --config vite.loader.config.ts && node scripts/check-size.mjs",
+    "build:app": "vite build --config vite.app.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@soniq/core": "*"
+  },
+  "devDependencies": {
+    "@soniq/config": "*",
+    "terser": "^5.37.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}

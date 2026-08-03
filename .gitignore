@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+.npm/
+
+# build output
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+
+# env & secrets — never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.aws/
+credentials
+
+# infra
+cdk.out/
+cdk.context.json
+
+# logs
+*.log
+npm-debug.log*
+logs/
+
+# test / coverage
+coverage/
+.nyc_output/
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# local scratch
+/tmp/
+/scratch/
