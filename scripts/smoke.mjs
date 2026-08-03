@@ -298,6 +298,57 @@ try {
   });
   check('publish succeeds once knowledge is indexed', published.agent.status === 'published');
   check('publishedAt recorded', Boolean(published.agent.publishedAt));
+
+  // --- 8. Crawling a real website --------------------------------------------------------------
+
+  step('8. Crawling');
+
+  // A sandbox published specifically for people to practise scraping against, so pointing a
+  // test at it repeatedly is what it is for. Deliberately last: it adds a third source, and the
+  // earlier checks assert on an agent with exactly two.
+  const site = 'https://books.toscrape.com';
+
+  const registered = await call(`/v1/agents/${agent.id}/knowledge/website`, {
+    method: 'POST',
+    token,
+    organizationId,
+    body: { url: site, maxPages: 4, maxDepth: 2 },
+  });
+  check('website source registered', registered.source.status === 'pending', site);
+
+  let crawled;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const { sources } = await call(`/v1/agents/${agent.id}/knowledge`, { token, organizationId });
+    crawled = sources.find((s) => s.id === registered.source.id);
+    if (crawled.status === 'ready' || crawled.status === 'failed') break;
+    await sleep(1000);
+  }
+  check('the crawl finished', crawled.status === 'ready',
+    `${crawled.status}${crawled.errorMessage ? `: ${crawled.errorMessage}` : ''}`);
+  check('it read more than one page', crawled.documentCount > 1,
+    `${String(crawled.documentCount)} pages`);
+
+  const { documents } = await call(
+    `/v1/agents/${agent.id}/knowledge/${registered.source.id}/documents`,
+    { token, organizationId },
+  );
+  check('every crawled page indexed', documents.every((d) => d.status === 'ready'),
+    documents.map((d) => `${d.url}=${d.status}`).join(' · '));
+  // Each page must be its own document. One document holding the whole site means the
+  // extractor collapsed the crawl, and every citation would point at the homepage.
+  check('pages are stored with their own URLs',
+    new Set(documents.map((d) => d.url)).size === documents.length);
+
+  const aboutSite = await call(`/v1/agents/${agent.id}/ask`, {
+    method: 'POST',
+    token,
+    organizationId,
+    body: { question: 'What kind of books do you sell?', channel: 'text' },
+  });
+  check('a question about the crawled site is answered from the crawl',
+    aboutSite.ungrounded === false &&
+      aboutSite.citations.some((c) => (c.url ?? '').startsWith('http')),
+    aboutSite.citations.map((c) => c.url ?? c.title).join(' · '));
 } catch (error) {
   failure = error;
 } finally {

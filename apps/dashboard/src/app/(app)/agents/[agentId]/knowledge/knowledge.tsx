@@ -159,6 +159,26 @@ const STATUS_TONE: Record<string, 'neutral' | 'positive' | 'caution' | 'critical
   excluded: 'neutral',
 };
 
+/**
+ * What each status means in the merchant's own terms.
+ *
+ * A crawl of a large site is minutes long, and "working" for four minutes is indistinguishable
+ * from a hang. Naming the actual phase — reading the site, then learning it — turns dead time
+ * into visible progress, which is the difference between waiting and giving up.
+ */
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'queued',
+  crawling: 'reading your site',
+  processing: 'working',
+  indexing: 'learning',
+};
+
+/** A crawl counts pages; a pasted note counts documents. Same column, different unit. */
+const countNoun = (source: KnowledgeSource, count: number): string => {
+  const noun = source.type === 'website' ? 'page' : 'document';
+  return count === 1 ? noun : `${noun}s`;
+};
+
 function SourceList({
   sources,
   loading,
@@ -210,8 +230,6 @@ function SourceRow({
     onChanged();
   });
 
-  const inFlight = IN_FLIGHT.has(source.status);
-
   return (
     <li className="flex items-start gap-4 px-6 py-3.5">
       <div className="min-w-0 flex-1">
@@ -230,11 +248,11 @@ function SourceRow({
       <div className="flex shrink-0 items-center gap-2">
         {source.documentCount > 0 && (
           <span className="text-[12px] tabular-nums text-muted">
-            {source.documentCount} {source.documentCount === 1 ? 'document' : 'documents'}
+            {source.documentCount} {countNoun(source, source.documentCount)}
           </span>
         )}
         <Badge tone={STATUS_TONE[source.status] ?? 'caution'}>
-          {inFlight ? 'working' : source.status}
+          {STATUS_LABEL[source.status] ?? source.status}
         </Badge>
         {(source.status === 'failed' || source.status === 'pending') && (
           <Button size="sm" loading={reindex.busy} onClick={() => void reindex.run()}>

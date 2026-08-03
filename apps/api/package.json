@@ -10,7 +10,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "vitest run"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1101.0",
@@ -21,6 +22,8 @@
     "@soniq/core": "*",
     "@soniq/db": "*",
     "@soniq/i18n": "*",
+    "cheerio": "^1.2.0",
+    "domhandler": "^5.0.3",
     "fastify": "^5.2.1",
     "fastify-plugin": "^5.0.1",
     "jose": "^5.9.6",
@@ -30,6 +33,7 @@
     "@soniq/config": "*",
     "pino-pretty": "^13.0.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.7"
   }
 }

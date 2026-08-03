@@ -1,4 +1,4 @@
-import { Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
 import type { StageConfig } from './config.js';
@@ -48,6 +48,21 @@ export class StorageStack extends Stack {
       enforceSSL: true,
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
+    });
+
+    // Bucket names are generated, so without these the only way to fill CRAWL_ARCHIVE_BUCKET is
+    // to go looking in the console — which is exactly the kind of manual step that ends up
+    // transcribed wrongly into one environment and not at all into the next.
+    new CfnOutput(this, 'KnowledgeBucketName', {
+      value: this.knowledgeBucket.bucketName,
+      description: 'Set as CRAWL_ARCHIVE_BUCKET',
+      exportName: `${this.stackName}-KnowledgeBucket`,
+    });
+
+    new CfnOutput(this, 'AssetsBucketName', {
+      value: this.assetsBucket.bucketName,
+      description: 'Widget loader and iframe app, served via CloudFront',
+      exportName: `${this.stackName}-AssetsBucket`,
     });
   }
 }

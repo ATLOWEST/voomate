@@ -23,10 +23,24 @@ import { z } from 'zod';
 import { getDb } from '../../lib/db.js';
 import { tenantOf } from '../../plugins/auth.js';
 import { assertCrawlableUrl } from '../../lib/url-guard.js';
+import { runCrawlJob } from './crawl-job.js';
 import { indexPendingDocuments } from './ingest.js';
 
 const agentParams = z.object({ id: uuidSchema });
 const sourceParams = z.object({ id: uuidSchema, sourceId: uuidSchema });
+
+/**
+ * The crawl bounds as stored on the source row.
+ *
+ * Parsed rather than cast on the way back out. `config` is a jsonb column, so its contents are
+ * whatever some past version of this code wrote there; the defaults mean a row written before
+ * these fields existed re-crawls with sane bounds instead of `undefined` pages.
+ */
+const crawlConfigSchema = z.object({
+  maxPages: z.number().int().min(1).max(5000).default(200),
+  maxDepth: z.number().int().min(1).max(10).default(3),
+  excludePatterns: z.array(z.string().max(200)).max(50).default([]),
+});
 
 /**
  * Index a source's documents without failing the request that created them.
@@ -66,6 +80,35 @@ const indexInBackground = (
           app.log.error({ err: updateError, sourceId }, 'Could not record the indexing failure');
         });
     });
+};
+
+/**
+ * Start a crawl without holding the request open for it.
+ *
+ * A crawl is minutes of work, so the merchant gets a 202 and watches the source row instead.
+ * `runCrawlJob` already records its own failures against that row, so nothing here needs to —
+ * this catch is for the case where the job itself could not start.
+ */
+const crawlInBackground = (
+  app: Parameters<FastifyPluginAsync>[0],
+  organizationId: OrganizationId,
+  agentId: string,
+  sourceId: string,
+  root: { url: string; maxPages: number; maxDepth: number; excludePatterns?: readonly string[] },
+): void => {
+  void runCrawlJob({
+    db: getDb(),
+    log: app.log,
+    organizationId,
+    agentId: agentId as never,
+    sourceId,
+    rootUrl: root.url,
+    maxPages: root.maxPages,
+    maxDepth: root.maxDepth,
+    excludePatterns: root.excludePatterns,
+  }).catch((error: unknown) => {
+    app.log.error({ err: error, sourceId }, 'Crawl job could not start');
+  });
 };
 
 /** Confirms the agent exists *within the caller's tenant* before touching child rows. */
@@ -128,9 +171,14 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         })
         .returning();
 
-      // TODO(phase-2): enqueue the crawl job here. Until then the source sits at `pending`,
-      // which is accurate — nothing has crawled it.
       request.log.info({ sourceId: source!.id, url: input.url }, 'Crawl source registered');
+
+      crawlInBackground(app, tenant.organizationId, id, source!.id, {
+        url: input.url,
+        maxPages: input.maxPages,
+        maxDepth: input.maxDepth,
+        excludePatterns: input.excludePatterns,
+      });
 
       reply.status(202);
       return { source };
@@ -231,6 +279,10 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
    * the original request, an embedding-model change that invalidated every stored vector, or
    * a merchant clearing an injection flag. Idempotent: `replaceDocumentChunks` deletes before
    * it inserts, so running it twice costs embeddings and changes nothing else.
+   *
+   * For a website source this re-crawls rather than re-embedding what is already stored. The
+   * merchant pressing Retry after editing their returns page means "go and read it again", and
+   * re-embedding the stale copy would produce the same wrong answer slightly more expensively.
    */
   app.post(
     '/:id/knowledge/:sourceId/reindex',
@@ -241,7 +293,12 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       await assertAgent(tenant.organizationId, id);
 
       const [source] = await getDb()
-        .select({ id: knowledgeSources.id })
+        .select({
+          id: knowledgeSources.id,
+          type: knowledgeSources.type,
+          location: knowledgeSources.location,
+          config: knowledgeSources.config,
+        })
         .from(knowledgeSources)
         .where(
           and(
@@ -252,6 +309,21 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         .limit(1);
 
       if (source === undefined) throw notFound('Knowledge source', sourceId);
+
+      if (source.type === KnowledgeSourceType.WEBSITE && source.location !== null) {
+        // Re-validated rather than trusted from storage: this row may have been written before
+        // the guard existed, or the hostname may since have started resolving somewhere private.
+        await assertCrawlableUrl(source.location);
+
+        const config = crawlConfigSchema.parse(source.config ?? {});
+        crawlInBackground(app, tenant.organizationId, id, sourceId, {
+          url: source.location,
+          ...config,
+        });
+
+        reply.status(202);
+        return { sourceId, status: IngestionStatus.CRAWLING };
+      }
 
       indexInBackground(app, tenant.organizationId, id, sourceId);
 

@@ -152,6 +152,16 @@ export const indexPendingDocuments = async (
   organizationId: OrganizationId,
   agentId: AgentId,
   sourceId: string,
+  options: {
+    /**
+     * Skip documents that already indexed successfully. Set by the crawler, where content
+     * hashing means an unchanged page still holds valid chunks and re-embedding it is money
+     * spent to arrive at the same vectors. Left off for an explicit reindex, which exists
+     * precisely to redo work — after an embedding-model change the stored vectors are wrong
+     * even though the text is identical.
+     */
+    onlyPending?: boolean;
+  } = {},
 ): Promise<{ indexed: number; failed: number; excluded: number }> => {
   await db
     .update(knowledgeSources)
@@ -160,7 +170,7 @@ export const indexPendingDocuments = async (
       and(eq(knowledgeSources.organizationId, organizationId), eq(knowledgeSources.id, sourceId)),
     );
 
-  const pending = await db
+  const documents = await db
     .select()
     .from(knowledgeDocuments)
     .where(
@@ -170,9 +180,16 @@ export const indexPendingDocuments = async (
       ),
     );
 
-  const tally = { indexed: 0, failed: 0, excluded: 0 };
+  // The tally starts from documents this pass is skipping. It has to: the source status is a
+  // statement about the whole source, and a re-crawl that changed two pages out of five hundred
+  // must not report a source with 498 working pages as having indexed nothing.
+  const skip = (document: (typeof documents)[number]): boolean =>
+    options.onlyPending === true && document.status === IngestionStatus.READY;
 
-  for (const document of pending) {
+  const toIndex = documents.filter((document) => !skip(document));
+  const tally = { indexed: documents.length - toIndex.length, failed: 0, excluded: 0 };
+
+  for (const document of toIndex) {
     const result = await indexDocument({
       db,
       organizationId,
@@ -191,8 +208,8 @@ export const indexPendingDocuments = async (
   await db
     .update(knowledgeSources)
     .set({
-      ...summarize(tally, pending.length),
-      documentCount: pending.length,
+      ...summarize(tally, documents.length),
+      documentCount: documents.length,
       lastSyncedAt: new Date(),
       updatedAt: new Date(),
     })

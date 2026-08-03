@@ -1,4 +1,4 @@
-import { Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Stack, type StackProps } from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import type * as s3 from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
@@ -100,5 +100,11 @@ export class RuntimeStack extends Stack {
     // the ones who re-chunk, and re-chunking from the archive is the whole reason it exists.
     props.knowledgeBucket.grantReadWrite(this.apiRole);
     props.knowledgeBucket.grantDelete(this.apiRole);
+
+    new CfnOutput(this, 'ApiRoleArn', {
+      value: this.apiRole.roleArn,
+      description: 'Role the API assumes once it runs on ECS',
+      exportName: `${this.stackName}-ApiRoleArn`,
+    });
   }
 }
