@@ -1,10 +1,14 @@
 /**
  * Deployment configuration.
  *
- * Region is not a free choice. The pipeline needs Bedrock (Nova Pro), Bedrock Knowledge
- * Bases, OpenSearch Serverless, Transcribe streaming with multi-language identification,
- * Polly generative voices, and Chime SDK media pipelines — all in the *same* region, because
- * cross-region hops cost latency we do not have inside a 1.2s speech-to-speech budget.
+ * Region is not a free choice. The pipeline needs Bedrock (Nova Pro and Titan embeddings),
+ * Transcribe streaming with multi-language identification, Polly generative voices, and Chime
+ * SDK media pipelines — all in the *same* region, because cross-region hops cost latency we do
+ * not have inside a 1.2s speech-to-speech budget.
+ *
+ * Retrieval is the one hop that is allowed to leave AWS: vectors live in Supabase Postgres
+ * (docs/adr/0005-supabase-pgvector.md), so pick the Supabase project's region to match this
+ * one. That pairing is a deployment convention, not something this file can enforce.
  *
  * us-east-1 is the only region where all of those have been simultaneously available for the
  * whole of the last year. Verify against the current service tables before changing it.

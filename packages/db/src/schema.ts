@@ -28,7 +28,18 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  vector,
 } from 'drizzle-orm/pg-core';
+
+/**
+ * Titan Embed Text v2 output width. The model can emit 256/512/1024; we take the widest
+ * because cross-lingual retrieval is the hardest thing we ask of it (see docs/languages.md)
+ * and that is where the extra dimensions earn their storage.
+ *
+ * Changing this invalidates every stored embedding — they would have to be regenerated, not
+ * migrated, because a 512-d vector is not a truncation of a 1024-d one.
+ */
+export const EMBEDDING_DIMENSIONS = 1024;
 
 // --- Enums ---------------------------------------------------------------------------------
 
@@ -146,9 +157,6 @@ export const agents = pgTable(
     /** Public identifier, not a secret. Exchanged for a short-lived session token. */
     embedKey: text('embed_key').notNull(),
 
-    /** Set once the tenant's Bedrock Knowledge Base finishes provisioning. */
-    knowledgeBaseId: text('knowledge_base_id'),
-
     voiceEnabled: boolean('voice_enabled').notNull().default(true),
     /** Off by default. Voice recordings are biometric-adjacent — opt-in only. */
     retainAudio: boolean('retain_audio').notNull().default(false),
@@ -227,6 +235,67 @@ export const knowledgeDocuments = pgTable(
     index('knowledge_documents_agent_idx').on(table.agentId),
     index('knowledge_documents_source_idx').on(table.sourceId),
     uniqueIndex('knowledge_documents_source_hash_idx').on(table.sourceId, table.contentHash),
+  ],
+);
+
+/**
+ * The retrieval corpus — one row per chunk, with its embedding alongside it.
+ *
+ * This table *is* the vector store (docs/adr/0005-supabase-pgvector.md). Two consequences
+ * worth stating rather than discovering:
+ *
+ *  1. `content` here is a slice of `knowledge_documents.content`, and inherits its UNTRUSTED
+ *     status. It is merchant-site text that will be placed in a prompt. It is never
+ *     concatenated into the instruction section — see docs/security.md.
+ *  2. Retrieval is scoped by `agent_id`, but `organization_id` is carried and indexed anyway.
+ *     A retrieval bug that leaks across agents inside one org is a product bug; one that
+ *     leaks across orgs is an incident. The RLS policy needs the column to tell them apart.
+ */
+export const knowledgeChunks = pgTable(
+  'knowledge_chunks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => knowledgeDocuments.id, { onDelete: 'cascade' }),
+
+    /** Position within the parent document. Lets us stitch neighbours back together. */
+    ordinal: integer('ordinal').notNull(),
+    /** UNTRUSTED. A slice of the parent document's extracted text. */
+    content: text('content').notNull(),
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }).notNull(),
+
+    /**
+     * Denormalised from the parent document so a citation can be built from the chunk row
+     * alone. Retrieval returns chunks; making it join to produce a citation would put a join
+     * on the hot path of every single answer.
+     */
+    sourceUrl: text('source_url'),
+    sourceTitle: text('source_title'),
+
+    /**
+     * BCP-47 tag of the chunk's own language, not the agent's. A merchant site may mix
+     * languages per page, and cross-lingual retrieval quality is measured per pair.
+     */
+    language: text('language'),
+    tokenCount: integer('token_count'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('knowledge_chunks_organization_idx').on(table.organizationId),
+    // Every retrieval filters on agent before it ranks by distance. Without this the HNSW
+    // index is scanned and then thrown away for other tenants' rows.
+    index('knowledge_chunks_agent_idx').on(table.agentId),
+    index('knowledge_chunks_document_idx').on(table.documentId),
+    uniqueIndex('knowledge_chunks_document_ordinal_idx').on(table.documentId, table.ordinal),
+    // The HNSW index itself is created in migrations/0002_pgvector.sql — Drizzle cannot
+    // express its build parameters, and they matter enough to be written by hand.
   ],
 );
 
@@ -397,12 +466,21 @@ export const knowledgeSourcesRelations = relations(knowledgeSources, ({ one, man
   documents: many(knowledgeDocuments),
 }));
 
-export const knowledgeDocumentsRelations = relations(knowledgeDocuments, ({ one }) => ({
+export const knowledgeDocumentsRelations = relations(knowledgeDocuments, ({ one, many }) => ({
   source: one(knowledgeSources, {
     fields: [knowledgeDocuments.sourceId],
     references: [knowledgeSources.id],
   }),
   agent: one(agents, { fields: [knowledgeDocuments.agentId], references: [agents.id] }),
+  chunks: many(knowledgeChunks),
+}));
+
+export const knowledgeChunksRelations = relations(knowledgeChunks, ({ one }) => ({
+  document: one(knowledgeDocuments, {
+    fields: [knowledgeChunks.documentId],
+    references: [knowledgeDocuments.id],
+  }),
+  agent: one(agents, { fields: [knowledgeChunks.agentId], references: [agents.id] }),
 }));
 
 export const conversationsRelations = relations(conversations, ({ one, many }) => ({
@@ -428,6 +506,7 @@ export const TENANT_SCOPED_TABLES = [
   'agents',
   'knowledge_sources',
   'knowledge_documents',
+  'knowledge_chunks',
   'conversations',
   'messages',
   'api_keys',

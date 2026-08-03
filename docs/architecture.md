@@ -22,17 +22,18 @@ Three surfaces, one backend:
 └─────────────────┘        └────────┬─────────┘         conversations, usage)
                                     │
                                     ├──► Ingestion pipeline (Fargate)
-                                    │      crawl → extract → chunk → S3
-                                    │      → Bedrock Knowledge Base
-                                    │        (OpenSearch Serverless vectors)
+                                    │      crawl → extract → chunk → S3 archive
+                                    │      → Titan embeddings
+                                    │      → Supabase pgvector
                                     │
 ┌─────────────────┐                 │
 │  Widget (iframe)│                 ▼
 │  on merchant    │◄──── WebRTC ──── Voice Orchestrator (Fargate)
 │  site           │   (Chime SDK)         │
-└─────────────────┘                       ├──► Transcribe streaming  (ears)
-                                          ├──► Bedrock Nova Pro + KB (brain)
-                                          └──► Polly streaming       (mouth)
+└─────────────────┘                       ├──► Transcribe streaming   (ears)
+                                          ├──► pgvector retrieval     (memory)
+                                          ├──► Bedrock Nova Pro       (brain)
+                                          └──► Polly streaming        (mouth)
 ```
 
 ## The voice pipeline — where this product is won or lost
@@ -103,13 +104,18 @@ See [adr/0002-webrtc-chime-transport.md](adr/0002-webrtc-chime-transport.md).
 ```
 URL → sitemap/robots discovery → Playwright render (JS-heavy sites are the norm)
     → readability extraction (strip nav/footer/cookie banners)
-    → semantic chunking → S3 → Bedrock Knowledge Base ingestion
-    → OpenSearch Serverless vectors
+    → semantic chunking → S3 archive (so re-chunking never means re-crawling)
+    → Titan Embed Text v2 → knowledge_chunks rows in Supabase
+    → HNSW cosine index
 ```
 
-We use **Bedrock Knowledge Bases** rather than hand-rolling retrieval. It handles chunking,
-embeddings, retrieval, and — critically — **citations**, which merchants need to trust the
-output. Nova Pro integrates with it natively.
+Retrieval is a **SQL function**, `match_knowledge_chunks(org, agent, query_embedding, …)`,
+scoped by organisation *and* agent. We own each step — chunking, embedding, ranking, and the
+citation shape merchants need to trust the answer.
+
+This replaced Bedrock Knowledge Bases, which handled all of that for us but capped at 100
+knowledge bases per account with a **non-adjustable** quota — a hard ceiling of 100 merchants.
+See [adr/0005-supabase-pgvector.md](adr/0005-supabase-pgvector.md).
 
 Merchants layer their own content on top of the crawl: manual Q&A pairs, uploaded documents,
 and per-page include/exclude. Scheduled re-crawls keep it fresh.

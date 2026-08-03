@@ -1,6 +1,14 @@
 # ADR 0001 — Use Bedrock Knowledge Bases instead of a self-managed vector store
 
-**Status:** Accepted · 2026-08-02
+**Status:** ~~Accepted~~ **Superseded by [ADR 0005](0005-supabase-pgvector.md)** · 2026-08-03
+
+> Superseded on the "Revisit if" clause below. Measuring the AWS account in Phase 1 found a
+> **hard, non-adjustable cap of 100 Knowledge Bases per account** — a per-tenant KB design stops
+> selling at 100 merchants — alongside the anticipated OpenSearch cost floor (~$700/month idle).
+> Retained unedited for the record; the reasoning below was sound given what was known on
+> 2026-08-02, and the Titan Embed v2 choice survives into ADR 0005.
+
+**Originally accepted:** 2026-08-02
 
 ## Context
 

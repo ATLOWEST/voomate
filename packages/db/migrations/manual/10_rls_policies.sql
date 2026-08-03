@@ -171,6 +171,22 @@ create policy knowledge_documents_write on public.knowledge_documents
   for all using (public.user_has_role(organization_id, 'developer'))
   with check (public.user_has_role(organization_id, 'developer'));
 
+-- knowledge_chunks — the retrieval corpus (docs/adr/0005-supabase-pgvector.md).
+--
+-- Read-only to members, and written exclusively by the API's ingestion pipeline. There
+-- is deliberately no client write path: a chunk's `embedding` must correspond to its
+-- `content`, and nothing enforces that except the code that produced both. A client
+-- able to insert rows could poison retrieval by pairing arbitrary text with an
+-- embedding chosen to rank first for common questions.
+alter table public.knowledge_chunks enable row level security;
+alter table public.knowledge_chunks force row level security;
+
+create policy knowledge_chunks_select on public.knowledge_chunks
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy knowledge_chunks_delete on public.knowledge_chunks
+  for delete using (public.user_has_role(organization_id, 'developer'));
+
 -- conversations — read-only from the client. Only the API (service role) writes these,
 -- because conversations are created by anonymous website visitors, not by logged-in users.
 alter table public.conversations enable row level security;

@@ -15,9 +15,9 @@ import {
   type AgentLanguageConfig,
   type AgentPersona,
 } from '@soniq/core';
-import { agents, tenantScope } from '@soniq/db';
+import { agents, knowledgeChunks, tenantScope } from '@soniq/db';
 import { DEFAULT_LANGUAGE_CODES, resolveVoice, validateLanguageSet } from '@soniq/i18n';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { generateEmbedKey } from '../../lib/keys.js';
@@ -148,10 +148,23 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
 
       if (existing === undefined) throw notFound('Agent', id);
 
-      if (existing.knowledgeBaseId === null) {
+      // Readiness is "can this agent actually retrieve something", so ask the retrieval
+      // corpus directly rather than trusting a status column. A source can be marked ready
+      // while producing zero usable chunks — an empty page, a JS-only site, everything
+      // stripped as boilerplate — and publishing that ships an agent that knows nothing.
+      const [indexed] = await db
+        .select({ chunks: count() })
+        .from(knowledgeChunks)
+        .where(
+          and(tenantScope(knowledgeChunks, tenant.organizationId), eq(knowledgeChunks.agentId, id)),
+        );
+
+      // A count aggregate always yields a row, but treating a missing one as "not ready"
+      // keeps the failure on the safe side of the publish gate rather than asserting.
+      if (indexed === undefined || indexed.chunks === 0) {
         return reply.status(422).send({
           error: {
-            code: 'knowledge_base_not_ready',
+            code: 'knowledge_not_indexed',
             message: 'Add and index at least one knowledge source before publishing.',
           },
         });
@@ -216,8 +229,10 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
 
     if (deleted === undefined) throw notFound('Agent', id);
 
-    // TODO(phase-2): also tear down the tenant's Bedrock Knowledge Base and S3 prefix.
-    // Deleting the row alone leaves paid-for AWS resources orphaned.
+    // Chunks, documents and sources go with the agent via ON DELETE CASCADE — vectors are
+    // rows now, so there is no external index to keep in step.
+    // TODO(phase-2): the agent's S3 crawl-archive prefix is still ours to delete; object
+    // storage has no foreign key, so the objects outlive the row until we sweep them.
     reply.status(204);
   });
 };

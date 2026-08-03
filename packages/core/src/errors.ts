@@ -31,7 +31,8 @@ export const ErrorCode = {
 
   // 422 — well-formed but not actionable
   AGENT_NOT_PUBLISHED: 'agent_not_published',
-  KNOWLEDGE_BASE_NOT_READY: 'knowledge_base_not_ready',
+  /** The agent has no indexed content to answer from yet. */
+  KNOWLEDGE_NOT_INDEXED: 'knowledge_not_indexed',
   CRAWL_FAILED: 'crawl_failed',
 
   // 429
@@ -72,7 +73,7 @@ const DEFAULT_STATUS: Record<ErrorCode, number> = {
   [ErrorCode.ALREADY_EXISTS]: 409,
   [ErrorCode.CONFLICT]: 409,
   [ErrorCode.AGENT_NOT_PUBLISHED]: 422,
-  [ErrorCode.KNOWLEDGE_BASE_NOT_READY]: 422,
+  [ErrorCode.KNOWLEDGE_NOT_INDEXED]: 422,
   [ErrorCode.CRAWL_FAILED]: 422,
   [ErrorCode.RATE_LIMITED]: 429,
   [ErrorCode.QUOTA_EXCEEDED]: 429,

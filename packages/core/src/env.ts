@@ -61,10 +61,19 @@ export const awsEnvSchema = z.object({
   BEDROCK_MODEL_ID: z.string().default('us.amazon.nova-pro-v1:0'),
   BEDROCK_UTILITY_MODEL_ID: z.string().default('us.amazon.nova-lite-v1:0'),
 
-  BEDROCK_KB_ROLE_ARN: z.string().optional(),
-  OPENSEARCH_COLLECTION_ARN: z.string().optional(),
-  KB_EMBEDDING_MODEL_ID: z.string().default('amazon.titan-embed-text-v2:0'),
-  KB_SOURCE_BUCKET: z.string().optional(),
+  /**
+   * Embeddings. Vectors live in Postgres (docs/adr/0005-supabase-pgvector.md); AWS's only
+   * role in retrieval is producing them.
+   *
+   * Changing the model or the width invalidates every stored embedding — they must be
+   * regenerated, not migrated. Both are pinned here rather than defaulted at the call site
+   * so that a change is a visible edit to one line.
+   */
+  EMBEDDING_MODEL_ID: z.string().default('amazon.titan-embed-text-v2:0'),
+  EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(1024),
+
+  /** Raw crawl artifacts, so re-chunking doesn't mean re-crawling the merchant's site. */
+  CRAWL_ARCHIVE_BUCKET: z.string().optional(),
 
   TRANSCRIBE_REGION: z.string().default('us-east-1'),
   POLLY_REGION: z.string().default('us-east-1'),

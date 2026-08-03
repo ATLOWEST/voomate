@@ -7,7 +7,6 @@ import type { StageConfig } from './config.js';
 interface RuntimeStackProps extends StackProps {
   readonly config: StageConfig;
   readonly knowledgeBucket: s3.IBucket;
-  readonly knowledgeBaseCollectionArn: string;
 }
 
 /**
@@ -16,6 +15,10 @@ interface RuntimeStackProps extends StackProps {
  * Scoped deliberately tightly. This role is reachable from a process that accepts arbitrary
  * merchant input and serves untrusted website visitors, so anything it can do is something an
  * application-layer bug can eventually be made to do.
+ *
+ * Retrieval is NOT represented here. Vectors live in Supabase Postgres, reached with a
+ * database credential rather than an IAM principal — see docs/adr/0005-supabase-pgvector.md.
+ * AWS's role in retrieval is now limited to turning text into embeddings.
  */
 export class RuntimeStack extends Stack {
   readonly apiRole: iam.Role;
@@ -29,7 +32,7 @@ export class RuntimeStack extends Stack {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
       // ASCII only. CloudFormation validates Description against a restricted charset, so a
       // typographic dash here fails the deploy rather than the synth.
-      description: 'Control-plane API: Bedrock inference, Transcribe, Polly, Chime, KB writes',
+      description: 'Control-plane API: Bedrock inference and embeddings, Transcribe, Polly, Chime',
     });
 
     // Inference. Nova Pro for the agent, Nova Lite for utility work (title generation,
@@ -48,22 +51,15 @@ export class RuntimeStack extends Stack {
       }),
     );
 
-    // Retrieval. `Retrieve` returns chunks we assemble a prompt from ourselves;
-    // `RetrieveAndGenerate` hands prompt construction to Bedrock, which would take the
-    // system prompt — and its injection defences — out of our control.
+    // Embeddings. Separated from the statement above so the two can be reasoned about — and
+    // revoked — independently. Ingestion embeds documents; every visitor question embeds a
+    // query, so this is on the hot path of both pipelines.
     this.apiRole.addToPolicy(
       new iam.PolicyStatement({
-        actions: [
-          'bedrock:Retrieve',
-          'bedrock:CreateKnowledgeBase',
-          'bedrock:DeleteKnowledgeBase',
-          'bedrock:GetKnowledgeBase',
-          'bedrock:CreateDataSource',
-          'bedrock:DeleteDataSource',
-          'bedrock:StartIngestionJob',
-          'bedrock:GetIngestionJob',
+        actions: ['bedrock:InvokeModel'],
+        resources: [
+          `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-embed-text-v2:0`,
         ],
-        resources: [`arn:aws:bedrock:${this.region}:${this.account}:knowledge-base/*`],
       }),
     );
 
@@ -100,9 +96,9 @@ export class RuntimeStack extends Stack {
       }),
     );
 
-    // Crawled content. Write-and-delete, not read — the API never reads page text back;
-    // retrieval goes through Bedrock.
-    props.knowledgeBucket.grantWrite(this.apiRole);
+    // Raw crawl artifacts. Read is granted here — unlike under the Bedrock KB design, we are
+    // the ones who re-chunk, and re-chunking from the archive is the whole reason it exists.
+    props.knowledgeBucket.grantReadWrite(this.apiRole);
     props.knowledgeBucket.grantDelete(this.apiRole);
   }
 }

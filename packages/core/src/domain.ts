@@ -133,8 +133,6 @@ export interface Agent {
   allowedOrigins: readonly string[];
   /** Public, non-secret. Identifies the agent; exchanged for a session token. */
   embedKey: string;
-  /** Set once the tenant's Bedrock Knowledge Base is provisioned. */
-  knowledgeBaseId?: string;
   voiceEnabled: boolean;
   /** Off by default — voice recordings are biometric-adjacent. Opt-in per agent. */
   retainAudio: boolean;
