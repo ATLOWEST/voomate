@@ -294,8 +294,8 @@ export const knowledgeChunks = pgTable(
     index('knowledge_chunks_agent_idx').on(table.agentId),
     index('knowledge_chunks_document_idx').on(table.documentId),
     uniqueIndex('knowledge_chunks_document_ordinal_idx').on(table.documentId, table.ordinal),
-    // The HNSW index itself is created in migrations/0002_pgvector.sql — Drizzle cannot
-    // express its build parameters, and they matter enough to be written by hand.
+    // The HNSW index itself is created in migrations/manual/20_pgvector_retrieval.sql —
+    // Drizzle cannot express its build parameters, and they matter enough to be hand-written.
   ],
 );
 

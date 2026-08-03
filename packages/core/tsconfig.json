@@ -4,5 +4,8 @@
     "rootDir": "./src",
     "outDir": "./dist"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  // Tests are typechecked by vitest, not shipped in dist. Emitting them would put vitest in
+  // the runtime import graph of anything that imports the built package.
+  "exclude": ["src/**/*.test.ts"]
 }
