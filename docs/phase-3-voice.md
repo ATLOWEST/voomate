@@ -144,9 +144,15 @@ Each step is usable and tested before the next begins.
 6. **`session.ts`** — the orchestrator. Transport-agnostic; owns per-stage timing.
 7. **WebSocket route** — session token, origin check, binary audio both ways.
 8. **Widget voice UI** — mic, waveform, live transcript, interrupt, text fallback always reachable.
-9. **Smoke test section 9** — recorded audio in, audio out, timings asserted.
+9. **Smoke test** — audio in, audio out, timings asserted. `npm run smoke:voice`.
 
 Steps 1–6 need no deploy and no browser. They are where the product is.
+
+**All nine are done.** `npm run smoke:voice` runs the whole path against real AWS and a real
+database: it creates an agent, publishes it, exchanges an embed key for a session token from one
+website and is refused from another, speaks a question synthesised by Polly into the socket,
+and asserts the transcript, the grounding, the absence of markdown in the spoken answer, the
+latency, and that pressing stop actually stops the audio. 24 checks.
 
 ---
 

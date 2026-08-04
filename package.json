@@ -31,7 +31,8 @@
     "dev:dashboard": "npm run dev --workspace @soniq/dashboard",
     "dev:widget": "npm run dev --workspace @soniq/widget",
     "check": "npm run format:check && npm run lint && npm run typecheck",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:voice": "node scripts/smoke-voice.mjs"
   },
   "overrides": {
     "next": {

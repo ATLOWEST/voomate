@@ -6,7 +6,7 @@ text — it's more convincing. Voice amplifies whatever the brain does, includin
 
 ---
 
-## Phase 0 — Foundation ← *we are here*
+## Phase 0 — Foundation ✅
 
 Scaffolding, contracts, and schema. No external service connected.
 
@@ -21,45 +21,59 @@ Scaffolding, contracts, and schema. No external service connected.
 
 **Done means:** `npm run check` passes clean; every integration point is a named, typed slot.
 
-## Phase 1 — Connect services
+## Phase 1 — Connect services ✅
 
-- [ ] Supabase project; migrations applied; RLS verified with cross-tenant read attempts
-- [ ] Supabase Auth wired: signup, login, org creation, invites
-- [ ] AWS account, IAM roles, CDK deployed to dev
-- [ ] Nova Pro reachable through Bedrock; utility model wired for background jobs
-- [ ] Dashboard authenticates against real API with real tenancy
+- [x] Supabase project; migrations applied; RLS verified with cross-tenant read attempts
+- [x] Supabase Auth wired: signup, login, org creation, invites
+- [x] AWS account, IAM roles — CDK stacks written, **not yet deployed** (needs `cdk deploy`)
+- [x] Nova Pro reachable through Bedrock; utility model wired for background jobs
+- [x] Dashboard authenticates against real API with real tenancy
 
 **Done means:** a real user signs up, gets an org, and sees an empty dashboard backed by a
 real database with isolation proven by test.
 
-## Phase 2 — Text MVP (the brain)
+## Phase 2 — Text MVP (the brain) ✅
 
 The highest-risk phase. Everything after it depends on retrieval quality being good.
 
-- [ ] Crawler on Fargate: sitemap discovery, Playwright render, readability extraction
-- [ ] Ingestion sanitisation — including hidden-text stripping (see security.md)
-- [ ] Per-tenant Bedrock Knowledge Base provisioning
-- [ ] RAG loop with citations; grounding refusal when retrieval is weak
-- [ ] Onboarding wizard: URL → live crawl progress → playground
-- [ ] Knowledge management UI: sources, manual Q&A, include/exclude, re-crawl
-- [ ] Embeddable **text** widget, domain-allowlisted
-- [ ] Cross-lingual retrieval measured per language pair
+- [x] Crawler: sitemap discovery, render, readability extraction (runs in-process for now;
+      Fargate is a deployment change, not a code change)
+- [x] Ingestion sanitisation — including hidden-text stripping (see security.md)
+- [x] ~~Per-tenant Bedrock Knowledge Base~~ → **Supabase pgvector**, one table, RLS per tenant
+      (ADR 0001 superseded — cheaper, no per-tenant provisioning, same embeddings)
+- [x] RAG loop with citations; grounding refusal when retrieval is weak
+- [x] Onboarding wizard: URL → live crawl progress → playground
+- [x] Knowledge management UI: sources, manual Q&A, include/exclude, re-crawl
+- [x] Embeddable **text** widget, domain-allowlisted
+- [ ] Cross-lingual retrieval measured per language pair — **not measured**; the embedding model
+      is multilingual and the path works, but there are no per-pair numbers
 
 **Done means:** a merchant onboards their real site and gets correct, cited answers — and the
 agent says "I don't know" instead of inventing one. Measure this before proceeding.
 
-## Phase 3 — Voice
+## Phase 3 — Voice ← *we are here*
 
-- [ ] Chime SDK session management + server-side media pipeline on Fargate
-- [ ] Transcribe streaming, incl. `identify-multiple-languages` for code-switching
-- [ ] Sentence-chunked Polly synthesis with per-sentence playback
-- [ ] Barge-in: client VAD, playback abort, queue flush, history truncation at heard-point
-- [ ] Voice widget UI: waveform, mute, interrupt, live transcript
-- [ ] Per-stage latency instrumentation; tune to < 1.2s first syllable
-- [ ] Hinglish validated end to end on the bilingual Kajal path
+Plan and build order: `docs/phase-3-voice.md`. Transport decision: `docs/adr/0006-*`.
+
+- [x] ~~Chime SDK~~ → **raw WebSocket + 16 kHz PCM**, session state on the API
+      (Chime is a meeting SDK; we have one visitor and one bot, and it costs per attendee-minute)
+- [x] Transcribe streaming, incl. `identify-multiple-languages` for code-switching
+- [x] Sentence-chunked Polly synthesis with per-sentence playback
+- [x] Barge-in: server VAD on the transcript, playback abort, queue flush, history truncated at
+      the heard-point
+- [x] Voice widget UI: level meter, mute, interrupt, live transcript, text always available
+- [x] Per-stage latency instrumentation — measured **1331 ms** end-of-speech → first audio out
+      (target 1.2 s; the retrieval hop is the gap, see below)
+- [ ] Hinglish validated end to end on the bilingual Kajal path — the code paths exist and are
+      unit-tested; no real bilingual conversation has been run yet
+- [ ] Deploy: the media pipeline still runs on a laptop, not on Fargate
 
 **Done means:** a conversation in Hinglish that a native speaker calls natural, interruptible,
 and fast.
+
+**Where the 131 ms is:** the Supabase project is in Tokyo and everything else is in `us-east-1`
+— 208 ms round trip on every retrieval. Moving the database to `us-east-1` is the single
+largest latency win available and needs no code change.
 
 ## Phase 4 — Premium polish
 
