@@ -17,8 +17,10 @@ import {
   ErrorCode,
   createWidgetSessionSchema,
   type AgentAppearance,
+  type AgentId,
   type AgentLanguageConfig,
   type AgentPersona,
+  type OrganizationId,
 } from '@soniq/core';
 import { agents } from '@soniq/db';
 import { buildTranscribeConfig, findBilingualVoice, resolveVoice } from '@soniq/i18n';
@@ -26,6 +28,7 @@ import { eq } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { getDb } from '../../lib/db.js';
 import { normalizeOrigin } from '../../lib/keys.js';
+import { mintWidgetToken } from './token.js';
 
 /**
  * Resolve the caller's origin from the request headers.
@@ -102,10 +105,16 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
       const persona = agent!.persona as AgentPersona;
       const appearance = agent!.appearance as AgentAppearance;
 
-      // TODO(phase-1): mint a signed, short-TTL session token (WIDGET_TOKEN_SECRET,
-      // WIDGET_TOKEN_TTL_SECONDS) scoped to this agent, origin and channel. Until then the
-      // widget cannot open a conversation, which is correct for the current phase.
       const bilingual = findBilingualVoice(language.languages);
+
+      // Scoped to this agent, this organisation, this origin and this channel. The origin is
+      // the one from the header, which the browser set — not one the caller chose.
+      const session = await mintWidgetToken({
+        agentId: agent!.id as AgentId,
+        organizationId: agent!.organizationId as OrganizationId,
+        origin,
+        channel: input.channel,
+      });
 
       reply.status(201);
       return {
@@ -124,9 +133,8 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
         },
         session: {
           channel: input.channel,
-          // Placeholder until token minting lands. Explicitly null rather than a fake
-          // value, so a client cannot mistake it for a working token.
-          token: null,
+          token: session.token,
+          expiresIn: session.expiresIn,
         },
       };
     });

@@ -2,6 +2,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
+import websocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { isDevelopment, serverConfig } from './config.js';
 import { askRoutes } from './modules/agents/ask.js';
@@ -11,6 +12,7 @@ import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { languageRoutes } from './modules/languages/routes.js';
 import { organizationRoutes } from './modules/organizations/routes.js';
 import { widgetRoutes } from './modules/widget/routes.js';
+import { voiceSocketRoutes } from './modules/widget/voice-socket.js';
 import { authPlugin } from './plugins/auth.js';
 import { errorHandler } from './plugins/error-handler.js';
 
@@ -63,6 +65,17 @@ export const buildServer = async (): Promise<FastifyInstance> => {
     keyGenerator: (request) => request.tenant?.organizationId ?? request.ip,
   });
 
+  await app.register(websocket, {
+    options: {
+      // One audio frame is 640 bytes. Anything approaching this is not audio, and accepting a
+      // large frame on a public socket is how a single connection becomes a memory problem.
+      maxPayload: 64 * 1024,
+      // The browser's `Origin` is checked against the session token inside the route, where the
+      // agent's allowlist is known. Rejecting here would have to duplicate that lookup.
+      verifyClient: undefined,
+    },
+  });
+
   await app.register(authPlugin);
 
   await app.register(healthRoutes, { prefix: '/health' });
@@ -72,6 +85,7 @@ export const buildServer = async (): Promise<FastifyInstance> => {
   await app.register(askRoutes, { prefix: '/v1/agents' });
   await app.register(knowledgeRoutes, { prefix: '/v1/agents' });
   await app.register(widgetRoutes, { prefix: '/v1/widget' });
+  await app.register(voiceSocketRoutes, { prefix: '/v1/widget' });
 
   return app;
 };
