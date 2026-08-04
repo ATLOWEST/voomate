@@ -2,11 +2,11 @@
  * The iframe app.
  *
  * Runs on our own origin, isolated from the merchant's page. This is where session tokens
- * live, where the conversation happens, and where the Chime SDK is eventually lazy-loaded
- * for voice.
+ * live and where the conversation happens; the merchant's page never sees either.
  *
- * Phase 0 scope: establish the postMessage bridge and prove the trust boundary works.
- * The conversation UI arrives with the text MVP (Phase 2) and voice in Phase 3.
+ * This file is only the boundary: it validates what comes across postMessage, starts the
+ * conversation, and reports back the few events a merchant might want for their own analytics.
+ * Everything else is in `conversation.ts`.
  */
 import {
   parseHostEnvelope,
@@ -15,6 +15,8 @@ import {
   type FrameToHostMessage,
   type HostToFrameMessage,
 } from '@soniq/core/widget-protocol';
+import { Conversation } from './conversation.js';
+import './styles.css';
 
 interface SessionState {
   embedKey?: string;
@@ -25,6 +27,7 @@ interface SessionState {
 }
 
 const state: SessionState = {};
+let conversation: Conversation | undefined;
 
 const send = (payload: FrameToHostMessage): void => {
   // Before `init` we do not yet know the host origin, so `ready` must go to '*'. This is
@@ -32,6 +35,33 @@ const send = (payload: FrameToHostMessage): void => {
   // subsequent message is targeted at the specific origin that answered.
   const target = state.hostOrigin ?? '*';
   window.parent.postMessage(wrapFrameMessage(payload), target);
+};
+
+const start = (embedKey: string): void => {
+  const root = document.getElementById('root');
+  if (root === null || conversation !== undefined) return;
+
+  conversation = new Conversation(
+    root,
+    {
+      embedKey,
+      ...(state.pageUrl !== undefined ? { pageUrl: state.pageUrl } : {}),
+      // Only the language part of a locale: the browser says `en-GB`, the agent is configured
+      // for `en-US`, and they are the same language for every purpose here.
+      ...(state.browserLanguage !== undefined
+        ? { language: state.browserLanguage.split('-')[0] }
+        : {}),
+    },
+    {
+      onStarted: (conversationId, channel) =>
+        send({ type: 'conversation-started', conversationId, channel }),
+      onEnded: (conversationId) => send({ type: 'conversation-ended', conversationId }),
+      onMicDenied: () => send({ type: 'mic-permission-denied' }),
+      onError: (code, message) => send({ type: 'error', code, message }),
+    },
+  );
+
+  void conversation.load();
 };
 
 const handleHostMessage = (payload: HostToFrameMessage, origin: string): void => {
@@ -46,9 +76,7 @@ const handleHostMessage = (payload: HostToFrameMessage, origin: string): void =>
       state.pageUrl = payload.pageUrl;
       state.browserLanguage = payload.browserLanguage;
 
-      // TODO(phase-1): POST /v1/widget/session with the embed key to exchange it for a
-      // scoped session token, then render the conversation UI.
-      render();
+      start(payload.embedKey);
       break;
 
     case 'open':
@@ -58,6 +86,9 @@ const handleHostMessage = (payload: HostToFrameMessage, origin: string): void =>
 
     case 'close':
       if (origin !== state.hostOrigin) return;
+      // Closing the bubble ends the session. It is billed by the minute, and a visitor who
+      // closed the widget is not in a conversation whatever the socket thinks.
+      void conversation?.stop();
       send({ type: 'closed' });
       break;
 
@@ -65,6 +96,7 @@ const handleHostMessage = (payload: HostToFrameMessage, origin: string): void =>
       if (origin !== state.hostOrigin) return;
       // Page context affects answers — "what does this cost?" depends on the page.
       state.pageUrl = payload.pageUrl;
+      conversation?.setPageUrl(payload.pageUrl);
       break;
 
     default:
@@ -78,10 +110,10 @@ window.addEventListener('message', (event: MessageEvent) => {
   handleHostMessage(envelope.payload, event.origin);
 });
 
-const render = (): void => {
-  const root = document.getElementById('root');
-  if (root === null) return;
-  root.textContent = 'Assistant ready.';
-};
+// Best effort: a closing tab does not always give us time, but when it does the server ends the
+// conversation immediately instead of waiting out the idle timeout with a Transcribe stream open.
+window.addEventListener('pagehide', () => {
+  void conversation?.stop();
+});
 
 send({ type: 'ready', protocolVersion: WIDGET_PROTOCOL_VERSION });

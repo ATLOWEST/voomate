@@ -14,6 +14,10 @@
     "./widget-protocol": {
       "types": "./dist/widget-protocol.d.ts",
       "default": "./dist/widget-protocol.js"
+    },
+    "./voice-protocol": {
+      "types": "./dist/voice-protocol.d.ts",
+      "default": "./dist/voice-protocol.js"
     }
   },
   "scripts": {

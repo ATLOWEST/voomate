@@ -52,4 +52,18 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+  {
+    // Audio worklets run on the audio thread, in `AudioWorkletGlobalScope`. It is not the
+    // window and not a worker: no DOM, no `self`, and its globals are supplied by the audio
+    // engine rather than declared anywhere lint can see.
+    files: ['**/*-worklet.js'],
+    languageOptions: {
+      globals: {
+        AudioWorkletProcessor: 'readonly',
+        registerProcessor: 'readonly',
+        currentTime: 'readonly',
+        sampleRate: 'readonly',
+      },
+    },
+  },
 );
