@@ -14,12 +14,12 @@
  * HS256, not RS256: there is exactly one service minting and verifying these, so an asymmetric
  * key pair buys nothing and costs a key-distribution problem.
  */
-import { AppError, ErrorCode, type AgentId, type OrganizationId } from '@soniq/core';
+import { AppError, ErrorCode, type AgentId, type OrganizationId } from '@voomate/core';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { getWidgetConfig } from '../../config.js';
 
-const ISSUER = 'soniq';
-const AUDIENCE = 'soniq-widget';
+const ISSUER = 'voomate';
+const AUDIENCE = 'voomate-widget';
 
 export interface WidgetSessionClaims {
   agentId: AgentId;

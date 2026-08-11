@@ -41,8 +41,8 @@ import {
   VOICE_FRAME_MS,
   type ServerToClientMessage,
   type ClientToServerMessage,
-} from '@soniq/core';
-import { getPhrase, type SttLanguageCode } from '@soniq/i18n';
+} from '@voomate/core';
+import { getPhrase, type SttLanguageCode } from '@voomate/i18n';
 import { randomUUID } from 'node:crypto';
 import type { AnswerRequest, AnswerResult } from '../answer.js';
 import type { SpeechAudio } from './polly.js';

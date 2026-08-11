@@ -1,5 +1,5 @@
 {
-  "name": "@soniq/dashboard",
+  "name": "@voomate/dashboard",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,11 +10,15 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
-    "@soniq/core": "*",
-    "@soniq/i18n": "*",
+    "@voomate/core": "*",
+    "@voomate/i18n": "*",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.112.0",
+    "@xyflow/react": "^12.11.2",
+    "framer-motion": "^13.0.0",
+    "lucide-react": "^1.30.0",
     "next": "^16.2.12",
+    "next-themes": "^0.4.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

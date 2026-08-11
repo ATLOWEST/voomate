@@ -32,8 +32,8 @@ import {
   type LanguageCode,
   type Result,
 } from '@aws-sdk/client-transcribe-streaming';
-import { VOICE_SAMPLE_RATE } from '@soniq/core';
-import type { TranscribeStreamConfig } from '@soniq/i18n';
+import { VOICE_SAMPLE_RATE } from '@voomate/core';
+import type { TranscribeStreamConfig } from '@voomate/i18n';
 import { getAwsConfig } from '../../config.js';
 
 let client: TranscribeStreamingClient | undefined;

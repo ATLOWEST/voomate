@@ -10,7 +10,7 @@ import {
   type ClientToServerMessage,
   type ServerToClientMessage,
   VOICE_PROTOCOL_VERSION,
-} from '@soniq/core/voice-protocol';
+} from '@voomate/core/voice-protocol';
 
 /**
  * Cap on outgoing audio held by the socket.

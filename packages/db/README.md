@@ -1,4 +1,4 @@
-# @soniq/db
+# @voomate/db
 
 Multi-tenant Postgres schema, RLS policies, and migrations. Also the vector store — see
 [ADR 0005](../../docs/adr/0005-supabase-pgvector.md).

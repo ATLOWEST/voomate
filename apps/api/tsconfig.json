@@ -1,5 +1,5 @@
 {
-  "extends": "@soniq/config/tsconfig.node.json",
+  "extends": "@voomate/config/tsconfig.node.json",
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist"

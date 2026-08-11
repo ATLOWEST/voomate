@@ -11,7 +11,7 @@
  * product is designed around. A merchant who watches the answer appear word by word can feel
  * when retrieval is slow, months before a visitor hears it as a pause in a voice call.
  */
-import { ErrorCode, type ErrorResponse } from '@soniq/core';
+import { ErrorCode, type ErrorResponse } from '@voomate/core';
 import { API_BASE_URL, ApiError } from '@/lib/api';
 
 export interface Citation {

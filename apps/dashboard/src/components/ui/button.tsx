@@ -6,12 +6,10 @@ type Size = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<Variant, string> = {
   primary:
-    'bg-accent-600 text-white hover:bg-accent-700 active:bg-accent-800 shadow-subtle disabled:bg-accent-300',
-  secondary:
-    'bg-[var(--surface-panel)] text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--surface-hover)] shadow-subtle',
-  ghost:
-    'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]',
-  danger: 'bg-critical text-white hover:brightness-110 active:brightness-95 shadow-subtle',
+    'bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 shadow-md',
+  secondary: 'bg-card text-foreground border border-border/50 hover:bg-muted/50 shadow-sm',
+  ghost: 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+  danger: 'bg-red-500 text-white hover:bg-red-600 shadow-md',
 };
 
 const SIZES: Record<Size, string> = {

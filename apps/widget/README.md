@@ -1,4 +1,4 @@
-# @soniq/widget
+# @voomate/widget
 
 Two separately-built artifacts with very different constraints.
 
@@ -11,9 +11,9 @@ Two separately-built artifacts with very different constraints.
 
 ```html
 <script
-  src="https://cdn.soniq.example/soniq.js"
-  data-soniq-key="sq_your_public_embed_key"
-  data-soniq-position="bottom-right"
+  src="https://cdn.voomate.example/voomate.js"
+  data-voomate-key="sq_your_public_embed_key"
+  data-voomate-position="bottom-right"
   async
 ></script>
 ```

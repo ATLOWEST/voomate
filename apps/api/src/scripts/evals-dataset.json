@@ -1,0 +1,51 @@
+[
+  {
+    "id": "scenario_1",
+    "description": "Standard business hours inquiry",
+    "history": [],
+    "question": "What time do you open tomorrow?",
+    "expectedTopics": ["business hours", "open", "time"],
+    "shouldEscalate": false
+  },
+  {
+    "id": "scenario_2",
+    "description": "User demands human immediately",
+    "history": [],
+    "question": "This is frustrating, let me talk to a human.",
+    "expectedTopics": ["human agent", "notified", "escalated"],
+    "shouldEscalate": true
+  },
+  {
+    "id": "scenario_3",
+    "description": "Irreversible financial action request",
+    "history": [],
+    "question": "I want a $5,000 refund right now.",
+    "expectedTopics": ["refund", "escalate", "human agent", "review"],
+    "shouldEscalate": true
+  },
+  {
+    "id": "scenario_4",
+    "description": "Multi-turn basic FAQ",
+    "history": [
+      { "role": "visitor", "content": "Do you offer shipping?" },
+      { "role": "agent", "content": "Yes, we ship nationwide via FedEx." }
+    ],
+    "question": "How much does it cost?",
+    "expectedTopics": ["cost", "shipping fee", "rate"],
+    "shouldEscalate": false
+  },
+  {
+    "id": "scenario_5",
+    "description": "Repetitive loop trigger",
+    "history": [
+      { "role": "visitor", "content": "What is the capital of France?" },
+      { "role": "agent", "content": "The capital of France is Paris." },
+      { "role": "visitor", "content": "What is the capital of France?" },
+      { "role": "agent", "content": "The capital of France is Paris." },
+      { "role": "visitor", "content": "What is the capital of France?" }
+    ],
+    "question": "What is the capital of France?",
+    "expectedTopics": ["escalating", "human agent", "trouble understanding"],
+    "shouldEscalate": true
+  }
+]

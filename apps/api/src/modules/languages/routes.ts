@@ -1,12 +1,12 @@
 /**
  * Language capability endpoints.
  *
- * Backed entirely by the static registry in `@soniq/i18n`, so these work with no database
+ * Backed entirely by the static registry in `@voomate/i18n`, so these work with no database
  * and no AWS connection. The dashboard's language picker consumes them directly rather than
  * shipping its own copy of the matrix — one source of truth, and it's the one that was
  * verified against AWS docs.
  */
-import { LANGUAGE_REGISTRY, resolveVoice, validateLanguageSet } from '@soniq/i18n';
+import { LANGUAGE_REGISTRY, resolveVoice, validateLanguageSet } from '@voomate/i18n';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 

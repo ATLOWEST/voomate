@@ -36,7 +36,7 @@ export default defineConfig({
   },
   plugins: [
     {
-      name: 'soniq-csp',
+      name: 'voomate-csp',
       transformIndexHtml: (html) => html.replace('%CSP%', contentSecurityPolicy),
     },
   ],

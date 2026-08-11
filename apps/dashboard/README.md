@@ -1,4 +1,4 @@
-# @soniq/dashboard
+# @voomate/dashboard
 
 Next.js App Router. The surface merchants judge the product by.
 
@@ -43,7 +43,7 @@ users cannot tolerate it.
    header gives a 403 rather than a quiet read of the wrong tenant.
 
 The Voice & Languages screen renders `LAUNCH_LANGUAGES` from
-[@soniq/i18n](../../packages/i18n/) directly, so the UI cannot offer a language the pipeline
+[@voomate/i18n](../../packages/i18n/) directly, so the UI cannot offer a language the pipeline
 can't actually speak.
 
 ## Status

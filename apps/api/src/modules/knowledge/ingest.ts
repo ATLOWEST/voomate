@@ -17,13 +17,13 @@ import {
   type AgentId,
   type KnowledgeDocumentId,
   type OrganizationId,
-} from '@soniq/core';
+} from '@voomate/core';
 import {
   knowledgeDocuments,
   knowledgeSources,
   replaceDocumentChunks,
   type Database,
-} from '@soniq/db';
+} from '@voomate/db';
 import { and, eq } from 'drizzle-orm';
 import { embedBatch } from '../../lib/embeddings.js';
 

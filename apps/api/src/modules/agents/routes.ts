@@ -14,9 +14,9 @@ import {
   type AgentAppearance,
   type AgentLanguageConfig,
   type AgentPersona,
-} from '@soniq/core';
-import { agents, knowledgeChunks, tenantScope } from '@soniq/db';
-import { DEFAULT_LANGUAGE_CODES, resolveVoice, validateLanguageSet } from '@soniq/i18n';
+} from '@voomate/core';
+import { agents, knowledgeChunks, tenantScope } from '@voomate/db';
+import { DEFAULT_LANGUAGE_CODES, resolveVoice, validateLanguageSet } from '@voomate/i18n';
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';

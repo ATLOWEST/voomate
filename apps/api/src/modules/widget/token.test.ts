@@ -1,4 +1,4 @@
-import type { AgentId, OrganizationId } from '@soniq/core';
+import type { AgentId, OrganizationId } from '@voomate/core';
 import { describe, expect, it } from 'vitest';
 import { mintWidgetToken, verifyWidgetToken, type WidgetSessionClaims } from './token.js';
 

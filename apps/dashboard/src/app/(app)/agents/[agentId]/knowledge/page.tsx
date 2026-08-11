@@ -1,8 +1,18 @@
-import type { Metadata } from 'next';
-import { KnowledgePanels } from './knowledge';
+import { ShopifyKnowledge } from '@/components/agent/web/shopify-knowledge';
 
-export const metadata: Metadata = { title: 'Knowledge' };
+export default async function AgentKnowledgePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ agentId: string }>;
+  searchParams: Promise<{ niche?: string }>;
+}) {
+  const { agentId } = await params;
+  const { niche } = await searchParams;
 
-export default function KnowledgePage() {
-  return <KnowledgePanels />;
+  if (agentId === 'web' && niche === 'shopify') {
+    return <ShopifyKnowledge />;
+  }
+
+  return <div>Agent Knowledge (Default) coming soon</div>;
 }

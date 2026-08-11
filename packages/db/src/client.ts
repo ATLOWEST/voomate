@@ -5,7 +5,7 @@
  * — one connection pool serves every tenant — and it is also why `tenantScope` below exists.
  * Read docs/adr/0004-rls-tenant-isolation.md before using this module.
  */
-import type { OrganizationId } from '@soniq/core';
+import type { OrganizationId } from '@voomate/core';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';

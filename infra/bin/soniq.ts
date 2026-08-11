@@ -8,7 +8,7 @@ const app = new App();
 const config = resolveStage(app.node.tryGetContext('stage') as string | undefined);
 
 const env = { region: config.region };
-const prefix = `Soniq-${config.stage}`;
+const prefix = `Voomate-${config.stage}`;
 
 const storage = new StorageStack(app, `${prefix}-Storage`, { env, config });
 
@@ -23,5 +23,5 @@ new RuntimeStack(app, `${prefix}-Runtime`, {
 
 // Cost allocation by stage. Voice is expensive enough that "what did dev cost us" is a
 // question someone will ask in the first month.
-Tags.of(app).add('Project', 'soniq');
+Tags.of(app).add('Project', 'voomate');
 Tags.of(app).add('Stage', config.stage);

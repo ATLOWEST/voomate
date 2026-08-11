@@ -1,5 +1,5 @@
 {
-  "name": "@soniq/i18n",
+  "name": "@voomate/i18n",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
     "clean": "rm -rf dist"
   },
   "devDependencies": {
-    "@soniq/config": "*",
+    "@voomate/config": "*",
     "typescript": "^5.7.3",
     "vitest": "^3.2.7"
   }

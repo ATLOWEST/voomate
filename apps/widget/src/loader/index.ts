@@ -13,7 +13,7 @@
  *     without weakening their policy, and `unsafe-inline` is the most common blocker.
  *   - Never touch the host page's globals beyond the single namespace below.
  */
-// Imported from the subpath, never the '@soniq/core' barrel. The barrel re-exports
+// Imported from the subpath, never the '@voomate/core' barrel. The barrel re-exports
 // contracts.ts, which pulls in zod — measured at ~12kb gzipped, on every merchant page,
 // to validate a message shape this file already narrows by hand. widget-protocol.ts has
 // no imports of its own, so this entry point stays dependency-free.
@@ -23,7 +23,7 @@ import {
   WIDGET_PROTOCOL_VERSION,
   type FrameToHostMessage,
   type HostToFrameMessage,
-} from '@soniq/core/widget-protocol';
+} from '@voomate/core/widget-protocol';
 
 interface LoaderConfig {
   embedKey: string;
@@ -31,20 +31,20 @@ interface LoaderConfig {
   position: 'bottom-right' | 'bottom-left';
 }
 
-const NAMESPACE = '__soniq';
+const NAMESPACE = '__voomate';
 
 const readConfig = (): LoaderConfig | undefined => {
   // `document.currentScript` is correct during synchronous execution; the querySelector
   // fallback covers async/deferred loading, where currentScript is null.
   const script =
     (document.currentScript as HTMLScriptElement | null) ??
-    document.querySelector<HTMLScriptElement>('script[data-soniq-key]');
+    document.querySelector<HTMLScriptElement>('script[data-voomate-key]');
 
-  const embedKey = script?.dataset.soniqKey;
+  const embedKey = script?.dataset.voomateKey;
   if (script === null || embedKey === undefined || embedKey === '') {
     // Fail quietly but visibly in the console. Throwing here would surface as an error in
     // the merchant's own monitoring and get blamed on their code.
-    console.error('[soniq] Missing data-soniq-key on the embed script.');
+    console.error('[voomate] Missing data-voomate-key on the embed script.');
     return undefined;
   }
 
@@ -52,8 +52,8 @@ const readConfig = (): LoaderConfig | undefined => {
     embedKey,
     // Defaults to the origin the script itself was served from, so a self-hosted or
     // region-specific deployment works without extra configuration.
-    origin: script.dataset.soniqOrigin ?? new URL(script.src).origin,
-    position: script.dataset.soniqPosition === 'bottom-left' ? 'bottom-left' : 'bottom-right',
+    origin: script.dataset.voomateOrigin ?? new URL(script.src).origin,
+    position: script.dataset.voomatePosition === 'bottom-left' ? 'bottom-left' : 'bottom-right',
   };
 };
 
@@ -66,7 +66,7 @@ const init = (config: LoaderConfig): void => {
   let open = false;
 
   const container = document.createElement('div');
-  container.setAttribute('data-soniq-container', '');
+  container.setAttribute('data-voomate-container', '');
   // Positioned via cssText rather than a stylesheet so we never mutate the merchant's CSS,
   // and via a high z-index because merchant layouts routinely use large values.
   container.style.cssText = [
@@ -154,7 +154,7 @@ const init = (config: LoaderConfig): void => {
           // A merchant may be serving a long-cached loader against a current iframe. Say so
           // rather than failing in some subtler way further along.
           console.warn(
-            `[soniq] Protocol mismatch: loader v${WIDGET_PROTOCOL_VERSION}, ` +
+            `[voomate] Protocol mismatch: loader v${WIDGET_PROTOCOL_VERSION}, ` +
               `frame v${payload.protocolVersion}. Clear your CDN cache.`,
           );
         }
@@ -179,11 +179,11 @@ const init = (config: LoaderConfig): void => {
         break;
 
       case 'mic-permission-denied':
-        console.warn('[soniq] Microphone permission denied.');
+        console.warn('[voomate] Microphone permission denied.');
         break;
 
       case 'error':
-        console.error(`[soniq] ${payload.code}: ${payload.message}`);
+        console.error(`[voomate] ${payload.code}: ${payload.message}`);
         break;
 
       default:

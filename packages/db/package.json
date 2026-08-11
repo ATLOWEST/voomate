@@ -1,5 +1,5 @@
 {
-  "name": "@soniq/db",
+  "name": "@voomate/db",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -28,12 +28,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@soniq/core": "*",
+    "@voomate/core": "*",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.5"
   },
   "devDependencies": {
-    "@soniq/config": "*",
+    "@voomate/config": "*",
     "drizzle-kit": "^0.31.10",
     "typescript": "^5.7.3"
   }

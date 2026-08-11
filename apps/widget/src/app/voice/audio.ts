@@ -8,7 +8,7 @@
  *
  * Everything speaks the protocol's format: 16 kHz, mono, signed 16-bit little-endian.
  */
-import { VOICE_FRAME_SAMPLES, VOICE_SAMPLE_RATE } from '@soniq/core/voice-protocol';
+import { VOICE_FRAME_SAMPLES, VOICE_SAMPLE_RATE } from '@voomate/core/voice-protocol';
 
 /**
  * Float samples (-1..1) to signed 16-bit.

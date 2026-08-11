@@ -12,8 +12,8 @@
  * consume, so moving it is a change of caller.
  */
 import { createHash } from 'node:crypto';
-import { IngestionStatus, type AgentId, type OrganizationId } from '@soniq/core';
-import { knowledgeDocuments, knowledgeSources, type Database } from '@soniq/db';
+import { IngestionStatus, type AgentId, type OrganizationId } from '@voomate/core';
+import { knowledgeDocuments, knowledgeSources, type Database } from '@voomate/db';
 import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import { crawlSite, type CrawlSummary } from '../../lib/crawl/crawl.js';

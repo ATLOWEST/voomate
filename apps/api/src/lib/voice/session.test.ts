@@ -1,4 +1,4 @@
-import type { ServerToClientMessage } from '@soniq/core';
+import type { ServerToClientMessage } from '@voomate/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AnswerRequest, AnswerResult } from '../answer.js';
 import type { SpeechAudio } from './polly.js';
@@ -81,6 +81,7 @@ const answerResult = (text: string, over: Partial<AnswerResult> = {}): AnswerRes
   text,
   citations: [],
   ungrounded: false,
+  grounding: { topSimilarity: 0.9, sourceCount: 1, citedDocumentIds: [], ungrounded: false },
   latency: { embeddingMs: 5, retrievalMs: 10, firstTokenMs: 50, totalMs: 100 },
   ...over,
 });

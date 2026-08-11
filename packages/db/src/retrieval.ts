@@ -13,7 +13,7 @@
  * for, or none. That failure is invisible: retrieval returns success with an empty list, and
  * the agent politely says it doesn't know.
  */
-import type { AgentId, KnowledgeDocumentId, OrganizationId } from '@soniq/core';
+import type { AgentId, KnowledgeDocumentId, OrganizationId } from '@voomate/core';
 import { sql } from 'drizzle-orm';
 import type { Database } from './client.js';
 import { EMBEDDING_DIMENSIONS } from './schema.js';
@@ -21,7 +21,7 @@ import { EMBEDDING_DIMENSIONS } from './schema.js';
 export interface RetrievedChunk {
   id: string;
   documentId: KnowledgeDocumentId;
-  /** UNTRUSTED merchant-site text. Fence it before it reaches a prompt — @soniq/core. */
+  /** UNTRUSTED merchant-site text. Fence it before it reaches a prompt — @voomate/core. */
   content: string;
   sourceUrl: string | null;
   sourceTitle: string | null;

@@ -9,7 +9,7 @@
  * the agent then stops mid-sentence for no reason, forever. Rather than hide that, `capture`
  * reports what it actually got, and the session widens its echo guard to match.
  */
-import { VOICE_SAMPLE_RATE } from '@soniq/core/voice-protocol';
+import { VOICE_SAMPLE_RATE } from '@voomate/core/voice-protocol';
 import { Framer, Resampler, floatToPcm16, framePeak } from './audio.js';
 
 export interface CaptureHandlers {

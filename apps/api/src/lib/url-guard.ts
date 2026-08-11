@@ -16,7 +16,7 @@
  */
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
-import { AppError, ErrorCode } from '@soniq/core';
+import { AppError, ErrorCode } from '@voomate/core';
 import { isProduction } from '../config.js';
 
 const BLOCKED_PORTS = new Set([22, 23, 25, 445, 3306, 5432, 6379, 9200, 11211, 27017]);

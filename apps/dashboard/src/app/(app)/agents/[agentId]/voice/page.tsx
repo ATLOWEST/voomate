@@ -1,4 +1,4 @@
-import { listLanguages, RECOMMENDED_MAX_CANDIDATE_LANGUAGES } from '@soniq/i18n';
+import { listLanguages, RECOMMENDED_MAX_CANDIDATE_LANGUAGES } from '@voomate/i18n';
 import { PageBody } from '@/components/shell/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
@@ -6,7 +6,7 @@ import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
 /**
  * Voice & Languages.
  *
- * This screen renders the real registry from @soniq/i18n rather than a hardcoded list, so
+ * This screen renders the real registry from @voomate/i18n rather than a hardcoded list, so
  * the dashboard cannot drift from what the pipeline can actually speak. If a language has no
  * Polly voice, it shows up here as text-only — with the reason — instead of being silently
  * offered and then failing at runtime. See docs/languages.md.

@@ -6,7 +6,7 @@
  * crashing on startup before it can tell anyone why.
  */
 import { getSupabaseConfig, isDevelopment } from '../config.js';
-import { createDatabase, type Database } from '@soniq/db';
+import { createDatabase, type Database } from '@voomate/db';
 
 let instance: Database | undefined;
 

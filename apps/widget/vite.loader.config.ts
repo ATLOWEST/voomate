@@ -17,9 +17,9 @@ export default defineConfig({
   build: {
     lib: {
       entry: 'src/loader/index.ts',
-      name: 'SoniqLoader',
+      name: 'VoomateLoader',
       formats: ['iife'],
-      fileName: () => 'soniq.js',
+      fileName: () => 'voomate.js',
     },
     outDir: 'dist/loader',
     emptyOutDir: true,

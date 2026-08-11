@@ -14,7 +14,7 @@ import {
   WIDGET_PROTOCOL_VERSION,
   type FrameToHostMessage,
   type HostToFrameMessage,
-} from '@soniq/core/widget-protocol';
+} from '@voomate/core/widget-protocol';
 import { Conversation } from './conversation.js';
 import './styles.css';
 

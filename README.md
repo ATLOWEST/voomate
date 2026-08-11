@@ -1,4 +1,4 @@
-# Soniq — Voice-First AI Agent Platform
+# Voomate — Voice-First AI Agent Platform
 
 A multi-tenant SaaS that replaces the standard website chat widget with a **voice-first AI
 agent**. A merchant signs up, points us at their website, we learn it, and they embed one

@@ -1,5 +1,5 @@
-import { OrgRole, createOrganizationSchema, inviteMemberSchema, notFound } from '@soniq/core';
-import { organizationMembers, organizations, users } from '@soniq/db';
+import { OrgRole, createOrganizationSchema, inviteMemberSchema, notFound } from '@voomate/core';
+import { organizationMembers, organizations, users } from '@voomate/db';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { getDb } from '../../lib/db.js';

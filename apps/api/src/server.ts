@@ -7,12 +7,16 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { isDevelopment, serverConfig } from './config.js';
 import { askRoutes } from './modules/agents/ask.js';
 import { agentRoutes } from './modules/agents/routes.js';
+import { conversationRoutes } from './modules/conversations/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { languageRoutes } from './modules/languages/routes.js';
 import { organizationRoutes } from './modules/organizations/routes.js';
+import { orchestratorRoutes } from './modules/orchestrator/routes.js';
+import { usageRoutes } from './modules/usage/routes.js';
 import { widgetRoutes } from './modules/widget/routes.js';
 import { voiceSocketRoutes } from './modules/widget/voice-socket.js';
+import { webhookRoutes } from './modules/webhooks/routes.js';
 import { authPlugin } from './plugins/auth.js';
 import { errorHandler } from './plugins/error-handler.js';
 
@@ -81,11 +85,15 @@ export const buildServer = async (): Promise<FastifyInstance> => {
   await app.register(healthRoutes, { prefix: '/health' });
   await app.register(languageRoutes, { prefix: '/v1/languages' });
   await app.register(organizationRoutes, { prefix: '/v1/organizations' });
+  await app.register(orchestratorRoutes, { prefix: '/v1/orchestrator' });
   await app.register(agentRoutes, { prefix: '/v1/agents' });
   await app.register(askRoutes, { prefix: '/v1/agents' });
   await app.register(knowledgeRoutes, { prefix: '/v1/agents' });
+  await app.register(conversationRoutes, { prefix: '/v1/conversations' });
+  await app.register(usageRoutes, { prefix: '/v1/usage' });
   await app.register(widgetRoutes, { prefix: '/v1/widget' });
   await app.register(voiceSocketRoutes, { prefix: '/v1/widget' });
+  await app.register(webhookRoutes, { prefix: '/v1/webhooks' });
 
   return app;
 };

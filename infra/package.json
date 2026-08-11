@@ -1,10 +1,10 @@
 {
-  "name": "@soniq/infra",
+  "name": "@voomate/infra",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "soniq-infra": "bin/soniq.js"
+    "voomate-infra": "bin/voomate.js"
   },
   "scripts": {
     "synth": "cdk synth",

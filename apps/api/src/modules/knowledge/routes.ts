@@ -15,8 +15,8 @@ import {
   notFound,
   uuidSchema,
   type OrganizationId,
-} from '@soniq/core';
-import { agents, knowledgeDocuments, knowledgeSources, tenantScope } from '@soniq/db';
+} from '@voomate/core';
+import { agents, knowledgeDocuments, knowledgeSources, tenantScope } from '@voomate/db';
 import { and, desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';

@@ -5,7 +5,7 @@
  * infers its request types from them). One definition, so a contract change is a compile
  * error on both sides rather than a runtime surprise in production.
  */
-import { MAX_CANDIDATE_LANGUAGES, isKnownLanguage, validateLanguageSet } from '@soniq/i18n';
+import { MAX_CANDIDATE_LANGUAGES, isKnownLanguage, validateLanguageSet } from '@voomate/i18n';
 import { z } from 'zod';
 
 // --- Primitives --------------------------------------------------------------------------

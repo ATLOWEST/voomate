@@ -11,7 +11,7 @@
  * scheduled is audio the visitor is about to hear. This is why `cancel` exists and why the
  * server sends it: dropping scheduled audio is the only way to stop quickly.
  */
-import { VOICE_SAMPLE_RATE } from '@soniq/core/voice-protocol';
+import { VOICE_SAMPLE_RATE } from '@voomate/core/voice-protocol';
 import { pcm16ToFloat } from './audio.js';
 
 /**

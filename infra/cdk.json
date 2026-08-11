@@ -1,5 +1,5 @@
 {
-  "app": "tsx bin/soniq.ts",
+  "app": "tsx bin/voomate.ts",
   "watch": {
     "include": ["**"],
     "exclude": ["README.md", "cdk*.json", "node_modules", "cdk.out"]

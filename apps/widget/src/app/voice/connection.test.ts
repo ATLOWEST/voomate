@@ -5,7 +5,7 @@
  * where its bugs are. The interesting ones are all about timing — a message sent before the
  * socket finished opening, a frame sent after it closed, a burst sent faster than it can drain.
  */
-import { VOICE_PROTOCOL_VERSION, type ServerToClientMessage } from '@soniq/core/voice-protocol';
+import { VOICE_PROTOCOL_VERSION, type ServerToClientMessage } from '@voomate/core/voice-protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VoiceConnection } from './connection.js';
 

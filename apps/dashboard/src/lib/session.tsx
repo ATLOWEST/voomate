@@ -14,7 +14,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ErrorCode } from '@soniq/core';
+import { ErrorCode } from '@voomate/core';
 import { createClient } from '@/lib/supabase/client';
 import { api, ApiError } from '@/lib/api';
 
@@ -41,7 +41,7 @@ interface SessionValue {
 
 const SessionContext = createContext<SessionValue | undefined>(undefined);
 
-export const ORG_COOKIE = 'soniq-org';
+export const ORG_COOKIE = 'voomate-org';
 
 export function SessionProvider({
   userId,

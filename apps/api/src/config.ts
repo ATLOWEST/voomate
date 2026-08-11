@@ -14,7 +14,7 @@ import {
   type ServerEnv,
   type SupabaseEnv,
   type WidgetEnv,
-} from '@soniq/core';
+} from '@voomate/core';
 
 export const serverConfig: ServerEnv = parseServerEnv();
 

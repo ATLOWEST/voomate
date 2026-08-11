@@ -1,5 +1,5 @@
 {
-  "name": "@soniq/core",
+  "name": "@voomate/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -28,11 +28,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@soniq/i18n": "*",
+    "@voomate/i18n": "*",
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@soniq/config": "*",
+    "@voomate/config": "*",
     "typescript": "^5.7.3",
     "vitest": "^3.2.7"
   }

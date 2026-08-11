@@ -18,7 +18,7 @@
  * real would mean two systems making the same judgement from different information, and they
  * would disagree in front of the visitor.
  */
-import type { ServerToClientMessage } from '@soniq/core/voice-protocol';
+import type { ServerToClientMessage } from '@voomate/core/voice-protocol';
 import { createSession, voiceSocketUrl, type AgentPresentation } from './api.js';
 import { VoiceConnection } from './voice/connection.js';
 import { CaptureError, MicrophoneCapture } from './voice/capture.js';

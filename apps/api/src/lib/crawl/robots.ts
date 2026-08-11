@@ -1,7 +1,7 @@
 /**
  * robots.txt parsing and rule matching.
  *
- * Obeying robots.txt is not optional politeness here. Soniq crawls a merchant's site on the
+ * Obeying robots.txt is not optional politeness here. Voomate crawls a merchant's site on the
  * merchant's instruction, but it crawls it from our IP range at our reputation — one customer
  * pointing us at a site with an aggressive WAF and no rate limit gets *every* customer's crawl
  * blocked. The file is also the cheapest possible signal about which paths are worth reading:

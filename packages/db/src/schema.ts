@@ -46,6 +46,10 @@ export const EMBEDDING_DIMENSIONS = 1024;
 export const orgRoleEnum = pgEnum('org_role', ['viewer', 'developer', 'admin', 'owner']);
 export const planTierEnum = pgEnum('plan_tier', ['free', 'starter', 'growth', 'enterprise']);
 export const agentStatusEnum = pgEnum('agent_status', ['draft', 'published', 'paused']);
+export const toolStatusEnum = pgEnum('tool_status', ['active', 'paused']);
+export const toolAuditStatusEnum = pgEnum('tool_audit_status', ['success', 'error', 'gated']);
+export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'denied']);
+export const integrationStatusEnum = pgEnum('integration_status', ['active', 'disconnected']);
 export const knowledgeSourceTypeEnum = pgEnum('knowledge_source_type', [
   'website',
   'document',
@@ -69,6 +73,18 @@ export const conversationStatusEnum = pgEnum('conversation_status', [
   'abandoned',
 ]);
 export const messageRoleEnum = pgEnum('message_role', ['visitor', 'agent', 'system']);
+/**
+ * `open` — asked, unanswered, nobody has looked at it yet.
+ * `drafted` — an answer has been written by the model and is waiting for a human.
+ * `answered` — approved and indexed; kept rather than deleted so the count survives.
+ * `dismissed` — not a question this merchant wants to answer. Stays, so it stops resurfacing.
+ */
+export const knowledgeGapStatusEnum = pgEnum('knowledge_gap_status', [
+  'open',
+  'drafted',
+  'answered',
+  'dismissed',
+]);
 export const usageKindEnum = pgEnum('usage_kind', [
   'voice_minutes',
   'text_messages',
@@ -131,7 +147,7 @@ export const organizationMembers = pgTable(
 /**
  * Config is stored as jsonb rather than columns because it's read as a unit, evolves fast
  * during Phases 2–4, and is validated by zod at the API boundary. The shapes are
- * `AgentLanguageConfig`, `AgentPersona` and `AgentAppearance` from `@soniq/core`.
+ * `AgentLanguageConfig`, `AgentPersona` and `AgentAppearance` from `@voomate/core`.
  */
 export const agents = pgTable(
   'agents',
@@ -168,6 +184,134 @@ export const agents = pgTable(
   (table) => [
     index('agents_organization_idx').on(table.organizationId),
     uniqueIndex('agents_embed_key_idx').on(table.embedKey),
+  ],
+);
+
+export const agentConnections = pgTable(
+  'agent_connections',
+  {
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    sourceAgentId: uuid('source_agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    targetAgentId: uuid('target_agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    /**
+     * Type of connection, e.g. "handoff", "knowledge_sync", "tool_delegation"
+     */
+    connectionType: text('connection_type').notNull().default('handoff'),
+    status: agentStatusEnum('status').notNull().default('published'),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.sourceAgentId, table.targetAgentId] }),
+    index('agent_connections_organization_idx').on(table.organizationId),
+    index('agent_connections_target_idx').on(table.targetAgentId),
+  ],
+);
+
+// --- Tools & Execution Harness ------------------------------------------------------------------
+
+export const agentActiveTools = pgTable(
+  'agent_active_tools',
+  {
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    /** The string name of the tool in the codebase registry, e.g. "check_order_status" */
+    toolName: text('tool_name').notNull(),
+    status: toolStatusEnum('status').notNull().default('active'),
+    /** Business-specific configuration for this tool, e.g. {"max_refund_limit": 5000} */
+    config: jsonb('config').notNull().default({}),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.agentId, table.toolName] }),
+    index('agent_active_tools_organization_idx').on(table.organizationId),
+  ],
+);
+
+export const toolAuditLogs = pgTable(
+  'tool_audit_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id').references(() => conversations.id, {
+      onDelete: 'cascade',
+    }),
+    toolName: text('tool_name').notNull(),
+    status: toolAuditStatusEnum('status').notNull(),
+    /** The inputs provided by the LLM */
+    inputs: jsonb('inputs').notNull(),
+    /** The actual output or error message returned from the tool */
+    result: jsonb('result'),
+    latencyMs: integer('latency_ms').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('tool_audit_logs_organization_idx').on(table.organizationId),
+    index('tool_audit_logs_conversation_idx').on(table.conversationId),
+  ],
+);
+
+export const organizationIntegrations = pgTable(
+  'organization_integrations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    /** e.g. "shopify", "calendly", "hubspot" */
+    provider: text('provider').notNull(),
+    /** Encrypted payload containing API keys, access tokens, etc. */
+    credentials: jsonb('credentials').notNull(),
+    status: integrationStatusEnum('status').notNull().default('active'),
+    ...timestamps,
+  },
+  (table) => [
+    index('org_integrations_org_idx').on(table.organizationId),
+    uniqueIndex('org_integrations_org_provider_idx').on(table.organizationId, table.provider),
+  ],
+);
+
+export const approvalRequests = pgTable(
+  'approval_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id').references(() => conversations.id, {
+      onDelete: 'cascade',
+    }),
+    /** The action or tool requested, e.g., 'refund' or 'cancel_order' */
+    actionName: text('action_name').notNull(),
+    /** The data required for the action (e.g. order_id, amount) */
+    payload: jsonb('payload').notNull(),
+    status: approvalStatusEnum('status').notNull().default('pending'),
+    /** A message explaining to the owner why this approval is needed */
+    reason: text('reason').notNull(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    resolvedBy: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+    ...timestamps,
+  },
+  (table) => [
+    index('approval_requests_org_idx').on(table.organizationId),
+    index('approval_requests_conv_idx').on(table.conversationId),
   ],
 );
 
@@ -347,20 +491,82 @@ export const messages = pgTable(
     content: text('content').notNull(),
     /** Per-message — a single session may contain several when code-switching. */
     language: text('language'),
-    /** `Citation[]` from @soniq/core. */
+    /** `Citation[]` from @voomate/core. */
     citations: jsonb('citations'),
     /**
      * True when the visitor barged in over this agent turn. `content` holds what was
      * actually heard, not what was generated — the visitor is responding to the former.
      */
     interrupted: boolean('interrupted').notNull().default(false),
-    /** `MessageLatency` from @soniq/core. Present on agent turns in voice conversations. */
+    /** `MessageLatency` from @voomate/core. Present on agent turns in voice conversations. */
     latency: jsonb('latency'),
+    /**
+     * `TurnGrounding` from @voomate/core: how well retrieval supported this answer, and which
+     * chunks it used. Agent turns only.
+     *
+     * This is the column Phase 4 learns from. Without it a stored transcript can say what the
+     * agent replied but not whether it had any business replying that.
+     */
+    grounding: jsonb('grounding'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index('messages_organization_idx').on(table.organizationId),
     index('messages_conversation_created_idx').on(table.conversationId, table.createdAt),
+  ],
+);
+
+/**
+ * Questions the agent could not answer, grouped.
+ *
+ * One row is one *thing people want to know*, not one asking of it — "do you ship to Canada?"
+ * and "can I get this in Canada" are the same row with `occurrences` of 2. Grouping happens on
+ * the embedding, because these are the same question in no shared words.
+ *
+ * The merchant's queue is this table ordered by `occurrences` descending: the questions real
+ * visitors asked and did not get an answer to, most-wanted first.
+ */
+export const knowledgeGaps = pgTable(
+  'knowledge_gaps',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+
+    /**
+     * UNTRUSTED. The first asking, verbatim — not a summary. A merchant needs to see the
+     * awkward real phrasing, because that is what tells them what people actually mean.
+     */
+    question: text('question').notNull(),
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }).notNull(),
+    language: text('language'),
+
+    /** UNTRUSTED. Later phrasings of the same question, capped. Evidence, not training data. */
+    variants: jsonb('variants').notNull().default([]),
+    occurrences: integer('occurrences').notNull().default(1),
+
+    status: knowledgeGapStatusEnum('status').notNull().default('open'),
+    /** Model-written, never used until a human approves it. */
+    draftAnswer: text('draft_answer'),
+    /** The Q&A document created when the merchant approved an answer. */
+    resolvedDocumentId: uuid('resolved_document_id').references(() => knowledgeDocuments.id, {
+      onDelete: 'set null',
+    }),
+
+    firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('knowledge_gaps_organization_idx').on(table.organizationId),
+    // The queue query: this agent's open gaps, most-asked first.
+    index('knowledge_gaps_agent_status_idx').on(table.agentId, table.status, table.occurrences),
+    // No HNSW index here on purpose. Matching a new gap against existing ones scans one
+    // agent's gaps, which is hundreds of rows, not millions — an approximate index would add
+    // build cost and recall risk to a query that is already fast.
   ],
 );
 
@@ -513,4 +719,7 @@ export const TENANT_SCOPED_TABLES = [
   'usage_records',
   'audit_logs',
   'organization_members',
+  'agent_active_tools',
+  'tool_audit_logs',
+  'organization_integrations',
 ] as const;

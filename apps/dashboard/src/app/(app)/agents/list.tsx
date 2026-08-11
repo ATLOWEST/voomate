@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { Agent } from '@soniq/core';
+import type { Agent } from '@voomate/core';
 import { PageBody, PageHeader } from '@/components/shell/page-header';
 import { Badge, StatusDot } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

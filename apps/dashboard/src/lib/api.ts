@@ -9,7 +9,7 @@
  *  2. Nothing here ever sees the Supabase service-role key. This code runs in the browser.
  *     The only credential it holds is the user's own access token.
  */
-import { type ErrorResponse } from '@soniq/core';
+import { type ErrorResponse } from '@voomate/core';
 
 /**
  * Exported because the playground bypasses `call()` — it needs a streaming response body,

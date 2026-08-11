@@ -18,8 +18,8 @@
 export const WIDGET_PROTOCOL_VERSION = 1;
 
 /** Discriminators — distinguishes our traffic from every other postMessage on the page. */
-export const HOST_SOURCE = 'soniq-host' as const;
-export const FRAME_SOURCE = 'soniq-frame' as const;
+export const HOST_SOURCE = 'voomate-host' as const;
+export const FRAME_SOURCE = 'voomate-frame' as const;
 
 // --- Host page → iframe ------------------------------------------------------------------
 

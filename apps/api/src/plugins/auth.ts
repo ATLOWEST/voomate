@@ -7,7 +7,7 @@
  *   `requireTenant` — proves which organization you're acting in, and with what role.
  *
  * Authentication alone grants nothing. Every tenant-scoped route needs both, and the
- * resulting `TenantContext` is what repositories require — see `tenantScope` in @soniq/db.
+ * resulting `TenantContext` is what repositories require — see `tenantScope` in @voomate/db.
  */
 import {
   OrgRole,
@@ -18,8 +18,8 @@ import {
   type OrganizationId,
   type TenantContext,
   type UserId,
-} from '@soniq/core';
-import { organizationMembers, schema } from '@soniq/db';
+} from '@voomate/core';
+import { organizationMembers, schema } from '@voomate/db';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';

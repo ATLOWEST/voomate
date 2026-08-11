@@ -24,12 +24,12 @@ export default async function SignInPage() {
               />
             </svg>
           </div>
-          <span className="text-lg font-semibold tracking-[-0.02em]">Soniq</span>
+          <span className="text-lg font-semibold tracking-[-0.02em]">Voomate</span>
         </div>
 
         <h1 className="text-xl font-semibold tracking-[-0.02em]">Sign in</h1>
         <p className="mt-1.5 text-[13px] leading-relaxed text-secondary">
-          Use the email and password for your Soniq account.
+          Use the email and password for your Voomate account.
         </p>
 
         <SignInForm />

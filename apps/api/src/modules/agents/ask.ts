@@ -23,14 +23,14 @@ import {
   uuidSchema,
   type AgentLanguageConfig,
   type AgentPersona,
-} from '@soniq/core';
-import { agents, tenantScope } from '@soniq/db';
+} from '@voomate/core';
+import { agents, tenantScope } from '@voomate/db';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { getDb } from '../../lib/db.js';
 import { tenantOf } from '../../plugins/auth.js';
-import { answerQuestion, type AnswerResult } from '../../lib/answer.js';
+import { answer, type AnswerResult, type AnswerChunk } from '../../lib/answer.js';
 
 const params = z.object({ id: uuidSchema });
 
@@ -102,7 +102,7 @@ export const askRoutes: FastifyPluginAsync = async (app) => {
       const wantsStream = (request.headers.accept ?? '').includes('text/event-stream');
 
       if (!wantsStream) {
-        const result = await answerQuestion(common);
+        const result = await answer(common);
         return toJson(result);
       }
 
@@ -124,9 +124,12 @@ export const askRoutes: FastifyPluginAsync = async (app) => {
       });
 
       try {
-        const result = await answerQuestion({ ...common, signal: controller.signal }, (chunk) => {
-          send(reply, 'delta', { text: chunk.delta });
-        });
+        const result = await answer(
+          { ...common, signal: controller.signal },
+          (chunk: AnswerChunk) => {
+            send(reply, 'delta', { text: chunk.delta });
+          },
+        );
         send(reply, 'done', toJson(result));
       } catch (error) {
         // The stream is already open with a 200, so the error handler cannot turn this into a

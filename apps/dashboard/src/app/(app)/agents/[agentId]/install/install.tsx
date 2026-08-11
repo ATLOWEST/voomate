@@ -7,7 +7,7 @@
  * package — a developer should be able to paste it into a CMS footer field and be done.
  */
 import { useState } from 'react';
-import type { Agent } from '@soniq/core';
+import type { Agent } from '@voomate/core';
 import { useAgent } from '@/components/agent/shell';
 import { PageBody } from '@/components/shell/page-header';
 import { Button } from '@/components/ui/button';
@@ -17,15 +17,15 @@ import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
 import { api } from '@/lib/api';
 import { useApiAction } from '@/lib/hooks';
 
-const WIDGET_SRC = process.env.NEXT_PUBLIC_WIDGET_URL ?? 'https://cdn.soniq.example/soniq.js';
+const WIDGET_SRC = process.env.NEXT_PUBLIC_WIDGET_URL ?? 'https://cdn.voomate.example/voomate.js';
 
 export function InstallPanels() {
   const { agent, refresh } = useAgent();
 
   const snippet = `<script
   src="${WIDGET_SRC}"
-  data-soniq-key="${agent.embedKey}"
-  data-soniq-position="${agent.appearance.position}"
+  data-voomate-key="${agent.embedKey}"
+  data-voomate-position="${agent.appearance.position}"
   async
 ></script>`;
 

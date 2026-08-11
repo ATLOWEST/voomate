@@ -26,9 +26,9 @@ import {
   VOICE_PROTOCOL_VERSION,
   type AgentLanguageConfig,
   type AgentPersona,
-} from '@soniq/core';
-import { agents } from '@soniq/db';
-import { buildTranscribeConfig, type SttLanguageCode } from '@soniq/i18n';
+} from '@voomate/core';
+import { agents } from '@voomate/db';
+import { buildTranscribeConfig, type SttLanguageCode } from '@voomate/i18n';
 import { eq } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import type { WebSocket } from 'ws';

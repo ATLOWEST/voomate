@@ -1,18 +1,18 @@
-# @soniq/infra
+# @voomate/infra
 
 AWS CDK definitions. **Written, not deployed** — Phase 0 defines the infrastructure so that
 connecting services in Phase 1 is a `cdk deploy`, not a design exercise.
 
 ```
-bin/soniq.ts          app entry — resolves stage, wires stacks
+bin/voomate.ts          app entry — resolves stage, wires stacks
 lib/config.ts         per-stage config; the region constraint lives here
 lib/storage-stack.ts  S3: crawl archive, widget assets
 lib/runtime-stack.ts  the IAM role the control-plane API runs as
 ```
 
 ```bash
-npm run synth --workspace @soniq/infra              # dev
-npx cdk synth -c stage=prod --workspace @soniq/infra
+npm run synth --workspace @voomate/infra              # dev
+npx cdk synth -c stage=prod --workspace @voomate/infra
 ```
 
 `synth` needs no AWS credentials. `deploy` does, and there are none in this repo by design.

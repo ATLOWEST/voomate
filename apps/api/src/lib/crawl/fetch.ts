@@ -16,7 +16,7 @@ import { assertCrawlableUrl } from '../url-guard.js';
 import { USER_AGENT_TOKEN } from './robots.js';
 
 /** Identifies us honestly and points at a page explaining what we are. Site owners check. */
-export const CRAWLER_USER_AGENT = `Mozilla/5.0 (compatible; ${USER_AGENT_TOKEN}/1.0; +https://soniq.example/bot)`;
+export const CRAWLER_USER_AGENT = `Mozilla/5.0 (compatible; ${USER_AGENT_TOKEN}/1.0; +https://voomate.example/bot)`;
 
 /**
  * Content types worth parsing.

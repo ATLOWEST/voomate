@@ -241,6 +241,28 @@ create policy api_keys_write_admin on public.api_keys
   for all using (public.user_has_role(organization_id, 'admin'))
   with check (public.user_has_role(organization_id, 'admin'));
 
+-- approval_requests — read for any member, write for developer and above.
+alter table public.approval_requests enable row level security;
+alter table public.approval_requests force row level security;
+
+create policy approval_requests_select on public.approval_requests
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy approval_requests_write on public.approval_requests
+  for all using (public.user_has_role(organization_id, 'developer'))
+  with check (public.user_has_role(organization_id, 'developer'));
+
+-- agent_connections — readable by all members, writable by developers/admins
+alter table public.agent_connections enable row level security;
+alter table public.agent_connections force row level security;
+
+create policy agent_connections_select on public.agent_connections
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy agent_connections_write on public.agent_connections
+  for all using (public.user_has_role(organization_id, 'developer'))
+  with check (public.user_has_role(organization_id, 'developer'));
+
 -- usage_records — read-only to members. Written exclusively by the API.
 alter table public.usage_records enable row level security;
 alter table public.usage_records force row level security;

@@ -1,116 +1,193 @@
 'use client';
 
+import type { ElementType, MouseEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import {
+  Activity,
+  Bot,
+  Blocks,
+  FileCheck2,
+  Home,
+  Inbox,
+  Radio,
+  Search,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  Waypoints,
+} from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: ReactNode;
+type NavItem = {
+  title: string;
+  href?: string;
+  icon: ElementType;
+  shortcut?: string;
+  onClick?: () => void;
+};
+type NavGroup = { label?: string; items: NavItem[] };
+
+function navGroups(onSearchClick: () => void): NavGroup[] {
+  return [
+    {
+      items: [
+        { title: 'Overview', href: '/', icon: Home },
+        { title: 'Search', icon: Search, shortcut: '⌘ K', onClick: onSearchClick },
+      ],
+    },
+    {
+      label: 'Build',
+      items: [
+        { title: 'Agents', href: '/agents', icon: Bot },
+        { title: 'Connect', href: '/integrations', icon: Blocks },
+      ],
+    },
+    {
+      label: 'Operate',
+      items: [
+        { title: 'Conversations', href: '/conversations', icon: Inbox },
+        { title: 'Approvals', href: '/approvals', icon: ShieldCheck },
+        { title: 'Usage', href: '/usage', icon: Activity },
+      ],
+    },
+  ];
 }
 
-const icon = (path: string) => (
-  <svg viewBox="0 0 20 20" fill="none" className="size-[18px] shrink-0" aria-hidden="true">
-    <path
-      d={path}
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const ITEMS: NavItem[] = [
-  {
-    href: '/agents',
-    label: 'Agents',
-    icon: icon('M10 2.5v6M7 5.5a3 3 0 1 0 6 0M4.5 17.5v-2a5.5 5.5 0 0 1 11 0v2'),
-  },
-  {
-    href: '/conversations',
-    label: 'Conversations',
-    icon: icon(
-      'M3 6.5A2.5 2.5 0 0 1 5.5 4h9A2.5 2.5 0 0 1 17 6.5v5a2.5 2.5 0 0 1-2.5 2.5H8l-4 3v-3H5.5',
-    ),
-  },
-  { href: '/usage', label: 'Usage', icon: icon('M4 16V9M8 16V5M12 16v-4M16 16v-8') },
-  {
-    href: '/settings',
-    label: 'Settings',
-    icon: icon(
-      'M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M15.3 4.7l-1.4 1.4M6.1 13.9l-1.4 1.4',
-    ),
-  },
-];
-
-export function SidebarNav() {
-  const pathname = usePathname();
-
+function Item({ item, pathname }: { item: NavItem; pathname: string }) {
+  const active =
+    item.href !== undefined &&
+    (pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`)));
+  const className = cn(
+    'group flex min-h-10 items-center justify-between rounded-lg px-3 text-[13px] font-medium transition-colors',
+    active
+      ? 'bg-ink-100 text-foreground dark:bg-ink-800'
+      : 'text-muted-foreground hover:bg-ink-100/80 hover:text-foreground dark:hover:bg-ink-800/70',
+  );
+  const content = (
+    <>
+      <span className="flex items-center gap-2.5">
+        <item.icon
+          className={cn(
+            'size-4',
+            active ? 'text-accent-600' : 'text-muted-foreground group-hover:text-foreground',
+          )}
+          strokeWidth={active ? 2 : 1.75}
+        />
+        {item.title}
+      </span>
+      {item.shortcut && (
+        <kbd className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground opacity-0 transition group-hover:opacity-100">
+          {item.shortcut}
+        </kbd>
+      )}
+    </>
+  );
+  if (item.href)
+    return (
+      <Link href={item.href} className={className}>
+        {content}
+      </Link>
+    );
   return (
-    <nav className="space-y-0.5" aria-label="Main">
-      {ITEMS.map((item) => {
-        // Prefix match so /agents/abc/knowledge keeps "Agents" lit. Exact match would leave
-        // the sidebar with nothing selected on every detail page.
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? 'page' : undefined}
-            className={cn(
-              'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium',
-              'transition-colors duration-100',
-              active
-                ? 'bg-[var(--surface-hover)] text-[var(--text-primary)]'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]',
-            )}
-          >
-            {item.icon}
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <button
+      type="button"
+      onClick={(event: MouseEvent) => {
+        event.preventDefault();
+        item.onClick?.();
+      }}
+      className={cn(className, 'w-full')}
+    >
+      {content}
+    </button>
   );
 }
 
-/**
- * Agent-scoped tabs. Separate from the sidebar because they navigate within one agent —
- * mixing the two levels in one list is the fastest way to make a dashboard feel confusing.
- */
+export function SidebarNav({
+  className,
+  onSearchClick,
+}: {
+  className?: string;
+  onSearchClick: () => void;
+}) {
+  const pathname = usePathname();
+  return (
+    <aside
+      className={cn('flex h-full flex-col border-r border-border bg-card px-3 py-4', className)}
+    >
+      <Link href="/" className="mb-7 flex items-center gap-2.5 px-2.5">
+        <span className="ember-mark flex size-8 items-center justify-center rounded-lg text-white">
+          <Waypoints className="size-[18px]" strokeWidth={2.2} />
+        </span>
+        <span className="text-[17px] font-semibold tracking-[-0.04em] text-foreground">
+          Voomate
+        </span>
+      </Link>
+      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto">
+        {navGroups(onSearchClick).map((group) => (
+          <div key={group.label ?? 'main'}>
+            <p
+              className={cn(
+                'mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground',
+                !group.label && 'sr-only',
+              )}
+            >
+              {group.label ?? 'Main navigation'}
+            </p>
+            <div className="space-y-1">
+              {group.items.map((item) => (
+                <Item item={item} pathname={pathname} key={item.title} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
+      <div className="mt-4 border-t border-border pt-3">
+        <Link
+          href="/settings"
+          className="group flex min-h-10 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium text-muted-foreground transition hover:bg-ink-100 hover:text-foreground dark:hover:bg-ink-800"
+        >
+          <Settings2 className="size-4" />
+          Workspace settings
+        </Link>
+        <Link
+          href="/agents"
+          className="mt-2 flex items-center gap-2 rounded-lg bg-accent-50 px-3 py-2.5 text-xs font-medium text-accent-700 dark:bg-accent-950/50 dark:text-accent-200"
+        >
+          <Sparkles className="size-4" />
+          Build your AI team
+        </Link>
+      </div>
+    </aside>
+  );
+}
+
 export function AgentTabs({ agentId }: { agentId: string }) {
   const pathname = usePathname();
   const base = `/agents/${agentId}`;
-
   const tabs = [
     { href: base, label: 'Overview' },
     { href: `${base}/knowledge`, label: 'Knowledge' },
-    // Sits next to Knowledge on purpose: adding content and testing whether it worked is one
-    // loop, and a merchant runs it a dozen times before publishing.
-    { href: `${base}/playground`, label: 'Playground' },
-    { href: `${base}/voice`, label: 'Voice & Languages' },
-    { href: `${base}/behaviour`, label: 'Behaviour' },
-    { href: `${base}/install`, label: 'Install' },
+    { href: `${base}/configuration`, label: 'Configure' },
+    { href: `${base}/playground`, label: 'Test' },
+    { href: `${base}/conversations`, label: 'Conversations' },
+    { href: `${base}/install`, label: 'Deploy' },
   ];
-
   return (
-    <div className="border-b border-[var(--border-default)]">
-      <nav className="-mb-px flex gap-1 overflow-x-auto px-6" aria-label="Agent sections">
+    <div className="border-b border-border">
+      <nav className="mx-auto flex max-w-[1440px] gap-1 overflow-x-auto px-5 sm:px-8 lg:px-10">
         {tabs.map((tab) => {
           const active = pathname === tab.href;
           return (
             <Link
-              key={tab.href}
               href={tab.href}
+              key={tab.href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'border-b-2 px-3 py-2.5 text-[13.5px] font-medium whitespace-nowrap transition-colors',
+                'whitespace-nowrap border-b-2 px-3 py-3 text-[13px] font-medium transition-colors',
                 active
-                  ? 'border-accent-600 text-[var(--text-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]',
+                  ? 'border-accent-600 text-foreground'
+                  : 'border-transparent text-muted-foreground hover:border-ink-300 hover:text-foreground dark:hover:border-ink-700',
               )}
             >
               {tab.label}

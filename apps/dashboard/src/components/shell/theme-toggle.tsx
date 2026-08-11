@@ -16,7 +16,7 @@ export function ThemeToggle() {
     setDark(next);
     document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
     try {
-      localStorage.setItem('soniq-theme', next ? 'dark' : 'light');
+      localStorage.setItem('voomate-theme', next ? 'dark' : 'light');
     } catch {
       // Private browsing with storage disabled. The theme still applies for this session.
     }

@@ -54,7 +54,7 @@ const config: NextConfig = {
   turbopack: { root: repoRoot },
   // The workspace packages ship TypeScript source, not built JS. Next compiles them itself
   // so we don't need a build step in the dependency graph during development.
-  transpilePackages: ['@soniq/core', '@soniq/i18n'],
+  transpilePackages: ['@voomate/core', '@voomate/i18n'],
   async headers() {
     return [
       {

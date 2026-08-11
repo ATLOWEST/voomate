@@ -21,9 +21,9 @@ import {
   type AgentLanguageConfig,
   type AgentPersona,
   type OrganizationId,
-} from '@soniq/core';
-import { agents } from '@soniq/db';
-import { buildTranscribeConfig, findBilingualVoice, resolveVoice } from '@soniq/i18n';
+} from '@voomate/core';
+import { agents } from '@voomate/db';
+import { buildTranscribeConfig, findBilingualVoice, resolveVoice } from '@voomate/i18n';
 import { eq } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { getDb } from '../../lib/db.js';

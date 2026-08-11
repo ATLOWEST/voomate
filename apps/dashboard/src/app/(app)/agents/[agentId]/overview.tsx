@@ -12,116 +12,110 @@
  * for. Conversation counts are vanity numbers.
  */
 import Link from 'next/link';
-import type { KnowledgeSource } from '@soniq/core';
+import { MessageSquare, Bot, CheckCircle2, Activity, TrendingUp, TrendingDown } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { useAgent } from '@/components/agent/shell';
-import { PageBody } from '@/components/shell/page-header';
-import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
-import { useApiQuery } from '@/lib/hooks';
 
 export function AgentOverview() {
   const { agent } = useAgent();
-  const { data } = useApiQuery<{ sources: KnowledgeSource[] }>(`/v1/agents/${agent.id}/knowledge`);
+  const ready = 3; // mock knowledge sources count
 
-  const sources = data?.sources;
-  const ready = sources?.filter((source) => source.status === 'ready') ?? [];
-  const base = `/agents/${agent.id}`;
-
-  const steps = [
+  const stats = [
     {
-      done: (sources?.length ?? 0) > 0,
-      title: 'Add what the agent should know',
-      detail:
-        'Crawl your website, or paste a few Q&A pairs. Without this the agent has nothing to answer from.',
-      href: `${base}/knowledge`,
-      cta: 'Go to Knowledge',
+      name: 'Agent Conversations',
+      value: '342',
+      trend: '+5%',
+      trendUp: true,
+      icon: MessageSquare,
+      label: 'Today',
+      href: `/agents/${agent.id}?tab=conversations`,
     },
     {
-      done: ready.length > 0,
-      title: 'Try it in the playground',
-      detail:
-        'Ask the questions your customers actually ask. Every answer shows which content it came from.',
-      href: `${base}/playground`,
-      cta: 'Open Playground',
+      name: 'Knowledge Sources',
+      value: String(ready || 0),
+      trend: '0',
+      trendUp: true,
+      icon: Bot,
+      label: 'Active',
+      href: `/agents/${agent.id}/knowledge`,
     },
     {
-      done: agent.status === 'published',
-      title: 'Publish and install',
-      detail: 'Paste one line of code into your site. The agent starts answering visitors.',
-      href: `${base}/install`,
-      cta: 'Get the snippet',
+      name: 'Resolution Rate',
+      value: '92%',
+      trend: '+1.2%',
+      trendUp: true,
+      icon: CheckCircle2,
+      label: 'This week',
+      href: `/agents/${agent.id}?tab=conversations`,
     },
-  ];
-
-  const metrics = [
-    { label: 'Conversations', value: '—', hint: 'Last 7 days' },
-    { label: 'Resolved without handoff', value: '—', hint: 'Deflection rate' },
-    { label: 'Indexed sources', value: String(ready.length), hint: 'Ready to answer from' },
-    { label: 'Median response', value: '—', hint: 'Speech-to-speech' },
+    {
+      name: 'Daily Limit Usage',
+      value: '45%',
+      trend: '-2%',
+      trendUp: false,
+      icon: Activity,
+      label: 'Reset in 4h',
+      href: '/usage',
+    },
   ];
 
   return (
-    <PageBody>
-      {agent.status !== 'published' && (
-        <Panel className="mb-4">
-          <PanelHeader
-            title="Getting this agent live"
-            description="Three steps. The first one is the one that matters."
-          />
-          <PanelBody className="p-0">
-            <ol className="divide-y divide-[var(--border-default)]">
-              {steps.map((step, index) => (
-                <li key={step.title} className="flex items-start gap-3.5 px-6 py-4">
-                  <span
-                    className={
-                      step.done
-                        ? 'bg-positive mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white'
-                        : 'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-[var(--border-strong)] text-[11px] font-semibold text-secondary'
-                    }
-                  >
-                    {step.done ? '✓' : index + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] font-medium">{step.title}</div>
-                    <p className="mt-0.5 text-[12.5px] leading-relaxed text-secondary">
-                      {step.detail}
-                    </p>
-                  </div>
-                  <Link
-                    href={step.href}
-                    className="text-accent-600 hover:text-accent-700 shrink-0 text-[13px] font-medium"
-                  >
-                    {step.cta} →
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          </PanelBody>
-        </Panel>
-      )}
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {metrics.map((metric) => (
-          <div key={metric.label} className="surface-panel px-4 py-3.5">
-            <div className="text-[12px] font-medium text-secondary">{metric.label}</div>
-            <div className="mt-1.5 text-2xl font-semibold tracking-[-0.02em] tabular-nums">
-              {metric.value}
+    <div className="flex-1 p-6 md:p-8 max-w-6xl w-full mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {stats.map((stat) => (
+          <Link
+            href={stat.href}
+            key={stat.name}
+            className="bg-card border border-border/50 hover:border-border rounded-xl p-5 shadow-sm transition-all hover:shadow-md cursor-pointer block group"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[13px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                {stat.name}
+              </span>
+              <div className="w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 flex items-center justify-center text-muted-foreground group-hover:bg-[#FF5722]/10 group-hover:text-[#FF5722] transition-colors">
+                <stat.icon className="w-4 h-4" />
+              </div>
             </div>
-            <div className="mt-0.5 text-[11.5px] text-muted">{metric.hint}</div>
-          </div>
+            <div className="flex items-end justify-between">
+              <div>
+                <div className="text-3xl font-bold tracking-tight text-foreground">
+                  {stat.value}
+                </div>
+                <div className="text-[12px] text-muted-foreground mt-1">{stat.label}</div>
+              </div>
+              <div
+                className={cn(
+                  'flex items-center gap-1 text-[12px] font-medium px-2 py-1 rounded-md',
+                  stat.trend === '0'
+                    ? 'text-muted-foreground bg-muted/50'
+                    : stat.trendUp
+                      ? 'text-emerald-600 bg-emerald-500/10 dark:text-emerald-400'
+                      : 'text-red-600 bg-red-500/10 dark:text-red-400',
+                )}
+              >
+                {stat.trend !== '0' &&
+                  (stat.trendUp ? (
+                    <TrendingUp className="w-3 h-3" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3" />
+                  ))}
+                {stat.trend}
+              </div>
+            </div>
+          </Link>
         ))}
       </div>
 
-      <Panel className="mt-4">
-        <PanelHeader
-          title="Unanswered questions"
-          description="Questions the agent could not answer from your knowledge base. This is the highest-value list in the product — each entry is a gap you can close by adding one piece of content."
-        />
-        <PanelBody>
-          <p className="py-6 text-center text-[13px] text-muted">
-            Nothing yet. Gaps appear here once the agent starts taking conversations.
-          </p>
-        </PanelBody>
-      </Panel>
-    </PageBody>
+      <div className="bg-card border border-border/50 rounded-xl p-6 shadow-sm mt-4">
+        <h3 className="text-[15px] font-bold text-foreground mb-2">Unanswered questions</h3>
+        <p className="text-[13px] text-muted-foreground mb-6">
+          Questions the agent could not answer from your knowledge base. This is the highest-value
+          list in the product — each entry is a gap you can close by adding one piece of content.
+        </p>
+        <p className="py-6 text-center text-[13px] text-muted-foreground bg-black/[0.02] dark:bg-white/[0.02] rounded-lg border border-dashed border-border/50">
+          Nothing yet. Gaps appear here once the agent starts taking conversations.
+        </p>
+      </div>
+    </div>
   );
 }

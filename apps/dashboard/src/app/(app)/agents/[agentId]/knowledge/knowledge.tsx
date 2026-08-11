@@ -11,7 +11,7 @@
  * no idea whether to wait or refresh, will assume the product is broken.
  */
 import { useState } from 'react';
-import type { KnowledgeSource } from '@soniq/core';
+import type { KnowledgeSource } from '@voomate/core';
 import { useAgent } from '@/components/agent/shell';
 import { PageBody } from '@/components/shell/page-header';
 import { Badge } from '@/components/ui/badge';

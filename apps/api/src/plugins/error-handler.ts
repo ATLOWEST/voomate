@@ -5,7 +5,7 @@
  * database errors, stack traces, or upstream AWS messages — those are logged, and the client
  * receives a stable error code plus a safe message.
  */
-import { AppError, ErrorCode, type ErrorResponse } from '@soniq/core';
+import { AppError, ErrorCode, type ErrorResponse } from '@voomate/core';
 import type { FastifyError, FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { ZodError } from 'zod';

@@ -1,5 +1,5 @@
 {
-  "extends": "@soniq/config/tsconfig.react.json",
+  "extends": "@voomate/config/tsconfig.react.json",
   "compilerOptions": {
     "types": ["vite/client"]
   },

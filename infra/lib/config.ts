@@ -29,13 +29,13 @@ export const STAGES: Record<string, StageConfig> = {
   dev: {
     stage: 'dev',
     region: 'us-east-1',
-    widgetDomain: 'widget.dev.soniq.example',
+    widgetDomain: 'widget.dev.voomate.example',
     retainData: false,
   },
   prod: {
     stage: 'prod',
     region: 'us-east-1',
-    widgetDomain: 'widget.soniq.example',
+    widgetDomain: 'widget.voomate.example',
     retainData: true,
   },
 };

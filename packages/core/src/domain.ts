@@ -2,10 +2,10 @@
  * Domain model.
  *
  * The shapes every workspace agrees on. Persistence-agnostic — the database schema in
- * `@soniq/db` maps onto these, but these types stay free of Drizzle or Postgres concepts so
+ * `@voomate/db` maps onto these, but these types stay free of Drizzle or Postgres concepts so
  * the dashboard and widget can import them without pulling in a database driver.
  */
-import type { SttLanguageCode, VoiceTier } from '@soniq/i18n';
+import type { SttLanguageCode, VoiceTier } from '@voomate/i18n';
 import type {
   AgentId,
   ConversationId,
@@ -84,7 +84,7 @@ export const AgentStatus = {
 export type AgentStatus = (typeof AgentStatus)[keyof typeof AgentStatus];
 
 export interface AgentLanguageConfig {
-  /** Candidate set. Max 4, one dialect per base language — see @soniq/i18n. */
+  /** Candidate set. Max 4, one dialect per base language — see @voomate/i18n. */
   languages: readonly SttLanguageCode[];
   /** Default and fallback. Must be a member of `languages`. */
   primaryLanguage: SttLanguageCode;
@@ -257,7 +257,28 @@ export interface Message {
   interrupted?: boolean;
   /** Per-stage latency in ms. Present on agent turns in voice conversations. */
   latency?: MessageLatency;
+  /** How well the merchant's content supported this answer. Agent turns only. */
+  grounding?: TurnGrounding;
   createdAt: string;
+}
+
+/**
+ * How well the merchant's own content supported an answer.
+ *
+ * Recorded per agent turn. This is what makes a stored transcript useful for more than reading
+ * back: it separates "answered from the site" from "answered from the model's imagination",
+ * which are indistinguishable in the text itself and are the difference between a good agent
+ * and a lawsuit.
+ */
+export interface TurnGrounding {
+  /** Similarity of the best retrieved chunk, 0..1. Absent when retrieval returned nothing. */
+  topSimilarity?: number;
+  /** How many chunks cleared the similarity floor. */
+  sourceCount: number;
+  /** Documents actually cited in the answer. Feeds per-source usefulness. */
+  citedDocumentIds: readonly KnowledgeDocumentId[];
+  /** True when retrieval found nothing at all — the corpus is thin, not the question strange. */
+  ungrounded: boolean;
 }
 
 export interface MessageLatency {

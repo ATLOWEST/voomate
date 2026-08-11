@@ -34,7 +34,7 @@ import {
   type OutputFormat,
   type VoiceId,
 } from '@aws-sdk/client-polly';
-import { VOICE_SAMPLE_RATE, internal } from '@soniq/core';
+import { VOICE_SAMPLE_RATE, internal } from '@voomate/core';
 import {
   findBilingualVoice,
   getLanguage,
@@ -44,7 +44,7 @@ import {
   type ResolvedVoice,
   type SttLanguageCode,
   type VoiceTier,
-} from '@soniq/i18n';
+} from '@voomate/i18n';
 import { getAwsConfig } from '../../config.js';
 
 let client: PollyClient | undefined;

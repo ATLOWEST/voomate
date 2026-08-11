@@ -13,7 +13,7 @@ import {
   InvokeModelCommand,
   ThrottlingException,
 } from '@aws-sdk/client-bedrock-runtime';
-import { internal } from '@soniq/core';
+import { internal } from '@voomate/core';
 import { getAwsConfig } from '../config.js';
 
 /**

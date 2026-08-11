@@ -5,7 +5,7 @@
  * What is exercised is the part that only exists here: who is allowed to open a voice session,
  * and whether a refused one leaves anything running.
  */
-import type { AgentId, OrganizationId, ServerToClientMessage } from '@soniq/core';
+import type { AgentId, OrganizationId, ServerToClientMessage } from '@voomate/core';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
@@ -13,7 +13,7 @@ import { WebSocket } from 'ws';
 const SECRET = 'a-test-secret-that-is-at-least-32-characters-long';
 process.env['WIDGET_TOKEN_SECRET'] = SECRET;
 process.env['WIDGET_TOKEN_TTL_SECONDS'] = '900';
-process.env['WIDGET_ORIGIN'] = 'https://widget.soniq.local';
+process.env['WIDGET_ORIGIN'] = 'https://widget.voomate.local';
 
 const ORIGIN = 'https://shop.example.com';
 
