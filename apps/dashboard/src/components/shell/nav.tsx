@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Sparkles,
   Waypoints,
+  MessageSquareText,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -47,6 +48,7 @@ function navGroups(onSearchClick: () => void): NavGroup[] {
       label: 'Operate',
       items: [
         { title: 'Conversations', href: '/conversations', icon: Inbox },
+        { title: 'Feedback', href: '/feedback', icon: MessageSquareText },
         { title: 'Approvals', href: '/approvals', icon: ShieldCheck },
         { title: 'Usage', href: '/usage', icon: Activity },
       ],
