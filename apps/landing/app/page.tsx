@@ -9,6 +9,7 @@ import { IndustriesSlideshow } from '@/components/sections/industries-slideshow'
 import { IntegrationsSection } from '@/components/sections/integrations';
 import { TestimonialsSection } from '@/components/sections/testimonials';
 import { CTASection } from '@/components/sections/cta-banner';
+import { ShaderBackground } from '@/components/ui/shader-bg';
 
 export const metadata: Metadata = {
   title: 'Voomate — AI Virtual Shopkeeper for Merchants',
@@ -34,7 +35,10 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className="site-canvas relative min-h-screen">
+    <div className="relative min-h-screen">
+      <div className="pointer-events-none fixed inset-0 z-[-1]" style={{ opacity: 0.8 }}>
+        <ShaderBackground className="h-full w-full" />
+      </div>
       <Navbar />
       <main>
         {/* S1 — Hero + Trusted-by strip */}

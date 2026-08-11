@@ -13,7 +13,6 @@ const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden pb-20 pt-36 sm:pb-28 lg:pb-32 lg:pt-44">
-      <div className="hero-ember absolute -right-40 top-8 size-[34rem] rounded-full" />
       <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 lg:grid-cols-[1.04fr_.96fr] lg:px-8">
         <div className="max-w-2xl">
           <p className="badge-ember animate-fade">

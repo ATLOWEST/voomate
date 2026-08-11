@@ -61,51 +61,6 @@ body {
   overflow-x: hidden;
 }
 
-/* A quiet, stable paper field. The ember texture is intentionally local rather than a
-   moving full-page effect, so content retains contrast and the page can breathe. */
-.site-canvas {
-  isolation: isolate;
-  background: linear-gradient(180deg, #fffdf9 0%, #fffaf4 28%, #fffdf9 62%, #fdf6ed 100%);
-}
-.site-canvas::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.45;
-  background-image: radial-gradient(rgba(92, 74, 56, 0.14) 0.55px, transparent 0.7px);
-  background-size: 8px 8px;
-  mask-image: linear-gradient(to bottom, black 0%, transparent 32%, transparent 70%, black 100%);
-}
-.site-canvas::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  right: -18rem;
-  top: 5rem;
-  width: 48rem;
-  height: 48rem;
-  border-radius: 999px;
-  pointer-events: none;
-  background: radial-gradient(
-    circle,
-    rgba(232, 89, 12, 0.13) 0%,
-    rgba(255, 203, 153, 0.16) 34%,
-    transparent 69%
-  );
-  filter: blur(12px);
-}
-.hero-ember {
-  background: radial-gradient(
-    circle at 44% 44%,
-    rgba(232, 89, 12, 0.2),
-    rgba(255, 168, 92, 0.14) 30%,
-    transparent 70%
-  );
-  filter: blur(10px);
-  pointer-events: none;
-}
 .operation-window {
   overflow: hidden;
   border: 1px solid rgba(234, 217, 196, 0.95);
