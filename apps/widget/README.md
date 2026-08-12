@@ -1,5 +1,8 @@
 # @voomate/widget
 
+> Legacy implementation. ADR 0003 was superseded on 2026-08-11; the production Web Component
+> now lives at `apps/dashboard/public/embed.js` and lazy-loads `embed/v1/widget.js`.
+
 Two separately-built artifacts with very different constraints.
 
 | | Runs on | Budget | Contains |

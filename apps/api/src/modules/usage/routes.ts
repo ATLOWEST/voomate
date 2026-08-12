@@ -51,6 +51,9 @@ export const usageRoutes: FastifyPluginAsync = async (app) => {
       pagesCrawled: summary['pages_crawled'] ?? 0,
       llmInputTokens: summary['llm_input_tokens'] ?? 0,
       llmOutputTokens: summary['llm_output_tokens'] ?? 0,
+      imageInputTokens: summary['image_input_tokens'] ?? 0,
+      imageUploadBytes: summary['image_upload_bytes'] ?? 0,
+      embeddingInputTokens: summary['embedding_input_tokens'] ?? 0,
       ttsCharacters: summary['tts_characters'] ?? 0,
     };
   });

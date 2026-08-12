@@ -60,10 +60,12 @@ boring. Constraining outbound links is worth more than any amount of prompt hard
 
 The widget runs on domains we do not control, alongside JS we do not control.
 
-- **iframe, not just Shadow DOM.** Shadow DOM isolates CSS; it does not isolate JavaScript.
-  A merchant's page (or a third-party script on it) could read our tokens and conversation
-  content from the same JS context. The iframe gives a real origin boundary; `postMessage`
-  is the only channel, with strict origin checks on both ends.
+- **Shadow DOM Web Component.** Shadow DOM isolates CSS, not JavaScript. The product's inline
+  component requirement means code already running on the merchant page can observe the public
+  key, short-lived widget token, and rendered conversation. Those are never treated as privileged
+  credentials: tokens are short-lived and bound to the server-verified embedding origin, and no
+  business API or AWS credential reaches the component. The current implementation uses no iframe
+  or `postMessage`; any future message channel must validate both source window and origin.
 - **Domain allowlisting.** A public embed key only activates on origins the merchant has
   registered and verified. Origin is validated **server-side** from the `Origin` header —
   never trusted from the request body.

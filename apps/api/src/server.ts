@@ -8,6 +8,7 @@ import { isDevelopment, serverConfig } from './config.js';
 import { askRoutes } from './modules/agents/ask.js';
 import { agentRoutes } from './modules/agents/routes.js';
 import { conversationRoutes } from './modules/conversations/routes.js';
+import { connectRoutes } from './modules/connect/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { languageRoutes } from './modules/languages/routes.js';
@@ -90,6 +91,7 @@ export const buildServer = async (): Promise<FastifyInstance> => {
   await app.register(askRoutes, { prefix: '/v1/agents' });
   await app.register(knowledgeRoutes, { prefix: '/v1/agents' });
   await app.register(conversationRoutes, { prefix: '/v1/conversations' });
+  await app.register(connectRoutes, { prefix: '/v1/connect' });
   await app.register(usageRoutes, { prefix: '/v1/usage' });
   await app.register(widgetRoutes, { prefix: '/v1/widget' });
   await app.register(voiceSocketRoutes, { prefix: '/v1/widget' });

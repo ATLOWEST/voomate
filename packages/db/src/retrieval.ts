@@ -128,6 +128,93 @@ export const matchKnowledgeChunks = async (
   }));
 };
 
+/**
+ * Fast exact-language path for questions containing distinctive words already present in the
+ * business corpus. It is generic Postgres full-text retrieval—not business-specific logic—and
+ * avoids a paid embedding round trip when lexical evidence is already strong. Semantic vector
+ * retrieval remains the fallback for paraphrases and cross-lingual questions.
+ */
+export const matchKnowledgeChunksLexically = async (
+  db: Database,
+  options: {
+    organizationId: OrganizationId;
+    agentId: AgentId;
+    query: string;
+    limit?: number;
+  },
+): Promise<RetrievedChunk[]> => {
+  const ignored = new Set([
+    'about',
+    'actually',
+    'also',
+    'from',
+    'have',
+    'into',
+    'just',
+    'like',
+    'please',
+    'that',
+    'their',
+    'this',
+    'want',
+    'what',
+    'when',
+    'where',
+    'which',
+    'with',
+    'would',
+    'your',
+  ]);
+  const terms = [...new Set(options.query.toLowerCase().match(/[a-z0-9]{4,}/g) ?? [])]
+    .filter((term) => !ignored.has(term))
+    .slice(0, 12);
+  if (terms.length === 0) return [];
+  // Terms contain only [a-z0-9], so the `to_tsquery` operators are entirely ours. The complete
+  // expression is still passed as a SQL parameter; visitor text is never interpolated.
+  const lexicalQuery = terms.join(' | ');
+  const rows = await db.execute<{
+    id: string;
+    document_id: string;
+    content: string;
+    source_url: string | null;
+    source_title: string | null;
+    language: string | null;
+    ordinal: number;
+    similarity: number;
+  }>(sql`
+    with query as (
+      select to_tsquery('english', ${lexicalQuery}) as value
+    )
+    select
+      chunk.id,
+      chunk.document_id,
+      chunk.content,
+      chunk.source_url,
+      chunk.source_title,
+      chunk.language,
+      chunk.ordinal,
+      ts_rank_cd(to_tsvector('english', chunk.content), query.value)::double precision as similarity
+    from public.knowledge_chunks as chunk
+    cross join query
+    where chunk.organization_id = ${options.organizationId}::uuid
+      and chunk.agent_id = ${options.agentId}::uuid
+      and query.value @@ to_tsvector('english', chunk.content)
+    order by similarity desc, chunk.ordinal asc
+    limit ${options.limit ?? 4}::integer
+  `);
+
+  return [...rows].map((row) => ({
+    id: row.id,
+    documentId: row.document_id as KnowledgeDocumentId,
+    content: row.content,
+    sourceUrl: row.source_url,
+    sourceTitle: row.source_title,
+    language: row.language,
+    ordinal: row.ordinal,
+    similarity: Number(row.similarity),
+  }));
+};
+
 export interface ChunkInsert {
   organizationId: OrganizationId;
   agentId: AgentId;

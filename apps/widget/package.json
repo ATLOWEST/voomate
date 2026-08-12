@@ -3,17 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Embeddable widget \u2014 tiny host-page loader plus the isolated iframe app",
+  "description": "Embeddable widget — tiny host-page loader plus the isolated iframe app",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:loader && npm run build:app",
+    "build": "npm run build:loader && npm run build:app && npm run build:voice",
     "build:loader": "vite build --config vite.loader.config.ts && node scripts/check-size.mjs",
     "build:app": "vite build --config vite.app.config.ts",
+    "build:voice": "vite build --config vite.voice.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@pipecat-ai/client-js": "^1.13.0",
+    "@pipecat-ai/small-webrtc-transport": "^1.10.6",
     "@voomate/core": "*"
   },
   "devDependencies": {

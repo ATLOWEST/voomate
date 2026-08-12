@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: Voomate Web Agent behavior harness — Amazon Bedrock/Nova only
+
+prompts:
+  - file://prompt.mjs
+
+providers:
+  - id: bedrock:converse:us.amazon.nova-pro-v1:0
+    config:
+      region: us-east-1
+      temperature: 0.1
+      maxTokens: 220
+      showThinking: false
+      tools:
+        - type: function
+          function:
+            name: check_order_status
+            description: Look up an order after verifying its order ID and checkout email.
+            parameters:
+              type: object
+              properties:
+                orderId:
+                  type: string
+                email:
+                  type: string
+                  format: email
+              required: [orderId, email]
+              additionalProperties: false
+      tool_choice: auto
+
+defaultTest:
+  vars:
+    business_name: Voomate
+    agent_name: Voomate Assistant
+  assert:
+    - type: not-icontains
+      value: As an AI
+    - type: not-icontains
+      value: language model
+
+tests: file://tests.yaml

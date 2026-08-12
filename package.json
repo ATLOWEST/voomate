@@ -13,7 +13,7 @@
     "infra"
   ],
   "scripts": {
-    "build:packages": "npm run build -w @voomate/i18n && npm run build -w @voomate/core && npm run build -w @voomate/db",
+    "build:packages": "npm run build -w @voomate/i18n && npm run build -w @voomate/core && npm run build -w @voomate/db && npm run build -w @voomate/connect",
     "build:apps": "npm run build -w @voomate/api && npm run build -w @voomate/widget && npm run build -w @voomate/dashboard && npm run build -w @voomate/landing",
     "build": "npm run build:packages && npm run build:apps",
     "typecheck": "npm run build:packages && npm run typecheck --workspaces --if-present",
@@ -30,10 +30,24 @@
     "dev:api": "npm run dev --workspace @voomate/api",
     "dev:dashboard": "npm run dev --workspace @voomate/dashboard",
     "dev:landing": "npm run dev --workspace @voomate/landing",
+    "dev:web-agent": "node scripts/dev-web-agent.mjs",
     "dev:widget": "npm run dev --workspace @voomate/widget",
+    "dev:voice": "set -a; [ -f .env ] && . ./.env; set +a; cd services/voice && uv run bot.py --transport webrtc --host 0.0.0.0 --port 7860",
     "check": "npm run format:check && npm run lint && npm run typecheck",
     "smoke": "node scripts/smoke.mjs",
-    "smoke:voice": "node scripts/smoke-voice.mjs"
+    "demo:web-agent": "node scripts/setup-web-agent-demo.mjs",
+    "dogfood:knowledge": "npm run build -w @voomate/connect && node scripts/sync-voomate-dogfood-knowledge.mjs",
+    "eval:web-agent": "LOG_LEVEL=warn PROMPTFOO_DISABLE_TELEMETRY=1 promptfoo eval -c evals/web-agent/promptfooconfig.yaml --env-file .env --no-cache --output evals/web-agent/results/latest.json --output evals/web-agent/results/latest.html",
+    "eval:web-agent:baseline": "LOG_LEVEL=warn PROMPTFOO_DISABLE_TELEMETRY=1 WEB_AGENT_HARNESS_FILE=../../apps/dashboard/harness/web-agent.v1.0.0.md promptfoo eval -c evals/web-agent/promptfooconfig.yaml --env-file .env --no-cache --output evals/web-agent/results/baseline.json",
+    "eval:web-agent:watch": "node scripts/watch-web-agent-evals.mjs",
+    "smoke:web-agent": "node scripts/smoke-web-agent.mjs",
+    "smoke:web-agent-images": "node scripts/smoke-web-agent-images.mjs",
+    "smoke:web-agent-voice": "node scripts/smoke-web-agent-voice.mjs",
+    "smoke:transcribe-vocabulary": "node scripts/smoke-transcribe-vocabulary.mjs",
+    "smoke:web-agent-quality": "node scripts/smoke-web-agent-quality.mjs",
+    "smoke:connect": "npm run build -w @voomate/connect && npm run build -w @voomate/connect-store-example && node scripts/smoke-connect.mjs",
+    "smoke:voice": "node scripts/smoke-voice.mjs",
+    "test:voice-service": "cd services/voice && uv run pytest && uv run ruff check ."
   },
   "overrides": {
     "next": {
@@ -46,6 +60,7 @@
     "@types/node": "^22.10.5",
     "eslint": "^9.17.0",
     "prettier": "^3.4.2",
+    "promptfoo": "^0.122.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.19.1"

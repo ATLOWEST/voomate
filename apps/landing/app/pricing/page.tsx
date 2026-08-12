@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Navbar } from '@/components/layout/navbar';
-import { Footer } from '@/components/layout/footer';
+import { ArrowRight, Check, ChevronDown, ShieldCheck } from 'lucide-react';
+
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
 
 export const metadata: Metadata = {
-  title: 'Pricing — Voomate',
+  title: 'Pricing',
   description:
-    'Simple, transparent pricing for AI-powered customer support automation. Start free, scale as you grow.',
+    'Clear Voomate plans for businesses starting, growing, or connecting custom systems.',
 };
 
 const PLANS = [
@@ -14,197 +15,192 @@ const PLANS = [
     name: 'Starter',
     price: 'Free',
     period: '',
-    tagline: 'For builders and small stores getting started.',
-    cta: 'Start free →',
-    href: '/signup',
+    tagline: 'For a small team proving the workflow.',
+    cta: 'Start free',
+    href: `${DASHBOARD_URL}/sign-in`,
     popular: false,
     features: [
-      '100 conversations / month',
-      '1 voice + 1 chat agent',
-      'English language only',
-      'Basic product Q&A',
+      '100 conversations each month',
+      'One three-agent workspace',
+      'Website chat and voice entry points',
+      'Grounded knowledge answers',
       'Community support',
-    ],
-    notIncluded: [
-      'Multilingual support',
-      'Order automation',
-      'Analytics dashboard',
-      'Custom branding removal',
     ],
   },
   {
     name: 'Growth',
     price: '₹2,499',
     period: '/ month',
-    tagline: 'For growing D2C and e-commerce stores.',
-    cta: 'Start 14-day trial →',
-    href: '/signup?plan=growth',
+    tagline: 'For a business ready to connect real work.',
+    cta: 'Start a 14-day trial',
+    href: `${DASHBOARD_URL}/sign-in?plan=growth`,
     popular: true,
     features: [
-      '5,000 conversations / month',
-      'Unlimited agents',
-      '30+ languages, auto-detected',
-      'Full order + return automation',
-      'Analytics & gap reports',
-      'Shopify / WooCommerce integration',
-      'Custom branding',
-      'Email support (48h SLA)',
+      '5,000 conversations each month',
+      'Web, Voice Calling, and Integration Agents',
+      'Multilingual conversations',
+      'Approved action tools and live data',
+      'Usage and gap reporting',
+      'Store and business-system adapters',
+      'Custom widget branding',
     ],
-    notIncluded: ['Priority SLA', 'Dedicated onboarding'],
   },
   {
     name: 'Enterprise',
     price: 'Custom',
     period: '',
-    tagline: 'For large merchants, platforms, and agencies.',
-    cta: 'Talk to sales →',
-    href: '/contact',
+    tagline: 'For multiple teams and deeper system access.',
+    cta: 'Talk to the team',
+    href: 'mailto:hello@voomate.com?subject=Voomate%20Enterprise',
     popular: false,
     features: [
-      'Unlimited conversations',
-      'Custom LLM fine-tuning',
-      'Multi-store / multi-brand support',
-      'SLA-backed uptime guarantee',
-      'Dedicated onboarding engineer',
-      'Custom integrations (ERP, CRM, OMS)',
-      'GDPR / SOC2 compliance reports',
-      'Phone & Slack support',
+      'Custom conversation volume',
+      'Multiple tenant-scoped workspaces',
+      'Dedicated onboarding support',
+      'Custom ERP, CRM, and OMS adapters',
+      'Security and compliance review support',
+      'Priority support channels',
     ],
-    notIncluded: [],
   },
 ];
 
 const FAQ = [
   {
     q: 'What counts as a conversation?',
-    a: 'One conversation is a single session — from the first message to the last, regardless of how many exchanges happen inside it. A session ends after 30 minutes of inactivity.',
+    a: 'A conversation is one customer session, from the first message until the session becomes inactive. The messages inside that session stay together as one thread.',
   },
   {
-    q: 'Can I switch plans anytime?',
-    a: 'Yes. Upgrade takes effect immediately; downgrades apply at the next billing cycle. No penalties.',
+    q: 'Are the three agents separate products?',
+    a: 'No. The Web Agent, Voice Calling Agent, and Integration Agent are the fixed parts of one Voomate system. Your plan controls usage and connected capabilities, not a menu of unrelated bots.',
   },
   {
-    q: 'What happens when I hit my conversation limit?',
-    a: "On the free plan, the agent pauses until the next month. On paid plans, overage conversations are charged at ₹0.40 each — you'll get a warning email at 80% usage.",
+    q: 'Can I change plans later?',
+    a: 'Yes. You can begin with a small workflow and move to a higher-volume plan as more customer conversations and integrations are added.',
   },
   {
-    q: 'Is there a setup fee?',
-    a: 'No. Starter is always free. Growth and Enterprise are billed monthly or annually (20% discount on annual). No setup fees, no hidden charges.',
+    q: 'Does Voomate charge for unanswered questions?',
+    a: 'Usage is tracked by conversation and by the AWS services involved. The dashboard is designed to expose that usage so a business can monitor how the agent is being used.',
   },
   {
-    q: 'Do you support WhatsApp and Instagram DMs?',
-    a: 'Yes — on Growth and above, Voomate can be connected to WhatsApp Business API and Instagram Messaging via our integration partners.',
+    q: 'Can we connect a custom backend?',
+    a: 'Yes. The Integration Agent can use an approved server-side adapter or the Voomate Connect SDK. Credentials remain in trusted backend environments rather than the public widget.',
   },
 ];
 
 export default function PricingPage() {
   return (
-    <div className="paper-grain">
-      <Navbar />
-      <main className="pt-28 pb-24">
-        <div className="max-w-6xl mx-auto px-6">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <p className="section-label mb-3">Pricing</p>
-            <h1 className="section-title mb-4">Simple pricing. No surprises.</h1>
-            <p className="section-subtitle max-w-lg mx-auto">
-              Start free. Scale when your store does. Every plan includes voice, chat, and
-              multilingual support — the only difference is volume.
-            </p>
-          </div>
-
-          {/* Plans grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
-            {PLANS.map((plan) => (
-              <div
-                key={plan.name}
-                className={`rounded-2xl p-7 border flex flex-col ${
-                  plan.popular
-                    ? 'pricing-popular border-[#FFCB99] shadow-[0_4px_32px_rgba(232,89,12,0.12)]'
-                    : 'bg-white border-[#EDE0CE] shadow-[0_1px_4px_rgba(26,21,16,0.06)]'
-                }`}
-              >
-                {plan.popular && <div className="badge-ember mb-4 self-start">Most popular</div>}
-                <p className="text-[12px] font-bold uppercase tracking-widest text-[#9A8B7A] mb-1">
-                  {plan.name}
-                </p>
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span
-                    className="text-[2.25rem] font-extrabold tracking-tight text-[#1A1510]"
-                    style={{ fontFamily: "'Sora', sans-serif" }}
-                  >
-                    {plan.price}
-                  </span>
-                  {plan.period && <span className="text-[14px] text-[#9A8B7A]">{plan.period}</span>}
-                </div>
-                <p className="text-[13.5px] text-[#5A4D40] mb-6">{plan.tagline}</p>
-
-                <Link
-                  href={plan.href}
-                  className={
-                    plan.popular
-                      ? 'btn-ember mb-6 justify-center text-sm'
-                      : 'btn-outline mb-6 justify-center text-sm'
-                  }
-                >
-                  {plan.cta}
-                </Link>
-
-                <ul className="space-y-2.5 mb-4 flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-[13.5px] text-[#1A1510]">
-                      <svg viewBox="0 0 20 20" className="w-4 h-4 shrink-0 mt-0.5">
-                        <circle cx="10" cy="10" r="9" fill="#E8590C" opacity="0.12" />
-                        <path
-                          d="M6 10.4l2.7 2.8L14 7.6"
-                          stroke="#E8590C"
-                          strokeWidth="2.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          fill="none"
-                        />
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
-                  {plan.notIncluded.map((f) => (
-                    <li
-                      key={f}
-                      className="flex items-start gap-2.5 text-[13.5px] text-[#9A8B7A] line-through"
-                    >
-                      <svg viewBox="0 0 20 20" className="w-4 h-4 shrink-0 mt-0.5">
-                        <circle cx="10" cy="10" r="9" fill="#9A8B7A" opacity="0.08" />
-                        <path
-                          d="M7 13L13 7M7 7l6 6"
-                          stroke="#9A8B7A"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          fill="none"
-                        />
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          {/* FAQ */}
-          <div className="max-w-2xl mx-auto">
-            <h2 className="section-title text-center mb-10">Questions, answered plainly.</h2>
-            <div className="space-y-4">
-              {FAQ.map(({ q, a }) => (
-                <div key={q} className="card rounded-2xl p-6">
-                  <h3 className="text-[1rem] font-bold text-[#1A1510] mb-2">{q}</h3>
-                  <p className="text-[13.5px] text-[#5A4D40] leading-relaxed">{a}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+    <main className="marketing-main subpage">
+      <section className="subpage-hero subpage-hero--center" aria-labelledby="pricing-title">
+        <div className="subpage-hero__aside" data-reveal>
+          Plans that grow with the work
         </div>
-      </main>
-      <Footer />
-    </div>
+        <h1 id="pricing-title" data-scrub>
+          Clear pricing for
+          <br />a connected AI team.
+        </h1>
+        <p data-reveal>
+          Start with the workflow you need now. Add volume, languages, and connected actions as your
+          customer operation grows.
+        </p>
+      </section>
+
+      <section className="pricing-section" aria-label="Voomate plans">
+        <div className="pricing-grid">
+          {PLANS.map((plan) => (
+            <article
+              className="pricing-card"
+              data-featured={plan.popular}
+              data-reveal
+              key={plan.name}
+            >
+              <div className="pricing-card__topline">
+                <span>{plan.name}</span>
+                {plan.popular ? <strong>Recommended</strong> : null}
+              </div>
+              <h2>{plan.name}</h2>
+              <p className="pricing-card__tagline">{plan.tagline}</p>
+              <div className="pricing-card__price">
+                <strong>{plan.price}</strong>
+                {plan.period ? <span>{plan.period}</span> : null}
+              </div>
+              <a href={plan.href} className={plan.popular ? 'btn-ember' : 'btn-quiet'}>
+                {plan.cta} <ArrowRight size={16} />
+              </a>
+              <ul>
+                {plan.features.map((feature) => (
+                  <li key={feature}>
+                    <Check size={15} />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="included-section" aria-labelledby="included-title">
+        <div className="included-section__copy">
+          <ShieldCheck size={28} />
+          <h2 id="included-title" data-scrub>
+            The safety model is not an add-on.
+          </h2>
+          <p data-reveal>
+            Every plan keeps model credentials server-side, resolves tenants from scoped keys, and
+            filters tool results before anything becomes a customer-facing answer.
+          </p>
+        </div>
+        <div className="included-section__rail" data-reveal>
+          <span>Tenant-scoped data</span>
+          <i />
+          <span>Controlled tools</span>
+          <i />
+          <span>Usage visibility</span>
+        </div>
+      </section>
+
+      <section className="faq-section" aria-labelledby="faq-title">
+        <div className="section-heading section-heading--split">
+          <div>
+            <p className="editorial-index">Before you start</p>
+            <h2 id="faq-title" data-scrub>
+              Questions,
+              <br />
+              answered plainly.
+            </h2>
+          </div>
+          <p data-reveal>
+            Details that should be clear before you put an agent in front of a customer.
+          </p>
+        </div>
+        <div className="faq-list" data-reveal>
+          {FAQ.map(({ q, a }, index) => (
+            <details key={q} open={index === 0}>
+              <summary>
+                {q}
+                <ChevronDown size={19} />
+              </summary>
+              <p>{a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section className="subpage-cta">
+        <h2 data-scrub>
+          Start small.
+          <br />
+          Keep the system connected.
+        </h2>
+        <div data-reveal>
+          <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
+            Start building <ArrowRight size={16} />
+          </a>
+          <Link href="/about" className="btn-quiet">
+            How Voomate is built
+          </Link>
+        </div>
+      </section>
+    </main>
   );
 }

@@ -17,15 +17,22 @@ import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
 import { api } from '@/lib/api';
 import { useApiAction } from '@/lib/hooks';
 
-const WIDGET_SRC = process.env.NEXT_PUBLIC_WIDGET_URL ?? 'https://cdn.voomate.example/voomate.js';
+/**
+ * This is intentionally the exact public Web Component entrypoint used by our own sites.
+ * `data-agent` is a domain-bound public key; it is safe to appear in page source. The backend
+ * resolves the tenant and rejects origins that are not on the agent's allowlist.
+ */
+const WIDGET_ORIGIN = (process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? 'https://widget.voomate.com').replace(
+  /\/$/,
+  '',
+);
 
 export function InstallPanels() {
   const { agent, refresh } = useAgent();
 
   const snippet = `<script
-  src="${WIDGET_SRC}"
-  data-voomate-key="${agent.embedKey}"
-  data-voomate-position="${agent.appearance.position}"
+  src="${WIDGET_ORIGIN}/embed.js"
+  data-agent="${agent.embedKey}"
   async
 ></script>`;
 

@@ -1,0 +1,20 @@
+{
+  "name": "@voomate/connect-store-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Example store backend using the installed @voomate/connect SDK",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@voomate/connect": "*"
+  },
+  "devDependencies": {
+    "@voomate/config": "*",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.7"
+  }
+}

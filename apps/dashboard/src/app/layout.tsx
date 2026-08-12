@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
-    { media: '(prefers-color-scheme: dark)', color: '#020617' },
+    { media: '(prefers-color-scheme: light)', color: '#f3f1ed' },
+    { media: '(prefers-color-scheme: dark)', color: '#080706' },
   ],
 };
 
@@ -31,12 +31,22 @@ const THEME_BOOTSTRAP = `
 `;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const widgetOrigin = (process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? '').replace(/\/$/, '');
+  const dogfoodAgentKey = process.env.NEXT_PUBLIC_VOOMATE_DOGFOOD_AGENT_KEY;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head></head>
       <body>
         <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
         {children}
+        {widgetOrigin && dogfoodAgentKey && (
+          <Script
+            src={`${widgetOrigin}/embed.js`}
+            data-agent={dogfoodAgentKey}
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   );

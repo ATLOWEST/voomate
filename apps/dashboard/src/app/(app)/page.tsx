@@ -21,8 +21,8 @@ import { cn } from '@/lib/cn';
 
 const setupSteps = [
   {
-    title: 'Create an agent',
-    description: 'Give your AI teammate a role and a name.',
+    title: 'Configure the Web Agent',
+    description: 'Set its business identity, tone, and customer scope.',
     href: '/agents',
     icon: Bot,
     complete: false,
@@ -52,10 +52,10 @@ const setupSteps = [
 
 const nextActions = [
   {
-    title: 'Create your first agent',
-    description: 'Start with sales, support, booking, or a custom role.',
+    title: 'Configure your three-agent team',
+    description: 'Start with Web, Voice Calling, and Integration Agent settings.',
     href: '/agents',
-    action: 'Create agent',
+    action: 'Open agents',
     icon: WandSparkles,
   },
   {
@@ -73,17 +73,17 @@ export default function OverviewPage() {
   const completed = setupSteps.filter((step) => step.complete).length;
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
-      <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <main className="dashboard-overview mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
+      <header data-dashboard-motion className="dashboard-overview__header mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-600">
-            Command centre
+            Your live operation
           </p>
           <h1 className="text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">
             Welcome to {workspace}.
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-[15px]">
-            Set up your AI team once, then deploy it wherever your customers need help.
+            Plug in the widget, connect approved business truth, and publish one tested workflow.
           </p>
         </div>
         <Link
@@ -91,19 +91,20 @@ export default function OverviewPage() {
           className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-accent-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-700 focus-visible:outline-none"
         >
           <Sparkles className="size-4" />
-          Create an agent
+          Configure agents
         </Link>
       </header>
 
-      <section className="ember-wash overflow-hidden rounded-2xl border border-accent-200 shadow-subtle dark:border-accent-900/60">
+      <section data-dashboard-motion className="dashboard-launch ember-wash overflow-hidden rounded-2xl border border-accent-200 shadow-subtle dark:border-accent-900/60">
         <div className="grid gap-8 px-6 py-7 lg:grid-cols-[1.05fr_1.95fr] lg:px-8 lg:py-8">
           <div>
             <div className="mb-5 inline-flex size-10 items-center justify-center rounded-xl bg-accent-600 text-white shadow-sm">
               <Sparkles className="size-5" />
             </div>
-            <p className="text-sm font-semibold text-foreground">Get your first agent live</p>
+            <p className="text-sm font-semibold text-foreground">Get the three-agent system live</p>
             <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-              Complete these four small steps. We’ll keep the technical details out of your way.
+              Four visible steps take the platform from an empty workspace to a tested customer
+              workflow.
             </p>
             <div className="mt-6 flex items-center gap-3 text-sm text-muted-foreground">
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-accent-100 dark:bg-accent-950">
@@ -149,8 +150,8 @@ export default function OverviewPage() {
         </div>
       </section>
 
-      <section className="mt-8 grid gap-6 xl:grid-cols-[1.55fr_1fr]">
-        <div className="rounded-2xl border border-border bg-card shadow-subtle">
+      <section className="dashboard-operation-grid mt-8 grid gap-6 xl:grid-cols-[1.55fr_1fr]">
+        <div data-dashboard-motion className="rounded-2xl border border-border bg-card shadow-subtle">
           <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
             <div>
               <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground">
@@ -190,7 +191,7 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-subtle">
+        <div data-dashboard-motion className="rounded-2xl border border-border bg-card p-6 shadow-subtle">
           <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground">
             Continue building
           </h2>
@@ -225,16 +226,17 @@ export default function OverviewPage() {
         </div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-border bg-card px-6 py-5 shadow-subtle">
+      <section data-dashboard-motion className="mt-6 rounded-2xl border border-border bg-card px-6 py-5 shadow-subtle">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-200">
               <Globe2 className="size-4" />
             </span>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">One agent, every channel</h2>
+              <h2 className="text-sm font-semibold text-foreground">Three agents, one shared operation</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Your web, voice and calling agents will share the same knowledge and permissions.
+                Web and Voice Calling connect through the Integration Agent to approved knowledge,
+                tools, permissions, and logs.
               </p>
             </div>
           </div>

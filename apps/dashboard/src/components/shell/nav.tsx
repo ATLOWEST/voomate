@@ -48,6 +48,7 @@ function navGroups(onSearchClick: () => void): NavGroup[] {
       label: 'Operate',
       items: [
         { title: 'Conversations', href: '/conversations', icon: Inbox },
+        { title: 'Logs', href: '/logs', icon: Radio },
         { title: 'Feedback', href: '/feedback', icon: MessageSquareText },
         { title: 'Approvals', href: '/approvals', icon: ShieldCheck },
         { title: 'Usage', href: '/usage', icon: Activity },
@@ -115,7 +116,7 @@ export function SidebarNav({
   const pathname = usePathname();
   return (
     <aside
-      className={cn('flex h-full flex-col border-r border-border bg-card px-3 py-4', className)}
+      className={cn('dashboard-sidebar flex h-full flex-col border-r border-border bg-card px-3 py-4', className)}
     >
       <Link href="/" className="mb-7 flex items-center gap-2.5 px-2.5">
         <span className="ember-mark flex size-8 items-center justify-center rounded-lg text-white">
@@ -161,6 +162,40 @@ export function SidebarNav({
         </Link>
       </div>
     </aside>
+  );
+}
+
+const workspaceTabs = [
+  { href: '/', label: 'Overview' },
+  { href: '/agents', label: 'Agents' },
+  { href: '/conversations', label: 'Conversations' },
+  { href: '/integrations', label: 'Integrations' },
+  { href: '/logs', label: 'Logs' },
+  { href: '/usage', label: 'Usage' },
+];
+
+export function WorkspaceTabs() {
+  const pathname = usePathname();
+
+  return (
+    <div className="workspace-tabs" aria-label="Workspace sections">
+      <nav>
+        {workspaceTabs.map((tab) => {
+          const active =
+            pathname === tab.href || (tab.href !== '/' && pathname.startsWith(`${tab.href}/`));
+          return (
+            <Link
+              href={tab.href}
+              key={tab.href}
+              aria-current={active ? 'page' : undefined}
+              data-active={active}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
 

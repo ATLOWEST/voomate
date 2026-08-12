@@ -1,6 +1,6 @@
 # ADR 0003 — Ship the widget as an iframe, not Shadow DOM
 
-**Status:** Accepted · 2026-08-02
+**Status:** Superseded · 2026-08-11 by the framework-agnostic Web Component requirement
 
 ## Context
 
@@ -48,3 +48,15 @@ cannot break theirs), and our own CSP inside the frame.
 Never, for the token-handling surface. If we later ship an inline, embedded-in-page variant
 for merchants who want the agent as part of their layout, that variant must not hold session
 tokens directly — it would proxy through the iframe.
+
+## Superseding decision
+
+The product contract now requires a Web Component with Shadow DOM and no iframe. The host page
+can therefore observe the public embed key, short-lived widget token, and rendered conversation;
+this is an accepted constraint of an inline component, not an origin-isolation guarantee.
+
+The compensating controls are server-side: the public key is domain-restricted, the session token
+is short-lived and cryptographically bound to the verified `Origin`, every request re-checks the
+agent/tenant binding, rate limits key by public key plus origin, and all privileged operations stay
+inside the Secure Execution Harness. No business credential or Bedrock credential enters the Web
+Component. There is no `postMessage` channel in this implementation.

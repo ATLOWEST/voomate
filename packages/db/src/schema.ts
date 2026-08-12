@@ -55,6 +55,7 @@ export const knowledgeSourceTypeEnum = pgEnum('knowledge_source_type', [
   'document',
   'qa_pair',
   'manual_text',
+  'api_sync',
 ]);
 export const ingestionStatusEnum = pgEnum('ingestion_status', [
   'pending',
@@ -73,6 +74,13 @@ export const conversationStatusEnum = pgEnum('conversation_status', [
   'abandoned',
 ]);
 export const messageRoleEnum = pgEnum('message_role', ['visitor', 'agent', 'system']);
+export const webAgentImageStatusEnum = pgEnum('web_agent_image_status', [
+  'pending',
+  'processed',
+  'consumed',
+  'rejected',
+  'deleted',
+]);
 /**
  * `open` — asked, unanswered, nobody has looked at it yet.
  * `drafted` — an answer has been written by the model and is waiting for a human.
@@ -91,6 +99,9 @@ export const usageKindEnum = pgEnum('usage_kind', [
   'pages_crawled',
   'llm_input_tokens',
   'llm_output_tokens',
+  'image_input_tokens',
+  'image_upload_bytes',
+  'embedding_input_tokens',
   'tts_characters',
 ]);
 
@@ -265,6 +276,70 @@ export const toolAuditLogs = pgTable(
   ],
 );
 
+/**
+ * Fine-grained, customer-visible trace of a Web Agent run. Unlike `audit_logs`, which records
+ * merchant configuration changes, these rows explain the runtime path through the agent.
+ * Metadata is deliberately public-safe: secrets, raw integration payloads and model prompts
+ * never belong here.
+ */
+export const agentRunEvents = pgTable(
+  'agent_run_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id').references(() => conversations.id, {
+      onDelete: 'set null',
+    }),
+    runId: uuid('run_id').notNull(),
+    stage: text('stage').notNull(),
+    status: text('status').notNull(),
+    latencyMs: integer('latency_ms'),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('agent_run_events_organization_created_idx').on(table.organizationId, table.createdAt),
+    index('agent_run_events_run_idx').on(table.runId, table.createdAt),
+  ],
+);
+
+/**
+ * Minimal order projection used by the first controlled tool. Internal fields intentionally
+ * coexist with customer-safe fields so tests can prove the allowlist strips them before any
+ * tool result reaches Nova or the visitor.
+ */
+export const webAgentOrders = pgTable(
+  'web_agent_orders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    externalOrderId: text('external_order_id').notNull(),
+    verificationEmail: text('verification_email').notNull(),
+    status: text('status').notNull(),
+    orderDate: timestamp('order_date', { withTimezone: true }).notNull(),
+    estimatedDelivery: timestamp('estimated_delivery', { withTimezone: true }),
+    carrier: text('carrier'),
+    trackingNumber: text('tracking_number'),
+    internalNotes: text('internal_notes'),
+    costAmount: real('cost_amount'),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('web_agent_orders_org_external_idx').on(
+      table.organizationId,
+      table.externalOrderId,
+    ),
+    index('web_agent_orders_organization_idx').on(table.organizationId),
+  ],
+);
+
 export const organizationIntegrations = pgTable(
   'organization_integrations',
   {
@@ -335,6 +410,8 @@ export const knowledgeSources = pgTable(
     documentCount: integer('document_count').notNull().default(0),
     /** Crawl bounds — an unbounded crawl on a large site is a runaway cost. */
     config: jsonb('config'),
+    /** Stable developer-owned identifier for idempotent API sync. Null for other sources. */
+    externalId: text('external_id'),
     errorMessage: text('error_message'),
     lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
     refreshIntervalHours: integer('refresh_interval_hours'),
@@ -343,6 +420,12 @@ export const knowledgeSources = pgTable(
   (table) => [
     index('knowledge_sources_organization_idx').on(table.organizationId),
     index('knowledge_sources_agent_idx').on(table.agentId),
+    uniqueIndex('knowledge_sources_external_idx').on(
+      table.organizationId,
+      table.agentId,
+      table.type,
+      table.externalId,
+    ),
   ],
 );
 
@@ -363,6 +446,12 @@ export const knowledgeDocuments = pgTable(
     title: text('title').notNull(),
     /** Extracted text. UNTRUSTED — never concatenated into prompt instructions. */
     content: text('content').notNull(),
+    /** Stable item key within an API-synced source. Null for crawled/uploaded documents. */
+    externalId: text('external_id'),
+    /** BCP-47 content language supplied by extraction or the developer, when known. */
+    language: text('language'),
+    /** Source-specific descriptive metadata. Never treated as model instructions. */
+    metadata: jsonb('metadata'),
     /** Skips re-indexing unchanged pages on re-crawl. */
     contentHash: text('content_hash').notNull(),
     status: ingestionStatusEnum('status').notNull().default('pending'),
@@ -379,6 +468,7 @@ export const knowledgeDocuments = pgTable(
     index('knowledge_documents_agent_idx').on(table.agentId),
     index('knowledge_documents_source_idx').on(table.sourceId),
     uniqueIndex('knowledge_documents_source_hash_idx').on(table.sourceId, table.contentHash),
+    uniqueIndex('knowledge_documents_source_external_idx').on(table.sourceId, table.externalId),
   ],
 );
 
@@ -517,6 +607,61 @@ export const messages = pgTable(
 );
 
 /**
+ * Private, short-lived image attachments for the Web Agent.
+ *
+ * The browser receives only a signed upload URL and this opaque row ID. Object paths are derived
+ * from server-side tenant/session claims, never from a client-supplied tenant identifier. Raw
+ * uploads live in quarantine until Sharp decodes and rewrites them without metadata.
+ */
+export const webAgentImageUploads = pgTable(
+  'web_agent_image_uploads',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id').references(() => conversations.id, {
+      onDelete: 'cascade',
+    }),
+    messageId: uuid('message_id').references(() => messages.id, { onDelete: 'set null' }),
+    /** SHA-256 fingerprint of the short-lived widget bearer token; never the token itself. */
+    sessionFingerprint: text('session_fingerprint').notNull(),
+    quarantinePath: text('quarantine_path').notNull(),
+    processedPath: text('processed_path'),
+    status: webAgentImageStatusEnum('status').notNull().default('pending'),
+    sourceBytes: integer('source_bytes'),
+    processedBytes: integer('processed_bytes'),
+    sourceFormat: text('source_format'),
+    processedFormat: text('processed_format'),
+    width: integer('width'),
+    height: integer('height'),
+    sourceSha256: text('source_sha256'),
+    rejectionReason: text('rejection_reason'),
+    /** App finalization window; Supabase's signed upload token itself lasts up to two hours. */
+    finalizeBefore: timestamp('finalize_before', { withTimezone: true }).notNull(),
+    /** Raw abandoned uploads: ~2h. Sanitized/consumed images: 48h. */
+    purgeAfter: timestamp('purge_after', { withTimezone: true }).notNull(),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('web_agent_image_uploads_organization_idx').on(table.organizationId),
+    index('web_agent_image_uploads_agent_idx').on(table.agentId),
+    index('web_agent_image_uploads_session_created_idx').on(
+      table.sessionFingerprint,
+      table.createdAt,
+    ),
+    index('web_agent_image_uploads_purge_idx').on(table.purgeAfter),
+  ],
+);
+
+/**
  * Questions the agent could not answer, grouped.
  *
  * One row is one *thing people want to know*, not one asking of it — "do you ship to Canada?"
@@ -579,11 +724,18 @@ export const apiKeys = pgTable(
     organizationId: uuid('organization_id')
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
+    /** Optional least-privilege binding. Required for a knowledge:write Connect key. */
+    agentId: uuid('agent_id').references(() => agents.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     /** SHA-256 of the key. The plaintext is shown once at creation and never stored. */
     keyHash: text('key_hash').notNull(),
     /** First 8 chars, so the dashboard can show which key is which. */
     keyPrefix: text('key_prefix').notNull(),
+    /** Explicit capabilities. Existing management keys default to no SDK write access. */
+    scopes: text('scopes')
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
@@ -592,6 +744,7 @@ export const apiKeys = pgTable(
   },
   (table) => [
     index('api_keys_organization_idx').on(table.organizationId),
+    index('api_keys_agent_idx').on(table.agentId),
     uniqueIndex('api_keys_hash_idx').on(table.keyHash),
   ],
 );
@@ -701,6 +854,18 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+export const webAgentImageUploadsRelations = relations(webAgentImageUploads, ({ one }) => ({
+  agent: one(agents, { fields: [webAgentImageUploads.agentId], references: [agents.id] }),
+  conversation: one(conversations, {
+    fields: [webAgentImageUploads.conversationId],
+    references: [conversations.id],
+  }),
+  message: one(messages, {
+    fields: [webAgentImageUploads.messageId],
+    references: [messages.id],
+  }),
+}));
+
 /**
  * Every tenant-scoped table, in one place.
  *
@@ -721,5 +886,8 @@ export const TENANT_SCOPED_TABLES = [
   'organization_members',
   'agent_active_tools',
   'tool_audit_logs',
+  'agent_run_events',
+  'web_agent_orders',
+  'web_agent_image_uploads',
   'organization_integrations',
 ] as const;

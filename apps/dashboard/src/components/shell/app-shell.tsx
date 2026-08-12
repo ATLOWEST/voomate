@@ -14,9 +14,10 @@ import {
   Settings,
   LogOut,
 } from 'lucide-react';
-import { SidebarNav } from './nav';
+import { SidebarNav, WorkspaceTabs } from './nav';
 import { useSession } from '@/lib/session';
 import { ThemeToggle } from './theme-toggle';
+import { DashboardMotion } from './dashboard-motion';
 
 function ProfileDropdown() {
   const { organizations, organization, selectOrganization, signOut } = useSession();
@@ -99,7 +100,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background font-sans">
+    <div className="dashboard-shell flex h-screen w-full overflow-hidden bg-background font-sans">
+      <DashboardMotion />
       {/* Sidebar */}
       <div
         className={`h-full shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${
@@ -113,9 +115,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex min-w-0 flex-1 flex-col bg-ink-50/50 transition-all duration-300 dark:bg-ink-950/30">
+      <div className="dashboard-main flex min-w-0 flex-1 flex-col bg-ink-50/50 transition-all duration-300 dark:bg-ink-950/30">
         {/* Top Header */}
-        <div className="relative z-50 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
+        <div className="dashboard-topbar relative z-50 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -168,6 +170,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <ProfileDropdown />
           </div>
         </div>
+
+        <WorkspaceTabs />
 
         {/* Children Area */}
         <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">

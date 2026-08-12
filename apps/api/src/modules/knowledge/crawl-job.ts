@@ -94,6 +94,7 @@ export const runCrawlJob = async (input: CrawlJobInput): Promise<CrawlSummary | 
             title: page.title,
             content: page.text,
             contentHash,
+            language: page.language,
             status: IngestionStatus.PENDING,
           })
           .onConflictDoNothing({

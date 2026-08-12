@@ -198,6 +198,7 @@ export const indexPendingDocuments = async (
       content: document.content,
       title: document.title,
       url: document.url,
+      language: document.language,
     });
 
     if (result.status === IngestionStatus.READY) tally.indexed += 1;

@@ -1,227 +1,225 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Navbar } from '@/components/layout/navbar';
-import { Footer } from '@/components/layout/footer';
+import {
+  Activity,
+  ArrowRight,
+  BookOpenText,
+  CheckCircle2,
+  ClipboardCheck,
+  MessageSquareText,
+  Workflow,
+} from 'lucide-react';
+import { WORKFLOW_USE_CASES, UseCaseAccordion } from '@/components/ui/use-case-accordion';
+
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
 
 export const metadata: Metadata = {
-  title: 'Industries — Voomate',
+  title: 'Industries',
   description:
-    "Voomate's AI virtual shopkeeper adapts to your industry — E-commerce, Healthcare, Education, Real Estate, SaaS, Financial Services, Travel, Food & Delivery, Retail.",
+    'See how Voomate adapts to any business through tenant knowledge, live tools, and controlled workflow permissions.',
 };
 
-const INDUSTRIES = [
+const CONTEXTS = [
+  'Online commerce',
+  'Retail',
+  'Clinics',
+  'Professional services',
+  'Restaurants',
+  'Hospitality',
+  'Education',
+  'Real estate',
+  'Software',
+  'Financial operations',
+  'Automotive services',
+  'Custom business systems',
+];
+
+const WORKFLOW_EXAMPLES = [
   {
-    icon: '🛍️',
-    name: 'E-commerce & D2C Brands',
-    headline: 'Handle 80% of support without a ticket.',
-    body: 'Product questions, size guides, stock availability, order tracking, return initiations — Voomate handles every routine customer query the moment it comes in. Your support team sees only the edge cases that genuinely need a human.',
-    useCases: [
-      'Product discovery & recommendations',
-      'Real-time stock availability',
-      'Order status & tracking',
-      'Return & exchange initiation',
-      'Discount code validation',
-    ],
-    metric: { n: '72%', l: 'reduction in support tickets for D2C brands' },
+    request: '“Which option fits what I need?”',
+    source: 'Approved catalogue or service knowledge',
+    tool: 'Search or availability tool',
+    outcome: 'A grounded recommendation and next step',
   },
   {
-    icon: '🏥',
-    name: 'Healthcare & Clinics',
-    headline: 'Patients get answers. Staff stay free to care.',
-    body: "Voomate answers clinic FAQs, explains services and fees, and books appointments — in the patient's language. Urgent queries are flagged and routed immediately. Fully HIPAA-aware response guardrails included.",
-    useCases: [
-      'Appointment booking & rescheduling',
-      'Service and fee inquiries',
-      'Insurance & coverage questions',
-      'Pre-visit instructions',
-      'Language-native patient communication',
-    ],
-    metric: { n: '3×', l: 'faster appointment booking rate' },
+    request: '“Where is my order or request?”',
+    source: 'Verified customer and reference details',
+    tool: 'Status lookup tool',
+    outcome: 'Only the public-safe status fields',
   },
   {
-    icon: '🎓',
-    name: 'Education & EdTech',
-    headline: 'Convert more enquiries — in every language.',
-    body: 'Prospective students have questions at 11pm. Voomate answers them — course details, fees, admission timelines, scholarship eligibility — in Hindi, Tamil, Marathi, or whichever language the student is comfortable in.',
-    useCases: [
-      'Course and curriculum inquiries',
-      'Fee structure and scholarship info',
-      'Admission timeline guidance',
-      'Entrance exam and eligibility',
-      'Regional language support',
-    ],
-    metric: { n: '40%', l: 'lift in enquiry-to-enrolment conversion' },
+    request: '“Can I book for Friday afternoon?”',
+    source: 'Service rules and required details',
+    tool: 'Calendar availability and booking',
+    outcome: 'Confirmed slot after customer approval',
   },
   {
-    icon: '🏠',
-    name: 'Real Estate',
-    headline: 'Qualify leads while you sleep.',
-    body: 'Most property enquiries happen outside business hours. Voomate captures, qualifies, and schedules site visits from every lead — whether they speak English, Hindi, or Tamil — before your competition picks up the phone.',
-    useCases: [
-      'Property details & pricing',
-      'Site visit scheduling',
-      'Lead qualification',
-      'Locality & amenity questions',
-      'Document checklist guidance',
-    ],
-    metric: { n: '60%', l: 'more qualified leads captured per month' },
-  },
-  {
-    icon: '💻',
-    name: 'SaaS & Tech Products',
-    headline: 'Tier-1 support, fully automated.',
-    body: 'Voomate reads your docs, changelogs, and help articles and becomes a first-line support agent that actually understands your product. 80% of tier-1 tickets resolved without a human touched.',
-    useCases: [
-      'Onboarding walkthrough',
-      'Feature explanation & docs',
-      'Bug triage & known issue routing',
-      'Billing and plan queries',
-      'Integration & API guidance',
-    ],
-    metric: { n: '80%', l: 'of tier-1 tickets resolved without a human' },
-  },
-  {
-    icon: '🏦',
-    name: 'Financial Services & BFSI',
-    headline: 'Compliant answers. Human-free delivery.',
-    body: 'Voomate explains loan products, insurance policies, and investment options clearly — without crossing compliance lines. Complex queries route to advisors with a clean conversation transcript included.',
-    useCases: [
-      'Product eligibility check',
-      'EMI and interest calculator guidance',
-      'KYC intent collection',
-      'Policy terms explanation',
-      'Advisor routing with context',
-    ],
-    metric: { n: '24/7', l: 'compliant availability with full audit trail' },
-  },
-  {
-    icon: '✈️',
-    name: 'Travel & Hospitality',
-    headline: 'Convert travellers. Upsell experiences.',
-    body: "Booking questions, itinerary details, cancellation policies, room upgrades — Voomate handles the full pre- and post-booking conversation in the traveller's language, and proactively upsells where relevant.",
-    useCases: [
-      'Booking queries & confirmation',
-      'Itinerary and check-in details',
-      'Cancellation & refund policy',
-      'Upgrade and add-on upsell',
-      'Destination and local tips',
-    ],
-    metric: { n: '2×', l: 'upsell conversion via conversational AI' },
-  },
-  {
-    icon: '🍔',
-    name: 'Food & Delivery',
-    headline: 'Zero missed orders. Even at peak.',
-    body: 'Voomate takes orders, answers menu questions, updates delivery status, and handles complaints — by voice or chat — without any queue during rush hour. Works with your existing delivery platform.',
-    useCases: [
-      'Menu and allergen queries',
-      'Order placement via voice/chat',
-      'Delivery ETA updates',
-      'Complaint and refund handling',
-      'Loyalty and offer information',
-    ],
-    metric: { n: '0', l: 'missed orders during peak hours' },
-  },
-  {
-    icon: '🏪',
-    name: 'Retail & Offline Stores',
-    headline: 'Extend your store online — without extra staff.',
-    body: 'You have a physical store and a website. Voomate bridges both — answering inventory questions, branch timings, and product availability queries online, any hour of the day.',
-    useCases: [
-      'Store hours & locations',
-      'Product availability & pricing',
-      'Pre-purchase advisory',
-      'Click & collect guidance',
-      'Loyalty scheme queries',
-    ],
-    metric: { n: '24/7', l: 'online availability without hiring' },
+    request: '“Please have someone contact me.”',
+    source: 'Conversation summary and consented contact fields',
+    tool: 'CRM, ticket, or escalation tool',
+    outcome: 'A traceable handoff with context',
   },
 ];
 
 export default function IndustriesPage() {
   return (
-    <div className="paper-grain">
-      <Navbar />
-      <main className="pt-28 pb-24">
-        <div className="max-w-6xl mx-auto px-6">
-          {/* Header */}
-          <div className="mb-16 max-w-3xl">
-            <p className="section-label mb-3">Industries</p>
-            <h1 className="section-title mb-4">
-              Built for merchants.
-              <br />
-              Proven across industries.
-            </h1>
-            <p className="section-subtitle">
-              Voomate adapts to your industry's vocabulary, compliance requirements, and customer
-              expectations. One platform — nine proven verticals.
-            </p>
-          </div>
-
-          {/* Industry cards — alternating layout */}
-          <div className="space-y-8">
-            {INDUSTRIES.map(({ icon, name, headline, body, useCases, metric }, i) => (
-              <article
-                key={name}
-                className={`card rounded-3xl p-8 md:p-10 grid md:grid-cols-[1fr_300px] gap-8 ${
-                  i % 2 === 1 ? 'md:grid-cols-[300px_1fr]' : ''
-                }`}
-              >
-                <div className={i % 2 === 1 ? 'md:order-2' : ''}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-3xl leading-none">{icon}</span>
-                    <h2 className="text-[1.05rem] font-bold text-[#9A8B7A] tracking-wide">
-                      {name}
-                    </h2>
-                  </div>
-                  <h3 className="text-[1.35rem] font-bold text-[#1A1510] mb-3 tracking-[-0.025em]">
-                    {headline}
-                  </h3>
-                  <p className="text-[14px] text-[#5A4D40] leading-relaxed mb-5">{body}</p>
-                  <ul className="space-y-1.5">
-                    {useCases.map((u) => (
-                      <li key={u} className="flex items-center gap-2 text-[13px] text-[#5A4D40]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#E8590C] shrink-0" />
-                        {u}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className={`flex flex-col justify-center ${i % 2 === 1 ? 'md:order-1' : ''}`}>
-                  <div className="bg-[#FFF4ED] border border-[#FFE4CC] rounded-2xl p-6 text-center">
-                    <p
-                      className="text-[3rem] font-extrabold text-[#E8590C] leading-none tracking-tight mb-2"
-                      style={{ fontFamily: "'Sora', sans-serif" }}
-                    >
-                      {metric.n}
-                    </p>
-                    <p className="text-[13px] text-[#9A8B7A] leading-snug">{metric.l}</p>
-                  </div>
-                  <a
-                    href={`${process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001'}/sign-in`}
-                    className="btn-ember mt-4 justify-center text-sm"
-                  >
-                    Build your AI team →
-                  </a>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {/* CTA */}
-          <div className="text-center mt-16">
-            <p className="section-subtitle mb-6">
-              Don't see your industry? Voomate works for any business that handles customer
-              conversations.
-            </p>
-            <Link href="/contact" className="btn-ember px-8 py-3.5 text-[1rem]">
-              Talk to us →
-            </Link>
-          </div>
+    <main className="marketing-main subpage">
+      <section className="subpage-hero" aria-labelledby="industries-title">
+        <div className="subpage-hero__aside" data-reveal>
+          Universal by architecture, specific through your data
         </div>
-      </main>
-      <Footer />
-    </div>
+        <h1 id="industries-title" data-scrub>
+          Built around the job.
+          <br />
+          Never boxed into an industry.
+        </h1>
+        <p data-reveal>
+          The same three agents can support any business that handles customer conversations. What
+          changes is the business’s approved knowledge, live systems, vocabulary, and permissions.
+        </p>
+      </section>
+
+      <section className="industry-principle" aria-labelledby="principle-title">
+        <div className="industry-principle__copy">
+          <p className="editorial-index">What creates the business fit</p>
+          <h2 id="principle-title" data-scrub>
+            Four inputs shape every workflow.
+          </h2>
+          <p data-reveal>
+            No preset decides how the agent behaves. The tenant’s real configuration does.
+          </p>
+        </div>
+        <div className="industry-principle__agents" data-reveal>
+          <article>
+            <BookOpenText size={21} />
+            <strong>Knowledge</strong>
+            <p>Approved descriptions, policies, services, products, and help content.</p>
+          </article>
+          <article>
+            <Activity size={21} />
+            <strong>Live data</strong>
+            <p>Current orders, availability, payments, inventory, and account facts.</p>
+          </article>
+          <article>
+            <Workflow size={21} />
+            <strong>Tools</strong>
+            <p>Typed actions that the business has deliberately enabled.</p>
+          </article>
+          <article>
+            <ClipboardCheck size={21} />
+            <strong>Controls</strong>
+            <p>Identity checks, confirmation, approval thresholds, and human handoff.</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="industry-examples" aria-labelledby="examples-title">
+        <div className="section-heading">
+          <p className="editorial-index">Reusable jobs, not vertical templates</p>
+          <h2 id="examples-title" data-scrub>
+            Build around what the customer needs done.
+          </h2>
+          <p data-reveal>
+            Combine these workflow patterns in any business. The runtime stays the same while the
+            knowledge, tool schemas, and permissions remain tenant-specific.
+          </p>
+        </div>
+        <UseCaseAccordion cases={WORKFLOW_USE_CASES} />
+      </section>
+
+      <section className="market-contexts" aria-labelledby="contexts-title">
+        <div>
+          <p className="editorial-index">Examples, never a limit</p>
+          <h2 id="contexts-title" data-scrub>
+            One platform can meet customers wherever work begins.
+          </h2>
+          <p data-reveal>
+            These contexts illustrate the range. They are not plans, presets, or the boundary of who
+            Voomate can serve.
+          </p>
+        </div>
+        <div className="market-contexts__list" data-reveal>
+          {CONTEXTS.map((context) => (
+            <span key={context}>
+              <i aria-hidden="true" />
+              {context}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <section className="workflow-examples" aria-labelledby="workflow-examples-title">
+        <div className="section-heading section-heading--split">
+          <div>
+            <p className="editorial-index">From question to outcome</p>
+            <h2 id="workflow-examples-title" data-scrub>
+              Concrete workflows, explained end to end.
+            </h2>
+          </div>
+          <p data-reveal>
+            Each example shows the customer request, the trusted source, the tool boundary, and the
+            response that comes back.
+          </p>
+        </div>
+        <div className="workflow-examples__table" data-reveal>
+          <div className="workflow-examples__head">
+            <span>Customer request</span>
+            <span>Grounding source</span>
+            <span>Tool path</span>
+            <span>Customer outcome</span>
+          </div>
+          {WORKFLOW_EXAMPLES.map((item) => (
+            <article key={item.request}>
+              <strong>
+                <MessageSquareText size={17} />
+                {item.request}
+              </strong>
+              <span>{item.source}</span>
+              <span>{item.tool}</span>
+              <span>
+                <CheckCircle2 size={15} />
+                {item.outcome}
+              </span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="context-loop" aria-labelledby="context-title">
+        <div className="context-loop__visual" data-reveal>
+          <span className="context-node context-node--customer">Customer</span>
+          <span className="context-node context-node--knowledge">Knowledge</span>
+          <span className="context-node context-node--tools">Tools</span>
+          <span className="context-node context-node--agent">Voomate</span>
+        </div>
+        <div>
+          <p className="editorial-index">What actually personalizes it</p>
+          <h2 id="context-title" data-scrub>
+            Your content and tools create the specialization.
+          </h2>
+          <p data-reveal>
+            Product descriptions, policies, service details, live inventory, calendars, order
+            systems, and business rules make an agent useful. Voomate keeps that context
+            tenant-scoped and applies the same controlled runtime in every business.
+          </p>
+        </div>
+      </section>
+
+      <section className="subpage-cta">
+        <h2 data-scrub>
+          Bring the workflow.
+          <br />
+          Keep one controlled system.
+        </h2>
+        <div data-reveal>
+          <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
+            Build your AI team <ArrowRight size={16} />
+          </a>
+          <Link href="/integrations" className="btn-quiet">
+            Explore integrations
+          </Link>
+        </div>
+      </section>
+    </main>
   );
 }

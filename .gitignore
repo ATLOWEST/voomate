@@ -26,10 +26,18 @@ cdk.context.json
 *.log
 npm-debug.log*
 logs/
+!apps/dashboard/src/app/(app)/logs/
+!apps/dashboard/src/app/(app)/logs/page.tsx
 
 # test / coverage
 coverage/
 .nyc_output/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+evals/web-agent/results/
 
 # editor / os
 .DS_Store

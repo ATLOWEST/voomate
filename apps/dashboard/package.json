@@ -6,27 +6,36 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start --port 3001",
+    "test": "vitest run src/lib/web-agent",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next"
   },
   "dependencies": {
-    "@voomate/core": "*",
-    "@voomate/i18n": "*",
+    "@aws-sdk/client-bedrock-runtime": "^3.1101.0",
+    "@gsap/react": "^2.1.2",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.112.0",
+    "@voomate/core": "*",
+    "@voomate/db": "*",
+    "@voomate/i18n": "*",
     "@xyflow/react": "^12.11.2",
     "framer-motion": "^13.0.0",
+    "gsap": "^3.15.0",
+    "jose": "^5.9.6",
     "lucide-react": "^1.30.0",
     "next": "^16.2.12",
     "next-themes": "^0.4.6",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "sharp": "^0.35.3",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.7"
   }
 }

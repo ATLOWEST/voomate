@@ -229,6 +229,39 @@ create policy messages_select on public.messages
 create policy messages_delete on public.messages
   for delete using (public.user_has_role(organization_id, 'admin'));
 
+-- agent_run_events — runtime traces are written only by the backend and visible to members.
+alter table public.agent_run_events enable row level security;
+alter table public.agent_run_events force row level security;
+
+create policy agent_run_events_select on public.agent_run_events
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy agent_run_events_delete on public.agent_run_events
+  for delete using (public.user_has_role(organization_id, 'admin'));
+
+-- web_agent_orders — the controlled tool owns writes; members may inspect the projection.
+alter table public.web_agent_orders enable row level security;
+alter table public.web_agent_orders force row level security;
+
+create policy web_agent_orders_select on public.web_agent_orders
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy web_agent_orders_write on public.web_agent_orders
+  for all using (public.user_has_role(organization_id, 'developer'))
+  with check (public.user_has_role(organization_id, 'developer'));
+
+-- web_agent_image_uploads — attachment metadata is visible to tenant members, but only the
+-- controlled Web Agent backend may create or mutate upload lifecycle rows. Storage objects stay
+-- private and are addressed through tenant-derived paths rather than this policy.
+alter table public.web_agent_image_uploads enable row level security;
+alter table public.web_agent_image_uploads force row level security;
+
+create policy web_agent_image_uploads_select on public.web_agent_image_uploads
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy web_agent_image_uploads_delete on public.web_agent_image_uploads
+  for delete using (public.user_has_role(organization_id, 'admin'));
+
 -- api_keys — admin only, in both directions. key_hash must never be readable by a
 -- viewer, and there is no legitimate reason for a non-admin to enumerate keys.
 alter table public.api_keys enable row level security;

@@ -36,6 +36,27 @@
       "when": 1786365340121,
       "tag": "0004_silky_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786432310462,
+      "tag": "0005_opposite_praxagora",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786435872860,
+      "tag": "0006_next_triathlon",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786439022578,
+      "tag": "0007_tiresome_wallow",
+      "breakpoints": true
     }
   ]
 }

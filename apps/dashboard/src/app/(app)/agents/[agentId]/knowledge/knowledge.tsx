@@ -115,6 +115,22 @@ export function KnowledgePanels() {
 
       <Panel className="mt-4">
         <PanelHeader
+          title="Developer sync"
+          description="Content pushed from your backend with @voomate/connect. Stable IDs update in place and unchanged content is not embedded again."
+        />
+        <PanelBody className="p-0">
+          <SourceList
+            sources={byType('api_sync')}
+            loading={loading}
+            agentId={agent.id}
+            onChanged={refetch}
+            empty={<Blank>No developer-synced content yet.</Blank>}
+          />
+        </PanelBody>
+      </Panel>
+
+      <Panel className="mt-4">
+        <PanelHeader
           title="Additional context"
           description="Anything that isn't on your website. Once saved, retrieval treats it the same as crawled content."
           action={

@@ -10,23 +10,39 @@ import type { NextConfig } from 'next';
  * the root so the API, the migrations and the dashboard cannot drift apart. Rather than
  * duplicating the file, this reads it here.
  *
- * Only `NEXT_PUBLIC_*` keys are copied, deliberately. The root file also holds the Supabase
- * service-role key and the AWS credentials; loading those into the dashboard's process would
- * put secrets one careless `process.env` reference away from a server component that renders
- * them. The dashboard has no legitimate use for any of them.
+ * Browser-safe `NEXT_PUBLIC_*` values and the small server-only allowlist needed by Next.js
+ * Route Handlers are copied. Server-only values are never placed in Next's `env` config and
+ * therefore are not compiled into browser bundles.
  */
-const loadPublicEnv = (): void => {
+const SERVER_RUNTIME_KEYS = new Set([
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_REGION',
+  'BEDROCK_MODEL_ID',
+  'BEDROCK_LOW_COST_MODEL_ID',
+  'BEDROCK_REGION',
+  'EMBEDDING_DIMENSIONS',
+  'EMBEDDING_MODEL_ID',
+  'IMAGE_CLEANUP_SECRET',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_URL',
+  'DATABASE_URL',
+  'UPSTASH_REDIS_REST_TOKEN',
+  'UPSTASH_REDIS_REST_URL',
+  'WIDGET_TOKEN_SECRET',
+]);
+
+const loadRuntimeEnv = (): void => {
   const rootEnv = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.env');
   if (!existsSync(rootEnv)) return;
 
   for (const line of readFileSync(rootEnv, 'utf8').split('\n')) {
     const trimmed = line.trim();
-    if (!trimmed.startsWith('NEXT_PUBLIC_')) continue;
-
     const eq = trimmed.indexOf('=');
     if (eq === -1) continue;
 
     const key = trimmed.slice(0, eq).trim();
+    if (!key.startsWith('NEXT_PUBLIC_') && !SERVER_RUNTIME_KEYS.has(key)) continue;
     let value = trimmed.slice(eq + 1).trim();
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
@@ -42,7 +58,7 @@ const loadPublicEnv = (): void => {
   }
 };
 
-loadPublicEnv();
+loadRuntimeEnv();
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -54,9 +70,21 @@ const config: NextConfig = {
   turbopack: { root: repoRoot },
   // The workspace packages ship TypeScript source, not built JS. Next compiles them itself
   // so we don't need a build step in the dependency graph during development.
-  transpilePackages: ['@voomate/core', '@voomate/i18n'],
+  transpilePackages: ['@voomate/core', '@voomate/db', '@voomate/i18n'],
+  outputFileTracingIncludes: {
+    '/api/web-agent/messages': ['./harness/*.md'],
+  },
   async headers() {
     return [
+      {
+        source: '/embed/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Cache-Control', value: 'public, max-age=300, s-maxage=31536000, immutable' },
+          { key: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
       {
         source: '/:path*',
         headers: [

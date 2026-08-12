@@ -27,7 +27,8 @@ Three surfaces, one backend:
                                     │      → Supabase pgvector
                                     │
 ┌─────────────────┐                 │
-│  Widget (iframe)│                 ▼
+│ Widget (Web     │                 ▼
+│ Component)      │
 │  on merchant    │◄──── WebRTC ──── Voice Orchestrator (Fargate)
 │  site           │   (Chime SDK)         │
 └─────────────────┘                       ├──► Transcribe streaming   (ears)
@@ -35,6 +36,10 @@ Three surfaces, one backend:
                                           ├──► Bedrock Nova Pro       (brain)
                                           └──► Polly streaming        (mouth)
 ```
+
+The existing Fastify service remains the legacy control plane. The new embeddable Web Agent loop
+is served by Next.js Route Handlers under `apps/dashboard/src/app/api/web-agent`; this is the path
+for new widget chat and action work.
 
 ## The voice pipeline — where this product is won or lost
 
@@ -164,7 +169,7 @@ apps/
       plugins/   Cross-cutting: auth, tenancy, error handling, rate limits
       lib/       Infrastructure adapters (AWS clients, Supabase)
   dashboard/     Next.js merchant dashboard
-  widget/        loader/ (tiny, on merchant page) + app/ (iframe)
+  widget/        legacy iframe widget (superseded by dashboard/public/embed.js Web Component)
 packages/
   core/          Types, zod contracts, error taxonomy, env validation
   i18n/          Language registry — the verified AWS capability matrix as code

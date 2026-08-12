@@ -1,13 +1,16 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { ArrowUpRight, Menu, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
 
 const NAV = [
-  { href: '/#features', label: 'Features' },
+  { href: '/product', label: 'Product' },
+  { href: '/integrations', label: 'Integrations' },
   { href: '/industries', label: 'Industries' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/about', label: 'About' },
@@ -16,100 +19,83 @@ const NAV = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', fn, { passive: true });
-    return () => window.removeEventListener('scroll', fn);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 flex justify-center px-4 pt-4">
+    <header className="site-header">
       <nav
-        className={cn(
-          'w-full max-w-5xl flex items-center gap-2 rounded-full px-4 py-2.5 transition-all duration-400',
-          scrolled
-            ? 'bg-white/92 backdrop-blur-lg border border-[#EAD9C4] shadow-[0_2px_24px_rgba(28,20,16,0.08)]'
-            : 'bg-[#FFFDF9]/60 border border-transparent',
-        )}
+        className={cn('site-nav', scrolled && 'site-nav--scrolled')}
+        aria-label="Primary navigation"
       >
-        {/* Logo */}
-        <Link href="/" className="shrink-0 flex items-center gap-2.5 mr-2" aria-label="Voomate">
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #E8590C, #A33A07)' }}
-          >
-            <span className="text-white text-[12px] font-black tracking-tight">V</span>
-          </div>
-          <span
-            className="text-[15px] font-bold tracking-[-0.04em] text-[#1C1410]"
-            style={{ fontFamily: "'Sora', sans-serif" }}
-          >
-            Voomate
-          </span>
+        <Link href="/" className="brand-lockup" aria-label="Voomate home">
+          <span className="brand-mark">V</span>
+          <span>Voomate</span>
         </Link>
 
-        {/* Desktop links */}
-        <ul className="hidden md:flex items-center gap-0.5 ml-auto">
-          {NAV.map((l) => (
-            <li key={l.href}>
-              <Link href={l.href} className="nav-link">
-                {l.label}
-              </Link>
-            </li>
-          ))}
+        <ul className="site-nav__links">
+          {NAV.map((link) => {
+            const active = pathname === link.href;
+            return (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="nav-link"
+                  data-active={active}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
 
-        {/* CTAs */}
-        <div className="hidden md:flex items-center gap-2 ml-4">
-          <a
-            href={`${DASHBOARD_URL}/sign-in`}
-            className="text-[13.5px] font-medium text-[#5C4A38] hover:text-[#1C1410] transition-colors px-3 py-1.5"
-          >
+        <div className="site-nav__actions">
+          <a href={`${DASHBOARD_URL}/sign-in`} className="site-nav__sign-in">
             Sign in
           </a>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember text-[13.5px] px-5 py-2.5">
-            Start building →
+          <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ink btn-nav">
+            Start building <ArrowUpRight size={15} />
           </a>
         </div>
 
-        {/* Mobile toggle */}
         <button
-          className="md:hidden ml-auto text-[#5C4A38] hover:text-[#1C1410] transition-colors p-1.5 rounded-lg"
-          onClick={() => setOpen((o) => !o)}
+          type="button"
+          className="site-nav__toggle"
+          onClick={() => setOpen((value) => !value)}
           aria-label="Toggle menu"
+          aria-expanded={open}
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </nav>
 
-      {/* Mobile dropdown */}
       {open && (
-        <div className="absolute top-full left-4 right-4 mt-2 bg-white border border-[#EAD9C4] rounded-2xl shadow-[0_8px_32px_rgba(28,20,16,0.12)] p-3 space-y-0.5 md:hidden">
-          {NAV.map((l) => (
+        <div className="site-nav__mobile">
+          {NAV.map((link) => (
             <Link
-              key={l.href}
-              href={l.href}
-              className="block px-4 py-2.5 text-[15px] font-medium text-[#5C4A38] hover:text-[#1C1410] hover:bg-[#F7EFE3] rounded-xl transition-all"
+              key={link.href}
+              href={link.href}
+              className="site-nav__mobile-link"
               onClick={() => setOpen(false)}
             >
-              {l.label}
+              {link.label}
             </Link>
           ))}
-          <div className="pt-3 mt-1 border-t border-[#F2E5D0] flex flex-col gap-2">
-            <a
-              href={`${DASHBOARD_URL}/sign-in`}
-              className="py-2 text-center text-[14px] font-medium text-[#5C4A38]"
-            >
-              Sign in
-            </a>
-            <a
-              href={`${DASHBOARD_URL}/sign-in`}
-              className="btn-ember w-full justify-center text-sm"
-            >
-              Start building →
-            </a>
-          </div>
+          <a
+            href={`${DASHBOARD_URL}/sign-in`}
+            className="btn-ink justify-center"
+            onClick={() => setOpen(false)}
+          >
+            Start building <ArrowUpRight size={15} />
+          </a>
         </div>
       )}
     </header>

@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { messageQueue } from '../../lib/queue.js';
+import { getMessageQueue } from '../../lib/queue.js';
 import { z } from 'zod';
 import { getDb } from '../../lib/db.js';
 import { agents } from '@voomate/db';
@@ -25,7 +25,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Push the incoming WhatsApp message to the BullMQ queue
-    const jobId = await messageQueue.add('whatsapp-message', {
+    const jobId = await getMessageQueue().add('whatsapp-message', {
       organizationId: payload.organizationId,
       agentId: payload.agentId,
       persona: agent.persona,

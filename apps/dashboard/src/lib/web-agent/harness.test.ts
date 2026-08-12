@@ -1,0 +1,29 @@
+import { describe, expect, it } from 'vitest';
+import { loadWebAgentHarness } from './harness';
+import { selectNovaModel } from './nova';
+
+describe('Web Agent behavior harness', () => {
+  it('loads the active version and substitutes public identity', async () => {
+    const harness = await loadWebAgentHarness({
+      businessName: 'Acme',
+      agentName: 'Ava',
+    });
+    expect(harness.version).toBe('1.4.0');
+    expect(harness.instructions).toContain("I'm Ava, Acme's Web Agent.");
+    expect(harness.instructions).toContain('Your identity is context, not an opening script.');
+    expect(harness.instructions).not.toContain('{business_name}');
+  });
+
+  it('uses Pro for actions and Micro for low-risk conversation', () => {
+    expect(selectNovaModel('Check order DEMO-1001')).toContain('amazon.nova-pro');
+    expect(selectNovaModel('What is your name?')).toContain('amazon.nova-micro');
+  });
+
+  it('uses Pro whenever an image is attached', () => {
+    expect(selectNovaModel('What do you see?', 1)).toContain('amazon.nova-pro');
+  });
+
+  it('uses Pro for answers grounded in tenant knowledge', () => {
+    expect(selectNovaModel('What does Voomate do?', 0, 2)).toContain('amazon.nova-pro');
+  });
+});

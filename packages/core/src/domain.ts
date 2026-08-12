@@ -153,6 +153,8 @@ export const KnowledgeSourceType = {
   QA_PAIR: 'qa_pair',
   /** Free-text notes the merchant adds to fill gaps. */
   MANUAL_TEXT: 'manual_text',
+  /** Trusted server-to-server content pushed through @voomate/connect. */
+  API_SYNC: 'api_sync',
 } as const;
 export type KnowledgeSourceType = (typeof KnowledgeSourceType)[keyof typeof KnowledgeSourceType];
 
