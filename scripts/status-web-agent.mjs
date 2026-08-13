@@ -4,6 +4,7 @@ const services = [
   ['Landing site', 'http://127.0.0.1:3000'],
   ['Dashboard + widget runtime', 'http://127.0.0.1:3001/embed.js'],
   ['Connect/control API', 'http://127.0.0.1:4000/health'],
+  ['Voice edge', 'http://127.0.0.1:7860'],
 ];
 
 const checks = await Promise.all(

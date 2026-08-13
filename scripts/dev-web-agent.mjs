@@ -21,6 +21,11 @@ const services = [
     command: ['run', 'dev:landing'],
     url: 'http://127.0.0.1:3000',
   },
+  {
+    name: 'Voice edge',
+    command: ['run', 'dev:voice'],
+    url: 'http://127.0.0.1:7860',
+  },
 ];
 
 const children = new Map();
@@ -105,6 +110,7 @@ try {
   console.log('  Landing site                http://localhost:3000');
   console.log('  Dashboard + widget runtime  http://localhost:3001');
   console.log('  Connect/control API         http://localhost:4000');
+  console.log('  Voice edge                  http://localhost:7860');
   console.log('\nPress Ctrl+C to stop only the services started by this command.');
 
   // Keep the supervisor alive even when every service was already running.
