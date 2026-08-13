@@ -1,15 +1,18 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { agents, conversations, messages } from '@voomate/db';
+import { businessProfileGuidance, inferBusinessProfile } from '@voomate/core';
 import { getWebAgentDb } from './db';
 import { attachImagesToMessage, consumeImagesForMessage } from './images';
 import { logRunEvent, recordRunUsage, type RunContext } from './log';
 import { retrieveWebAgentKnowledge } from './knowledge';
 import { runBedrockInlineAgentTurn } from './bedrock-inline-agent';
+import { createCustomerFacingStream, sanitizeCustomerFacingReply } from './customer-language';
 import { sessionFingerprint, type WidgetClaims } from './security';
 import { decideDialogue } from './dialogue-manager';
 import { listLiveReadCapabilities } from './live-data';
 import { planWebAgentTurn } from './orchestration';
+import { buildResponsePresentation, type ResponsePresentation } from './presentation';
 import {
   sanitizePageContext,
   type NavigateClientCommand,
@@ -31,6 +34,7 @@ export interface WebAgentTurnResult {
   message: string;
   context: RunContext;
   clientCommands: NavigateClientCommand[];
+  presentation: ResponsePresentation;
 }
 
 /** The single text/voice turn path: tenant checks, history, RAG, tools and persistence. */
@@ -201,6 +205,13 @@ export async function runWebAgentTurn(args: {
     decision.kind === 'agent'
       ? await retrieveWebAgentKnowledge(context, input.message, orchestration.useKnowledge)
       : [];
+  const businessProfile = inferBusinessProfile(
+    pageContext?.businessSummary,
+    pageContext?.description,
+    pageContext?.headings.join(' '),
+    knowledge.map(({ title, content }) => `${title}\n${content}`).join('\n'),
+    availableLiveCapabilities.map(({ name, description }) => `${name} ${description}`).join('\n'),
+  );
   await logRunEvent(context, 'orchestration_plan', 'success', {
     route: orchestration.route,
     selection: orchestration.selection,
@@ -211,6 +222,7 @@ export async function runWebAgentTurn(args: {
     clientCommands: orchestration.clientCommands.map(({ type, label }) => ({ type, label })),
     destinationDecision: orchestration.destinationDecision,
     learningMode: 'offline_reviewed_promotion',
+    businessProfile,
   });
   if (decision.kind !== 'agent') {
     await logRunEvent(context, 'knowledge_retrieval', 'success', {
@@ -221,9 +233,12 @@ export async function runWebAgentTurn(args: {
   }
 
   let reply: string;
+  const structuredResults: unknown[] = [];
+  const customerStream = createCustomerFacingStream(args.onTextDelta);
   if (decision.kind === 'agent' && orchestration.directReply) {
-    reply = orchestration.directReply;
-    await args.onTextDelta?.(reply);
+    reply = sanitizeCustomerFacingReply(orchestration.directReply);
+    await customerStream.push(reply);
+    await customerStream.flush();
     await logRunEvent(context, 'platform_assistance_policy', 'success', {
       route: orchestration.route,
       modelCallAvoided: true,
@@ -237,16 +252,22 @@ export async function runWebAgentTurn(args: {
       liveCapabilities: orchestration.capabilities,
       enableOrderStatus: orchestration.controlledActions.includes('check_order_status'),
       pageContext: orchestration.usePageContext ? pageContext : undefined,
-      responseGuidance: orchestration.responseGuidance,
+      responseGuidance: [orchestration.responseGuidance, businessProfileGuidance(businessProfile)]
+        .filter(Boolean)
+        .join('\n'),
       images: novaImages,
       history: chronologicalHistory,
-      onTextDelta: args.onTextDelta,
+      onTextDelta: (text) => customerStream.push(text),
+      onStructuredResult: (value) => structuredResults.push(value),
     });
+    reply = sanitizeCustomerFacingReply(reply);
+    await customerStream.flush();
   } else {
-    reply = decision.reply;
+    reply = sanitizeCustomerFacingReply(decision.reply);
   }
   if (decision.kind !== 'agent') {
-    await args.onTextDelta?.(reply);
+    await customerStream.push(reply);
+    await customerStream.flush();
     await logRunEvent(context, 'dialogue_policy', 'success', {
       decision: decision.kind,
       reason: decision.reason,
@@ -296,5 +317,6 @@ export async function runWebAgentTurn(args: {
     messageId: agentMessage.id,
     context,
     clientCommands: orchestration.clientCommands,
+    presentation: buildResponsePresentation(reply, structuredResults),
   };
 }

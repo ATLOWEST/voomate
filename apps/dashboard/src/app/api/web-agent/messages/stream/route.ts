@@ -72,6 +72,7 @@ export async function POST(request: Request): Promise<Response> {
             message: result.message,
             runId: result.context.runId,
             clientCommands: result.clientCommands,
+            presentation: result.presentation,
           });
           await flushRunEvents(result.context);
         } catch (error) {

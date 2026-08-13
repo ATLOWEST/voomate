@@ -43,6 +43,7 @@ export const voiceEventRequestSchema = z.object({
     'voice_connected',
     'transcribe_partial',
     'transcribe_final',
+    'transcribe_discarded',
     'tts_first_audio',
     'voice_interrupted',
     'voice_turn_complete',

@@ -26,6 +26,7 @@ stylesheet.replaceSync(`
   .messages{min-height:0;overflow:auto;overscroll-behavior:contain;padding:22px 18px 30px;display:flex;flex-direction:column;gap:18px;background:linear-gradient(180deg,#fff 0%,#fdfdfd 100%);scroll-behavior:smooth;transition:padding .52s cubic-bezier(.16,1,.3,1),opacity .3s ease,transform .42s cubic-bezier(.16,1,.3,1);scrollbar-width:thin;scrollbar-color:#d9d9d9 transparent}
   .messages::-webkit-scrollbar{width:5px}.messages::-webkit-scrollbar-thumb{background:#d9d9d9;border-radius:10px}
   .message{font-size:14px;line-height:1.55;letter-spacing:-.006em;white-space:pre-wrap;overflow-wrap:anywhere;animation:message-in .42s cubic-bezier(.16,1,.3,1) both}.message-copy{min-width:0}
+  .response-blocks{display:grid;gap:10px;white-space:normal}.response-text{margin:0}.response-list{display:grid;gap:6px;margin:0;padding-left:20px}.entity-card{display:grid;grid-template-columns:68px minmax(0,1fr);gap:11px;padding:10px;border:1px solid #e2e2e2;border-radius:8px;background:#fafafa;overflow:hidden}.entity-card.no-image{grid-template-columns:1fr}.entity-image{width:68px;height:68px;object-fit:cover;border-radius:6px;background:#eee}.entity-body{min-width:0;display:grid;align-content:start;gap:4px}.entity-kind{color:#777;font-size:9px;font-weight:700;text-transform:uppercase}.entity-title{font-size:13px;font-weight:680;line-height:1.3}.entity-subtitle{color:#666;font-size:11px;line-height:1.4}.entity-price{font-size:12px;font-weight:700}.entity-fields{display:flex;flex-wrap:wrap;gap:4px 8px;color:#555;font-size:10px}.entity-link{color:#111;font-size:11px;font-weight:650;text-decoration:underline;text-underline-offset:2px}
   .message.assistant{align-self:stretch;display:grid;grid-template-columns:21px minmax(0,1fr);gap:10px;padding-right:12px;color:#1a1a1a}.message.assistant::before{content:"";width:20px;height:20px;margin-top:1px;border-radius:50%;background:radial-gradient(circle at 37% 30%,#fff 0 4%,#9eb9ff 17%,#596cff 31%,#111 68%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
   .message.visitor{max-width:82%;align-self:flex-end;padding:10px 14px;border-radius:18px 18px 5px 18px;background:#f0f0f0;color:#111}
   .message-meta{margin-top:5px;color:#858585;font-size:10px;font-weight:560}.message.pending .message-copy{min-height:18px}.message.pending .message-copy::after{content:"";display:inline-block;width:20px;height:5px;margin-top:7px;background:radial-gradient(circle,#8a8a8a 1.5px,transparent 1.8px) 0 0/7px 5px;animation:dots 1s steps(3) infinite}
@@ -418,6 +419,7 @@ export async function mountWidget(host, config) {
   const storedJourney = readJourney(config.publicKey);
   let resumeVoiceAfterReload = storedJourney.resumeVoice === true;
   let token;
+  let tokenExpiresAt = 0;
   let continuationToken = storedJourney.continuationToken;
   let conversationId = storedJourney.conversationId;
   let voiceConfig;
@@ -441,6 +443,21 @@ export async function mountWidget(host, config) {
       isOpen,
       resumeVoice,
     });
+  };
+
+  const refreshSession = async (force = false) => {
+    if (!force && token && tokenExpiresAt - Date.now() > 2 * 60 * 1000) return;
+    if (!continuationToken) throw new Error('The secure conversation session expired.');
+    const refreshed = await postJson(`${config.apiOrigin}/api/web-agent/session`, {
+      publicKey: config.publicKey,
+      continuationToken,
+      ...(conversationId ? { conversationId } : {}),
+    });
+    token = refreshed.session.token;
+    tokenExpiresAt = Date.now() + Number(refreshed.session.expiresIn ?? 0) * 1000;
+    continuationToken = refreshed.session.continuationToken;
+    voiceConfig = refreshed.agent.voice;
+    persistJourney(Boolean(voiceSession || voiceStarting));
   };
 
   const setOpen = (open) => {
@@ -469,6 +486,61 @@ export async function mountWidget(host, config) {
   const setMessageText = (node, text) => {
     const copy = node.querySelector('.message-copy');
     if (copy) copy.textContent = text;
+    node.classList.remove('pending');
+    messages.scrollTop = messages.scrollHeight;
+  };
+
+  const renderPresentation = (node, presentation) => {
+    if (presentation?.version !== 1 || !Array.isArray(presentation.blocks)) return;
+    const copy = node.querySelector('.message-copy');
+    if (!copy) return;
+    const container = element('div', 'response-blocks');
+    for (const block of presentation.blocks.slice(0, 12)) {
+      if (block?.type === 'text' && typeof block.text === 'string') {
+        container.append(element('p', 'response-text', block.text));
+      } else if (block?.type === 'list' && Array.isArray(block.items)) {
+        const list = element(block.style === 'number' ? 'ol' : 'ul', 'response-list');
+        for (const item of block.items.slice(0, 8)) {
+          if (typeof item === 'string') list.append(element('li', '', item));
+        }
+        if (list.children.length) container.append(list);
+      } else if (block?.type === 'entity_card' && typeof block.title === 'string') {
+        const card = element('article', `entity-card${block.imageUrl ? '' : ' no-image'}`);
+        if (typeof block.imageUrl === 'string') {
+          const image = element('img', 'entity-image');
+          image.src = block.imageUrl;
+          image.alt = '';
+          image.loading = 'lazy';
+          image.referrerPolicy = 'no-referrer';
+          card.append(image);
+        }
+        const body = element('div', 'entity-body');
+        body.append(element('div', 'entity-kind', block.entity || 'result'));
+        body.append(element('div', 'entity-title', block.title));
+        if (typeof block.subtitle === 'string')
+          body.append(element('div', 'entity-subtitle', block.subtitle));
+        if (typeof block.price === 'string')
+          body.append(element('div', 'entity-price', block.price));
+        if (Array.isArray(block.fields) && block.fields.length) {
+          const fields = element('div', 'entity-fields');
+          for (const field of block.fields.slice(0, 3)) {
+            if (typeof field?.label === 'string' && typeof field.value === 'string') {
+              fields.append(element('span', '', `${field.label}: ${field.value}`));
+            }
+          }
+          body.append(fields);
+        }
+        if (typeof block.href === 'string') {
+          const link = element('a', 'entity-link', 'View details');
+          link.href = block.href;
+          link.rel = 'noopener noreferrer';
+          body.append(link);
+        }
+        card.append(body);
+        container.append(card);
+      }
+    }
+    if (container.children.length) copy.replaceChildren(container);
     node.classList.remove('pending');
     messages.scrollTop = messages.scrollHeight;
   };
@@ -704,20 +776,27 @@ export async function mountWidget(host, config) {
 
   const streamMessage = async (message, imageIds, node) => {
     const pageContext = collectPageContext();
-    const response = await fetch(`${config.apiOrigin}/api/web-agent/messages/stream`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        message,
-        imageIds,
-        conversationId,
-        pageUrl: window.location.href,
-        pageContext,
-        channel: 'text',
-      }),
-      credentials: 'omit',
-      cache: 'no-store',
-    });
+    await refreshSession();
+    const requestTurn = () =>
+      fetch(`${config.apiOrigin}/api/web-agent/messages/stream`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          imageIds,
+          conversationId,
+          pageUrl: window.location.href,
+          pageContext,
+          channel: 'text',
+        }),
+        credentials: 'omit',
+        cache: 'no-store',
+      });
+    let response = await requestTurn();
+    if (response.status === 401 || response.status === 403) {
+      await refreshSession(true);
+      response = await requestTurn();
+    }
     if (!response.ok || !response.body) {
       const problem = await response.json().catch(() => ({}));
       throw new Error(problem.error || 'The assistant could not be reached.');
@@ -729,6 +808,7 @@ export async function mountWidget(host, config) {
     let answer = '';
     let messageId;
     let clientCommands = [];
+    let presentation;
     while (true) {
       const { value, done } = await reader.read();
       buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
@@ -749,6 +829,7 @@ export async function mountWidget(host, config) {
           conversationId = event.conversationId ?? conversationId;
           messageId = event.messageId ?? messageId;
           clientCommands = Array.isArray(event.clientCommands) ? event.clientCommands : [];
+          presentation = event.presentation;
           persistJourney(Boolean(voiceSession || voiceStarting));
           if (!answer && typeof event.message === 'string') {
             answer = event.message;
@@ -760,6 +841,7 @@ export async function mountWidget(host, config) {
       if (done) break;
     }
     if (!answer) throw new Error('The assistant returned an empty response.');
+    renderPresentation(node, presentation);
     addFeedback(node, messageId);
     executeClientCommands(clientCommands, pageContext);
   };
@@ -807,6 +889,7 @@ export async function mountWidget(host, config) {
       });
     }
     token = session.session.token;
+    tokenExpiresAt = Date.now() + Number(session.session.expiresIn ?? 0) * 1000;
     continuationToken = session.session.continuationToken;
     voiceConfig = session.agent.voice;
     name.textContent = session.agent.displayName;
@@ -888,6 +971,10 @@ export async function mountWidget(host, config) {
         },
         onClientCommands: (commands) => {
           executeClientCommands(commands, collectPageContext());
+        },
+        onTranscriptRejected: () => {
+          setStatus('I didn’t catch that clearly. Please say it again.');
+          setVoiceState('listening');
         },
         onError: (message) => {
           setStatus(message, 'error');

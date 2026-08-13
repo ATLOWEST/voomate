@@ -48,6 +48,7 @@ export async function POST(request: Request): Promise<Response> {
         messageId: result.messageId,
         message: result.message,
         clientCommands: result.clientCommands,
+        presentation: result.presentation,
       },
       { headers: { ...corsHeaders(origin), 'Cache-Control': 'no-store' } },
     );

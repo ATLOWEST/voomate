@@ -44,6 +44,7 @@ export interface VoiceSessionOptions {
   onAssistantDelta: (text: string) => void;
   onConversationId: (conversationId: string) => void;
   onClientCommands?: (commands: unknown[]) => void;
+  onTranscriptRejected?: (confidence: number) => void;
   onAudioLevel?: (source: 'user' | 'assistant', level: number) => void;
   onAudioSpectrum?: (
     source: 'user' | 'assistant',
@@ -150,6 +151,12 @@ export async function createVoiceSession(options: VoiceSessionOptions): Promise<
         }
         if (event?.type === 'voomate-turn-complete' && Array.isArray(event.clientCommands)) {
           options.onClientCommands?.(event.clientCommands);
+        }
+        if (event?.type === 'voomate-transcript-discarded') {
+          options.onTranscriptRejected?.(
+            typeof event.confidence === 'number' ? event.confidence : 0,
+          );
+          options.onState('listening');
         }
       },
       onTrackStarted: (track, participant) => {

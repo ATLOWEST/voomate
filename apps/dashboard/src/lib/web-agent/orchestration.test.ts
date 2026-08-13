@@ -77,6 +77,17 @@ describe('web agent orchestration', () => {
     ]);
   });
 
+  it('answers order field discovery directly without leaking tool planning', () => {
+    const result = planWebAgentTurn({
+      message: 'What information do you need to check an order?',
+      availableCapabilities: [],
+    });
+    expect(result.directReply).toBe(
+      'Please share the order ID and the email used at checkout, and I’ll check it for you.',
+    );
+    expect(result.controlledActions).toEqual(['check_order_status']);
+  });
+
   it('turns an explicit page request into a same-origin advertised navigation command', () => {
     const result = planWebAgentTurn({
       message: 'Please open the Agents page and create a Web Agent for me.',

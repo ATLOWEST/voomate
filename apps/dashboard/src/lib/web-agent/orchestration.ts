@@ -256,6 +256,15 @@ export function planWebAgentTurn(input: {
       ...informationTarget.facts.map((fact, index) => `${index + 1}. ${fact}`),
     ].join('\n');
   } else if (
+    /\b(?:(?:what|which) (?:information|details)|what do you need|information you need)[\s\S]{0,80}\border\b/i.test(
+      input.message,
+    )
+  ) {
+    responseGuidance =
+      'Ask the customer directly for the two verified order lookup fields. Do not call the tool until both are present.';
+    directReply =
+      'Please share the order ID and the email used at checkout, and I’ll check it for you.';
+  } else if (
     input.platformMode &&
     /\b(set ?up|connect)\b/i.test(input.message) &&
     /\b(account|business|agent)\b/i.test(input.message)

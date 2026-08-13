@@ -8,11 +8,13 @@ describe('Web Agent behavior harness', () => {
       businessName: 'Acme',
       agentName: 'Ava',
     });
-    expect(harness.version).toBe('2.2.0');
+    expect(harness.version).toBe('2.3.0');
     expect(harness.instructions).toContain("You are Ava, Acme's customer assistant.");
     expect(harness.instructions).toContain('stock introduction');
     expect(harness.instructions).toContain('never as a script');
     expect(harness.instructions).toContain('not supported by the available actions');
+    expect(harness.instructions).toContain('The customer never sees');
+    expect(harness.instructions).toContain('dense text wall');
     expect(harness.instructions).not.toContain('{business_name}');
   });
 

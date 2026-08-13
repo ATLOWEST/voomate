@@ -10,6 +10,7 @@ from collections import defaultdict, deque
 import jwt
 from loguru import logger
 from pipecat.audio.vad.silero import SileroVADAnalyzer
+from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
@@ -32,6 +33,23 @@ from voomate_voice.transcribe import VocabularyTranscribeSTTService
 transport_params = {
     "webrtc": lambda: TransportParams(audio_in_enabled=True, audio_out_enabled=True),
 }
+
+
+def _bounded_env(name: str, default: float, minimum: float, maximum: float) -> float:
+    try:
+        return min(max(float(os.getenv(name, str(default))), minimum), maximum)
+    except ValueError:
+        return default
+
+
+def production_vad_params() -> VADParams:
+    """Conservative speech gate: ambient sound must not become a customer turn."""
+    return VADParams(
+        confidence=_bounded_env("VOICE_VAD_CONFIDENCE", 0.82, 0.5, 0.98),
+        start_secs=_bounded_env("VOICE_VAD_START_SECS", 0.25, 0.1, 1.0),
+        stop_secs=_bounded_env("VOICE_VAD_STOP_SECS", 0.65, 0.2, 2.0),
+        min_volume=_bounded_env("VOICE_VAD_MIN_VOLUME", 0.7, 0.1, 1.0),
+    )
 
 
 def generative_polly_settings() -> AWSPollyTTSService.Settings:
@@ -81,6 +99,8 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         bridge=bridge,
         state=telemetry_state,
         mode="input",
+        min_transcript_confidence=_bounded_env("TRANSCRIBE_MIN_CONFIDENCE", 0.78, 0.5, 0.98),
+        vocabulary_enabled=stt.vocabulary_enabled,
     )
     telemetry_out = VoiceTelemetryProcessor(
         backend_origin=backend_origin,
@@ -93,7 +113,9 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     context = LLMContext()
     user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
         context,
-        user_params=LLMUserAggregatorParams(vad_analyzer=SileroVADAnalyzer()),
+        user_params=LLMUserAggregatorParams(
+            vad_analyzer=SileroVADAnalyzer(params=production_vad_params())
+        ),
     )
     pipeline = Pipeline(
         [

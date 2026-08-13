@@ -6,6 +6,7 @@ import {
   type AgentId,
   type KnowledgeDocumentId,
   type OrganizationId,
+  inferBusinessProfile,
 } from '@voomate/core';
 import {
   auditLogs,
@@ -96,6 +97,13 @@ const claimItem = async (
   const externalId = item.id;
   const title = item.metadata.title ?? `${item.type}: ${item.id}`;
   const sourceUrl = item.metadata.sourceUrl ?? null;
+  const inferredProfile = inferBusinessProfile(
+    item.type,
+    title,
+    content,
+    item.metadata.tags?.join(' '),
+  );
+  const storedMetadata = { ...item.metadata, inferredProfile };
   const lockKey = `${key.organizationId}:${key.agentId}:${externalId}`;
 
   return db.transaction(async (tx) => {
@@ -112,7 +120,7 @@ const claimItem = async (
         title,
         status: IngestionStatus.PENDING,
         documentCount: 1,
-        config: { contentType: item.type, metadata: item.metadata },
+        config: { contentType: item.type, metadata: storedMetadata },
       })
       .onConflictDoUpdate({
         target: [
@@ -124,7 +132,7 @@ const claimItem = async (
         set: {
           location: item.id,
           title,
-          config: { contentType: item.type, metadata: item.metadata },
+          config: { contentType: item.type, metadata: storedMetadata },
           updatedAt: new Date(),
         },
       })
@@ -191,7 +199,7 @@ const claimItem = async (
           content,
           contentHash,
           language: item.metadata.language ?? null,
-          metadata: item.metadata,
+          metadata: storedMetadata,
           status: IngestionStatus.INDEXING,
           injectionFlags: null,
           tokenCount: null,
@@ -234,7 +242,7 @@ const claimItem = async (
         content,
         contentHash,
         language: item.metadata.language ?? null,
-        metadata: item.metadata,
+        metadata: storedMetadata,
         status: IngestionStatus.INDEXING,
       })
       .returning({ id: knowledgeDocuments.id });

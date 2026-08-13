@@ -29,6 +29,20 @@ describe('dialogue manager', () => {
     });
   });
 
+  it('stores an explicit memory turn without spending a model call', () => {
+    expect(
+      decideDialogue({
+        ...context,
+        message: 'Please remember that my favorite color is cobalt blue.',
+      }),
+    ).toEqual({
+      kind: 'memory_ack',
+      reply: 'Got it. I’ll remember that my favorite color is cobalt blue.',
+      escalate: false,
+      reason: 'explicit_memory',
+    });
+  });
+
   it('offers useful help on the first ordinary handoff request without claiming success', () => {
     const decision = decideDialogue({ ...context, message: 'Can you connect me to a human?' });
     expect(decision.kind).toBe('assist_first');

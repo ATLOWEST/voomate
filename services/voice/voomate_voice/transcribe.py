@@ -22,6 +22,10 @@ class VocabularyTranscribeSTTService(AWSTranscribeSTTService):
         self._vocabulary_name = vocabulary_name or None
         super().__init__(**kwargs)
 
+    @property
+    def vocabulary_enabled(self) -> bool:
+        return self._vocabulary_name is not None
+
     async def _connect_websocket(self):
         try:
             if self._websocket and self._websocket.state is State.OPEN:
@@ -72,7 +76,10 @@ class VocabularyTranscribeSTTService(AWSTranscribeSTTService):
                 compression=None,
             )
             await self._call_event_handler("on_connected")
-            logger.info("Amazon Transcribe stream connected with approved vocabulary")
+            logger.info(
+                "Amazon Transcribe stream connected (custom vocabulary: {})",
+                "enabled" if self.vocabulary_enabled else "disabled",
+            )
         except Exception as error:
             await self.push_error(
                 error_msg="Unable to connect to Amazon Transcribe", exception=error

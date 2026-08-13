@@ -82,16 +82,29 @@ const transcription = await transcribe.send(
 );
 let partialCount = 0;
 let finalTranscript = '';
+let finalConfidence = 0;
 for await (const event of transcription.TranscriptResultStream) {
   for (const result of event.TranscriptEvent?.Transcript?.Results ?? []) {
     const text = result.Alternatives?.[0]?.Transcript?.trim();
     if (!text) continue;
     if (result.IsPartial) partialCount += 1;
-    else finalTranscript = text;
+    else {
+      finalTranscript = text;
+      const confidences = (result.Alternatives?.[0]?.Items ?? [])
+        .map((item) => Number(item.Confidence))
+        .filter(Number.isFinite);
+      finalConfidence = confidences.length
+        ? confidences.reduce((total, value) => total + value, 0) / confidences.length
+        : 0;
+    }
   }
 }
 assert(partialCount > 0, 'Transcribe streaming returned partial transcripts');
 assert(finalTranscript.length > 0, 'Transcribe streaming returned a final transcript');
+assert(
+  finalConfidence >= Number(process.env.TRANSCRIBE_MIN_CONFIDENCE ?? 0.78),
+  `Transcribe final confidence passed the production gate (${finalConfidence.toFixed(3)})`,
+);
 const transcribeLatencyMs = Date.now() - transcribeStartedAt;
 
 const sessionResponse = await fetch(`${dashboard}/api/web-agent/session`, {
@@ -116,7 +129,10 @@ const typedResponse = await fetch(`${dashboard}/api/web-agent/messages`, {
   }),
 });
 const typedTurn = await typedResponse.json();
-assert(typedResponse.ok && typedTurn.conversationId, 'typed turn created the shared conversation');
+assert(
+  typedResponse.ok && typedTurn.conversationId,
+  `typed turn created the shared conversation (HTTP ${typedResponse.status}: ${JSON.stringify(typedTurn)})`,
+);
 
 const agentResponse = await fetch(`${dashboard}/api/web-agent/messages/stream`, {
   method: 'POST',
@@ -195,8 +211,8 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     .eq('run_id', done.runId);
   if (error) throw error;
   assert(
-    data.some((event) => event.stage === 'nova_inference'),
-    'Nova latency is visible in Logs',
+    data.some((event) => event.stage === 'bedrock_inline_agent'),
+    'Nova agent runtime is visible in Logs',
   );
   assert(
     data.some((event) => event.stage === 'transcribe_final' && event.latency_ms !== null),
@@ -216,6 +232,8 @@ console.log(
   JSON.stringify({
     conversationId: done.conversationId,
     partialTranscripts: partialCount,
+    finalTranscript,
+    finalConfidence: Number(finalConfidence.toFixed(3)),
     responseCharacters: answer.length,
     assistantAudioBytes: assistantAudio.length,
   }),

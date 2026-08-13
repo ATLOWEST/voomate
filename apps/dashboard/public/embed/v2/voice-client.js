@@ -14597,7 +14597,9 @@ async function kb(r) {
       onRemoteAudioLevel: (s) => r.onAudioLevel?.("assistant", s),
       onServerMessage: (s) => {
         const a = s?.data ?? s;
-        (a?.type === "voomate-turn-started" || a?.type === "voomate-turn-complete") && typeof a.conversationId == "string" && r.onConversationId(a.conversationId), a?.type === "voomate-turn-complete" && Array.isArray(a.clientCommands) && r.onClientCommands?.(a.clientCommands);
+        (a?.type === "voomate-turn-started" || a?.type === "voomate-turn-complete") && typeof a.conversationId == "string" && r.onConversationId(a.conversationId), a?.type === "voomate-turn-complete" && Array.isArray(a.clientCommands) && r.onClientCommands?.(a.clientCommands), a?.type === "voomate-transcript-discarded" && (r.onTranscriptRejected?.(
+          typeof a.confidence == "number" ? a.confidence : 0
+        ), r.onState("listening"));
       },
       onTrackStarted: (s, a) => {
         if (s.kind !== "audio") return;

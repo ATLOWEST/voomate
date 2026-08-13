@@ -2,6 +2,7 @@ export type DialogueDecision =
   | { kind: 'social'; reply: string; escalate: false; reason: 'greeting' | 'thanks' }
   | { kind: 'identity'; reply: string; escalate: false; reason: 'identity' }
   | { kind: 'assist_first'; reply: string; escalate: false; reason: 'first_handoff_request' }
+  | { kind: 'memory_ack'; reply: string; escalate: false; reason: 'explicit_memory' }
   | {
       kind: 'handoff';
       reply: string;
@@ -20,6 +21,7 @@ const GREETING =
   /^\s*(?:hi|hello|hey)(?:[,.!\s]+(?:there|can you hear me|are you there))?[?.!\s]*$/i;
 const THANKS =
   /^\s*(?:thanks|thank you)(?:[,.!\s]+(?:that (?:helps|answers it)|got it))?[?.!\s]*$/i;
+const EXPLICIT_MEMORY = /^\s*(?:please\s+)?remember\s+that\s+(.{2,300})[.!?]*\s*$/i;
 
 export function asksForHuman(message: string): boolean {
   return HUMAN_REQUEST.test(message);
@@ -60,6 +62,18 @@ export function decideDialogue(args: {
       reply: `I’m ${args.agentName}, ${args.businessName}’s assistant.`,
       escalate: false,
       reason: 'identity',
+    };
+  }
+  const memory = message
+    .match(EXPLICIT_MEMORY)?.[1]
+    ?.replace(/[.!?]+$/, '')
+    .trim();
+  if (memory) {
+    return {
+      kind: 'memory_ack',
+      reply: `Got it. I’ll remember that ${memory}.`,
+      escalate: false,
+      reason: 'explicit_memory',
     };
   }
 

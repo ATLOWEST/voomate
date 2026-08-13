@@ -8,3 +8,4 @@ export * from './voice-protocol.js';
 export * from './chunking.js';
 export * from './sanitize.js';
 export * from './prompt.js';
+export * from './business-profile.js';
