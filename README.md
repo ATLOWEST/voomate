@@ -60,6 +60,7 @@ and must never be bundled into the landing site, dashboard, or widget.
 
 | Document | What it covers |
 | --- | --- |
+| [docs/agent-operating-system-north-star.md](docs/agent-operating-system-north-star.md) | Product doctrine, adaptive business learning, safe automation, and the 90-day execution plan |
 | [docs/architecture.md](docs/architecture.md) | System design, data flow, the voice pipeline |
 | [docs/languages.md](docs/languages.md) | The 10 launch languages, code-switching, voice quality tiers |
 | [docs/security.md](docs/security.md) | Tenant isolation, prompt injection, widget trust boundary |

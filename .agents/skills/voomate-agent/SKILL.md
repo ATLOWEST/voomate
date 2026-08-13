@@ -36,6 +36,8 @@ Voomate: an AI agent platform giving small/medium businesses 3 working AI agents
 Every tool call: validated against tenant permissions → executed through a controlled internal API (never raw DB/API credentials handed to the model) → logged. Actions above a risk threshold (refunds, cancellations) require explicit confirmation before executing.
 
 ## Reference docs (read the relevant one before starting related work)
+- `docs/agent-operating-system-north-star.md` — authoritative product doctrine, Business Operating
+  Profile, behavioral learning boundaries, autonomy levels, reuse strategy, and 90-day path
 - `voomate-industry-architecture-prompt.md` — multi-tenancy, scaling, security, accuracy design
 - `voomate-agent-board-connections-spec.md` — the 3-slot board, setup flow, connect/disconnect interaction
 - `voomate-functional-spec.md` — button-by-button behavior for Dashboard, Integrations, Usage, Conversations
