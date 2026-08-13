@@ -37,6 +37,12 @@ Production embeds use the stable bootstrap URL:
 existing installs; future breaking releases get a new version rather than silently changing old
 versioned assets.
 
+Widget v2 keeps one mounted conversation across three visual states. **Minimize** collapses the
+panel into a compact island that preserves chat and any active voice session. **Close** stops an
+active microphone session and returns to the circular launcher. Tapping the island or launcher
+restores the same conversation. The compact island uses a restrained two-second animated border;
+`prefers-reduced-motion` disables it.
+
 The deployment should route `widget.voomate.com` to the dashboard Next.js service for this
 milestone. Put the two static assets behind a CDN. The versioned asset is served with a one-year
 immutable cache header; the stable bootstrap uses a short cache so its version pointer can move.

@@ -3,54 +3,68 @@ import { createVoiceSphere } from './voice-sphere.js';
 
 const stylesheet = new CSSStyleSheet();
 stylesheet.replaceSync(`
-  :host{--ink:#0a0a0a;--muted:#737373;--line:#e8e8e8;--paper:#fff;--soft:#f5f5f5;--audio-level:0;position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));z-index:2147483000;font-family:Geist,"Helvetica Neue",Arial,sans-serif;color:var(--ink);color-scheme:light;-webkit-font-smoothing:antialiased}
+  :host{--ink:#0a0a0a;--muted:#6f6f6f;--line:#e8e8e8;--paper:#fff;--soft:#f5f5f5;--audio-level:0;position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));z-index:2147483000;font-family:Geist,"Helvetica Neue",Arial,sans-serif;color:var(--ink);color-scheme:light;-webkit-font-smoothing:antialiased}
   *{box-sizing:border-box}
   button,input{font:inherit}
   button{-webkit-tap-highlight-color:transparent}
-  .shell{position:relative;width:min(410px,calc(100vw - 36px));height:min(680px,calc(100dvh - 36px));pointer-events:none}
-  .panel{position:absolute;right:0;bottom:0;width:100%;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto auto;background:rgba(255,255,255,.965);border:1px solid rgba(10,10,10,.1);border-radius:30px;overflow:hidden;box-shadow:0 32px 90px rgba(0,0,0,.19),0 3px 16px rgba(0,0,0,.07),inset 0 1px 0 #fff;backdrop-filter:blur(22px) saturate(1.1);opacity:0;visibility:hidden;pointer-events:none;transform:translate3d(0,34px,0) scale(.94);transform-origin:calc(100% - 28px) 100%;transition:opacity .28s ease,visibility 0s linear .42s,transform .48s cubic-bezier(.16,1,.3,1)}
-  .panel.is-open{opacity:1;visibility:visible;pointer-events:auto;transform:translate3d(0,0,0) scale(1);transition:opacity .24s ease,visibility 0s,transform .52s cubic-bezier(.16,1,.3,1)}
-  .launcher{position:absolute;right:0;bottom:0;width:64px;height:64px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.15);border-radius:50%;background:#090909;color:#fff;box-shadow:0 20px 50px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.14);opacity:0;visibility:hidden;pointer-events:none;transform:translate3d(18px,12px,0) scale(.72);transition:opacity .2s ease,visibility 0s linear .34s,transform .42s cubic-bezier(.34,1.56,.64,1);cursor:pointer}
-  .launcher.is-visible{opacity:1;visibility:visible;pointer-events:auto;transform:translate3d(0,0,0) scale(1);transition:opacity .22s ease,visibility 0s,transform .46s cubic-bezier(.34,1.56,.64,1)}
+  .shell{position:relative;width:min(432px,calc(100vw - 36px));height:min(710px,calc(100dvh - 36px));pointer-events:none}
+  .panel{position:absolute;right:0;bottom:0;width:100%;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto auto;background:rgba(255,255,255,.975);border:1px solid rgba(10,10,10,.09);border-radius:28px;overflow:hidden;box-shadow:0 34px 96px rgba(22,20,18,.18),0 5px 20px rgba(22,20,18,.065),inset 0 1px 0 rgba(255,255,255,.96);backdrop-filter:blur(22px) saturate(1.08);opacity:0;visibility:hidden;pointer-events:none;transform:translate3d(0,42px,0) scale(.91);transform-origin:calc(100% - 34px) 100%;transition:opacity .38s cubic-bezier(.32,.72,0,1),visibility 0s linear .72s,transform .72s cubic-bezier(.32,.72,0,1)}
+  .panel.is-open{opacity:1;visibility:visible;pointer-events:auto;transform:translate3d(0,0,0) scale(1);transition:opacity .42s cubic-bezier(.32,.72,0,1),visibility 0s,transform .78s cubic-bezier(.32,.72,0,1)}
+  .launcher{position:absolute;right:0;bottom:0;width:64px;height:64px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.15);border-radius:50%;background:#090909;color:#fff;box-shadow:0 20px 50px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.14);opacity:0;visibility:hidden;pointer-events:none;transform:translate3d(18px,12px,0) scale(.72);transition:opacity .32s cubic-bezier(.32,.72,0,1),visibility 0s linear .62s,transform .62s cubic-bezier(.32,.72,0,1);cursor:pointer}
+  .launcher.is-visible{opacity:1;visibility:visible;pointer-events:auto;transform:translate3d(0,0,0) scale(1);transition:opacity .34s cubic-bezier(.32,.72,0,1),visibility 0s,transform .7s cubic-bezier(.32,.72,0,1)}
   .launcher:hover{transform:translate3d(0,-3px,0) scale(1.03)}.launcher:active{transform:scale(.96)}
   .launcher-rings{position:absolute;inset:8px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 35% 27%,#fff 0 3%,#b9ceff 14%,#6777ff 31%,#131313 72%)}
   .launcher-rings::before,.launcher-rings::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:13px;border:1px solid rgba(255,255,255,.55);border-radius:50%;transform:translate(-50%,-50%) rotate(calc(var(--audio-level) * 38deg));transition:transform .08s linear}
   .launcher-rings::after{width:13px;height:34px;transform:translate(-50%,-50%) rotate(calc(-1 * var(--audio-level) * 44deg))}
   .launcher[data-state="listening"] .launcher-rings,.launcher[data-state="speaking"] .launcher-rings{box-shadow:0 0 calc(12px + var(--audio-level) * 24px) rgba(92,112,255,.72)}
-  header{height:76px;display:flex;align-items:center;gap:12px;padding:13px 15px 13px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.82)}
+  .compact-island{position:absolute;right:0;bottom:0;width:min(318px,calc(100vw - 36px));min-height:76px;padding:1.5px;border-radius:25px;background:linear-gradient(105deg,#ff6b42,#9b7bff,#4ec7d8,#a4d95b,#ff6b42);background-size:320% 100%;box-shadow:0 22px 62px rgba(22,20,18,.18),0 4px 16px rgba(22,20,18,.08);opacity:0;visibility:hidden;pointer-events:none;transform:translate3d(22px,18px,0) scale(.82);transform-origin:100% 100%;transition:opacity .3s cubic-bezier(.32,.72,0,1),visibility 0s linear .6s,transform .62s cubic-bezier(.32,.72,0,1);animation:island-color-flow 2s cubic-bezier(.45,0,.55,1) infinite;animation-play-state:paused}
+  .compact-island.is-visible{opacity:1;visibility:visible;pointer-events:auto;transform:translate3d(0,0,0) scale(1);transition:opacity .36s cubic-bezier(.32,.72,0,1),visibility 0s,transform .7s cubic-bezier(.32,.72,0,1);animation-play-state:running}
+  .compact-core{min-height:73px;display:grid;grid-template-columns:minmax(0,1fr) 46px;align-items:center;padding:6px;border-radius:23.5px;background:rgba(250,250,250,.975);box-shadow:inset 0 1px 0 rgba(255,255,255,.98);backdrop-filter:blur(18px) saturate(1.08)}
+  .compact-open{min-width:0;height:61px;display:grid;grid-template-columns:46px minmax(0,1fr) 34px;align-items:center;gap:10px;padding:7px 7px 7px 8px;border:0;border-radius:18px;background:transparent;color:#111;text-align:left;cursor:pointer;transition:background .24s cubic-bezier(.32,.72,0,1),transform .3s cubic-bezier(.32,.72,0,1)}
+  .compact-open:hover{background:rgba(12,12,12,.045)}.compact-open:active{transform:scale(.985)}
+  .compact-mark{position:relative;width:42px;height:42px;border-radius:15px;background:radial-gradient(circle at 35% 28%,#fff 0 4%,#a9bfff 16%,#6877f3 33%,#121212 72%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 7px 18px rgba(47,52,112,.16)}
+  .compact-mark::before{content:"";position:absolute;inset:10px 7px;border:1px solid rgba(255,255,255,.64);border-radius:50%;transform:rotate(calc(var(--audio-level) * 34deg));transition:transform .08s cubic-bezier(.32,.72,0,1)}
+  .compact-copy{min-width:0;display:grid;gap:4px}.compact-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:670;line-height:1.1}.compact-status{display:flex;align-items:center;gap:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6a6a6a;font-size:12px;font-weight:530}.compact-status::before{content:"";width:6px;height:6px;flex:0 0 auto;border-radius:50%;background:#151515;box-shadow:0 0 0 3px rgba(10,10,10,.065)}
+  .compact-expand{width:31px;height:31px;display:grid;place-items:center;border-radius:50%;background:#efefef;color:#303030}.compact-expand .icon-svg{width:17px;height:17px;transform:rotate(180deg)}
+  .compact-close{width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:14px;background:transparent;color:#686868;cursor:pointer;transition:background .22s cubic-bezier(.32,.72,0,1),color .22s cubic-bezier(.32,.72,0,1),transform .28s cubic-bezier(.32,.72,0,1)}.compact-close:hover{background:#ececec;color:#111}.compact-close:active{transform:scale(.94)}
+  header{height:80px;display:flex;align-items:center;gap:12px;padding:14px 14px 14px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.86)}
   .agent-mark{position:relative;width:38px;height:38px;flex:0 0 auto;border-radius:50%;background:#0b0b0b;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
   .agent-mark::before{content:"";position:absolute;width:19px;height:19px;left:9px;top:9px;border:1px solid rgba(255,255,255,.76);border-radius:50%;box-shadow:7px 0 0 -5px #9db8ff,-7px 0 0 -5px #fff}
-  .identity{min-width:0;flex:1;display:grid;gap:4px}.name{font-size:14px;font-weight:650;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.presence{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:520}.presence::before{content:"";width:6px;height:6px;border-radius:50%;background:#1a1a1a;box-shadow:0 0 0 3px rgba(10,10,10,.07)}
-  .minimize{width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#111;cursor:pointer;transition:background .2s ease,transform .25s cubic-bezier(.34,1.56,.64,1)}.minimize:hover{background:var(--soft);transform:translateY(2px)}
+  .identity{min-width:0;flex:1;display:grid;gap:4px}.name{font-size:15px;font-weight:670;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.presence{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;font-weight:530}.presence::before{content:"";width:6px;height:6px;border-radius:50%;background:#1a1a1a;box-shadow:0 0 0 3px rgba(10,10,10,.07)}
+  .header-actions{display:flex;align-items:center;gap:3px}.minimize,.header-close{width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:13px;background:transparent;color:#4c4c4c;cursor:pointer;transition:background .22s cubic-bezier(.32,.72,0,1),color .22s cubic-bezier(.32,.72,0,1),transform .3s cubic-bezier(.32,.72,0,1)}.minimize:hover,.header-close:hover{background:var(--soft);color:#111}.minimize:hover{transform:translateY(2px)}.header-close:hover{transform:rotate(4deg)}.minimize:active,.header-close:active{transform:scale(.94)}
+  .close-glyph{display:block;font-size:27px;font-weight:330;line-height:1;transform:translateY(-1px)}
   .icon-svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-  .messages{min-height:0;overflow:auto;overscroll-behavior:contain;padding:22px 18px 30px;display:flex;flex-direction:column;gap:18px;background:linear-gradient(180deg,#fff 0%,#fdfdfd 100%);scroll-behavior:smooth;transition:padding .52s cubic-bezier(.16,1,.3,1),opacity .3s ease,transform .42s cubic-bezier(.16,1,.3,1);scrollbar-width:thin;scrollbar-color:#d9d9d9 transparent}
+  .messages{min-height:0;overflow:auto;overscroll-behavior:contain;padding:25px 20px 34px;display:flex;flex-direction:column;gap:20px;background:linear-gradient(180deg,#fff 0%,#fdfdfd 100%);scroll-behavior:smooth;transition:padding .52s cubic-bezier(.16,1,.3,1),opacity .3s cubic-bezier(.32,.72,0,1),transform .42s cubic-bezier(.16,1,.3,1);scrollbar-width:thin;scrollbar-color:#d9d9d9 transparent}
   .messages::-webkit-scrollbar{width:5px}.messages::-webkit-scrollbar-thumb{background:#d9d9d9;border-radius:10px}
-  .message{font-size:14px;line-height:1.55;letter-spacing:-.006em;white-space:pre-wrap;overflow-wrap:anywhere;animation:message-in .42s cubic-bezier(.16,1,.3,1) both}.message-copy{min-width:0}
-  .response-blocks{display:grid;gap:10px;white-space:normal}.response-text{margin:0}.response-list{display:grid;gap:6px;margin:0;padding-left:20px}.entity-card{display:grid;grid-template-columns:68px minmax(0,1fr);gap:11px;padding:10px;border:1px solid #e2e2e2;border-radius:8px;background:#fafafa;overflow:hidden}.entity-card.no-image{grid-template-columns:1fr}.entity-image{width:68px;height:68px;object-fit:cover;border-radius:6px;background:#eee}.entity-body{min-width:0;display:grid;align-content:start;gap:4px}.entity-kind{color:#777;font-size:9px;font-weight:700;text-transform:uppercase}.entity-title{font-size:13px;font-weight:680;line-height:1.3}.entity-subtitle{color:#666;font-size:11px;line-height:1.4}.entity-price{font-size:12px;font-weight:700}.entity-fields{display:flex;flex-wrap:wrap;gap:4px 8px;color:#555;font-size:10px}.entity-link{color:#111;font-size:11px;font-weight:650;text-decoration:underline;text-underline-offset:2px}
+  .message{font-size:16px;line-height:1.58;white-space:pre-wrap;overflow-wrap:anywhere;animation:message-in .46s cubic-bezier(.16,1,.3,1) both}.message-copy{min-width:0}
+  .response-blocks{display:grid;gap:12px;white-space:normal}.response-text{margin:0;text-wrap:pretty}.response-list{display:grid;gap:8px;margin:0;padding-left:22px}.entity-card{display:grid;grid-template-columns:76px minmax(0,1fr);gap:13px;padding:12px;border:1px solid #e2e2e2;border-radius:8px;background:#fafafa;overflow:hidden}.entity-card.no-image{grid-template-columns:1fr}.entity-image{width:76px;height:76px;object-fit:cover;border-radius:6px;background:#eee}.entity-body{min-width:0;display:grid;align-content:start;gap:5px}.entity-kind{color:#777;font-size:10px;font-weight:700;text-transform:uppercase}.entity-title{font-size:14.5px;font-weight:680;line-height:1.32}.entity-subtitle{color:#666;font-size:12.5px;line-height:1.45}.entity-price{font-size:13.5px;font-weight:700}.entity-fields{display:flex;flex-wrap:wrap;gap:5px 9px;color:#555;font-size:11.5px}.entity-link{color:#111;font-size:12.5px;font-weight:650;text-decoration:underline;text-underline-offset:2px}
   .message.assistant{align-self:stretch;display:grid;grid-template-columns:21px minmax(0,1fr);gap:10px;padding-right:12px;color:#1a1a1a}.message.assistant::before{content:"";width:20px;height:20px;margin-top:1px;border-radius:50%;background:radial-gradient(circle at 37% 30%,#fff 0 4%,#9eb9ff 17%,#596cff 31%,#111 68%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
-  .message.visitor{max-width:82%;align-self:flex-end;padding:10px 14px;border-radius:18px 18px 5px 18px;background:#f0f0f0;color:#111}
-  .message-meta{margin-top:5px;color:#858585;font-size:10px;font-weight:560}.message.pending .message-copy{min-height:18px}.message.pending .message-copy::after{content:"";display:inline-block;width:20px;height:5px;margin-top:7px;background:radial-gradient(circle,#8a8a8a 1.5px,transparent 1.8px) 0 0/7px 5px;animation:dots 1s steps(3) infinite}
+  .message.visitor{max-width:82%;align-self:flex-end;padding:11px 15px;border-radius:18px 18px 5px 18px;background:#f0f0f0;color:#111}
+  .message-meta{margin-top:6px;color:#7e7e7e;font-size:11px;font-weight:560}.message.pending .message-copy{position:relative;width:54px;height:31px;min-height:31px;border:1px solid #e9e9e9;border-radius:12px;background:#fafafa;overflow:hidden}.message.pending .message-copy::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 18%,rgba(255,255,255,.96) 48%,transparent 78%);transform:translateX(-110%);animation:pending-sheen 1.7s cubic-bezier(.45,0,.55,1) infinite}.message.pending .message-copy::after{content:"";position:absolute;left:15px;top:13px;width:24px;height:5px;background:radial-gradient(circle,#777 1.6px,transparent 1.9px) 0 0/8px 5px;animation:dots 1.15s steps(3) infinite}
   .message-feedback{grid-column:2;display:flex;gap:4px;margin-top:-4px}.feedback-button{width:26px;height:26px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#929292;cursor:pointer;font-size:13px;transition:background .16s ease,color .16s ease,transform .16s ease}.feedback-button:hover{background:#efefef;color:#111;transform:translateY(-1px)}.feedback-button.selected{background:#111;color:#fff}.feedback-button:disabled{cursor:default;opacity:.7}
   .status{min-height:0;padding:0 18px;color:#6d6d6d;font-size:11px;line-height:1.4;transition:padding .2s ease}.status:not(:empty){padding-top:8px}.status[data-tone="error"]{color:#a22626}
   .attachments{display:flex;gap:8px;overflow-x:auto;padding:10px 14px 0;background:#fff}.attachments:empty{display:none}.preview{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:8px;min-width:150px;max-width:185px;padding:5px 29px 5px 5px;border:1px solid var(--line);border-radius:13px;background:#fafafa;animation:message-in .35s cubic-bezier(.16,1,.3,1) both}.preview img{width:38px;height:38px;object-fit:cover;border-radius:9px;filter:saturate(.85)}.preview-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:#535353}.remove{position:absolute;right:4px;top:4px;width:23px;height:23px;display:grid;place-items:center;border:0;border-radius:50%;background:#ececec;color:#333;cursor:pointer;font:500 15px/1 inherit}
   .composer{margin:10px 12px 12px;min-height:62px;display:grid;grid-template-columns:44px minmax(0,1fr) 48px;align-items:center;gap:4px;padding:6px;border:1px solid #dedede;border-radius:25px;background:#f8f8f8;box-shadow:0 6px 20px rgba(0,0,0,.045),inset 0 1px 0 #fff;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}.composer:focus-within{border-color:#bcbcbc;box-shadow:0 8px 26px rgba(0,0,0,.065),0 0 0 3px rgba(0,0,0,.035)}.composer.busy{opacity:.72}
   .attach,.mic{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#111;cursor:pointer;transition:background .18s ease,transform .24s cubic-bezier(.34,1.56,.64,1),box-shadow .24s ease}.attach:hover{background:#e9e9e9;transform:rotate(7deg)}.mic{width:48px;height:48px;background:#0a0a0a;color:#fff}.mic:hover{transform:scale(1.055)}.mic:active,.attach:active{transform:scale(.92)}.mic.active{background:#e92d32;color:#fff;box-shadow:0 0 0 calc(4px + var(--audio-level) * 7px) rgba(233,45,50,.2),0 10px 24px rgba(185,25,30,.25);animation:stop-breathe 1.8s ease-in-out infinite}.mic .wave{display:flex;align-items:center;justify-content:center;gap:2.5px;height:18px}.mic .wave i{display:block;width:2px;border-radius:2px;background:currentColor;animation:wave-idle 1.5s ease-in-out infinite}.mic .wave i:nth-child(1),.mic .wave i:nth-child(5){height:6px}.mic .wave i:nth-child(2),.mic .wave i:nth-child(4){height:12px;animation-delay:-.2s}.mic .wave i:nth-child(3){height:18px;animation-delay:-.4s}.mic.active .wave i{animation-duration:.72s;transform:scaleY(calc(.55 + var(--audio-level) * .9));transition:transform .055s linear}
-  input{min-width:0;width:100%;height:44px;padding:0 8px;border:0;outline:0;background:transparent;color:#101010;font-size:14px;letter-spacing:-.01em}input::placeholder{color:#919191}input:disabled{cursor:wait}
+  input{min-width:0;width:100%;height:44px;padding:0 8px;border:0;outline:0;background:transparent;color:#101010;font-size:16px}input::placeholder{color:#8b8b8b}input:disabled{cursor:wait}
   .voice-stage{position:relative;width:100%;height:0;min-height:0;z-index:1;display:grid;grid-template-rows:minmax(0,1fr) 24px;place-items:center;overflow:hidden;background:transparent;opacity:0;visibility:hidden;pointer-events:none;filter:blur(9px);transform:translate3d(0,34px,0) scale(.72);transform-origin:50% 100%;transition:height .58s cubic-bezier(.16,1,.3,1),opacity .22s ease,visibility 0s linear .5s,filter .36s ease,transform .62s cubic-bezier(.16,1,.3,1)}.voice-stage.active{height:286px;opacity:1;visibility:visible;filter:none;transform:translate3d(0,0,0) scale(1);transition:height .62s cubic-bezier(.16,1,.3,1),opacity .28s ease,visibility 0s,filter .42s ease,transform .68s cubic-bezier(.16,1,.3,1)}
   .voice-label{position:relative;z-index:2;align-self:start;text-align:center}.voice-title{font-size:11px;font-weight:620;letter-spacing:.018em;color:#585858;text-shadow:0 1px 14px rgba(255,255,255,.94)}.sphere-wrap{position:relative;width:276px;height:262px;display:grid;place-items:center;isolation:isolate}.sphere-wrap::before{content:"";position:absolute;inset:10%;z-index:-2;border-radius:50%;background:radial-gradient(circle,rgba(89,105,255,.12),rgba(122,75,255,.055) 38%,rgba(255,102,62,.025) 58%,transparent 72%);filter:blur(calc(12px + var(--audio-level) * 13px));transform:scale(calc(1 + var(--audio-level) * .09));transition:transform .06s linear,filter .06s linear}.sphere-wrap::after{content:"";position:absolute;left:21%;right:21%;bottom:7%;height:12%;z-index:-1;border-radius:50%;background:radial-gradient(ellipse,rgba(13,14,30,.18),rgba(51,57,130,.07) 45%,transparent 73%);filter:blur(11px);transform:scaleX(calc(.92 + var(--audio-level) * .12));transition:transform .06s linear}.voice-canvas{width:100%;height:100%;display:block;filter:drop-shadow(0 17px 25px rgba(25,29,75,.16)) saturate(1.04)}
+  .panel.voice-active .presence{visibility:hidden}
   .panel.dragging{box-shadow:0 32px 90px rgba(0,0,0,.19),inset 0 0 0 2px #111}.panel.dragging .composer{transform:translateY(-3px)}
   .navigation-stage{position:absolute;inset:0;z-index:20;display:grid;place-items:center;padding:28px;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility 0s linear .25s}.navigation-stage.active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .2s ease,visibility 0s}.navigation-state{display:grid;justify-items:center;gap:14px;max-width:260px;text-align:center}.navigation-spinner{width:38px;height:38px;border:2px solid #dedede;border-top-color:#111;border-radius:50%;animation:navigation-spin .75s linear infinite}.navigation-title{font-size:15px;font-weight:650}.navigation-detail{color:#717171;font-size:12px;line-height:1.5}.navigation-cancel{margin-top:4px;padding:8px 12px;border:0;background:transparent;color:#595959;font-size:12px;text-decoration:underline;cursor:pointer}
   .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-  .minimize:focus-visible,.launcher:focus-visible,.attach:focus-visible,.mic:focus-visible,.remove:focus-visible,input:focus-visible{outline:3px solid rgba(72,100,255,.3);outline-offset:3px}
+  .minimize:focus-visible,.header-close:focus-visible,.compact-open:focus-visible,.compact-close:focus-visible,.launcher:focus-visible,.attach:focus-visible,.mic:focus-visible,.remove:focus-visible,input:focus-visible{outline:3px solid rgba(72,100,255,.3);outline-offset:3px}
   [hidden]{display:none!important}
   @keyframes message-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
   @keyframes dots{to{background-position:21px 0}}
+  @keyframes pending-sheen{to{transform:translateX(110%)}}
+  @keyframes island-color-flow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
   @keyframes wave-idle{0%,100%{transform:scaleY(.62)}50%{transform:scaleY(1)}}
   @keyframes stop-breathe{0%,100%{transform:scale(1)}50%{transform:scale(calc(1 + var(--audio-level) * .035))}}
   @keyframes navigation-spin{to{transform:rotate(360deg)}}
-  @media(max-width:520px){:host{right:0;bottom:0}.shell{width:100vw;height:100dvh}.panel{border:0;border-radius:0;transform-origin:100% 100%}.launcher{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}.messages{padding-left:16px;padding-right:16px}.message.visitor{max-width:88%}.composer{margin-bottom:max(10px,env(safe-area-inset-bottom))}}
+  @media(max-width:520px){:host{right:0;bottom:0}.shell{width:100vw;height:100dvh}.panel{border:0;border-radius:0;transform-origin:100% 100%}.launcher{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}.compact-island{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:min(318px,calc(100vw - 24px))}.messages{padding-left:17px;padding-right:17px}.message{font-size:16px}.message.visitor{max-width:88%}.composer{margin-bottom:max(10px,env(safe-area-inset-bottom))}}
   @media(max-height:590px) and (min-width:521px){.shell{height:calc(100dvh - 24px)}.voice-stage.active{height:218px}.sphere-wrap{width:206px;height:196px}}
-  @media(prefers-reduced-motion:reduce){.panel,.launcher,.message,.preview,.voice-stage,.navigation-stage{transition:none;animation:none}.messages{scroll-behavior:auto}.mic,.mic .wave i,.navigation-spinner{animation:none}}
+  @media(prefers-reduced-motion:reduce){.panel,.launcher,.compact-island,.message,.preview,.voice-stage,.navigation-stage{transition:none;animation:none}.messages{scroll-behavior:auto}.mic,.mic .wave i,.navigation-spinner,.message.pending .message-copy::before{animation:none}}
 `);
 
 function element(tag, className, text) {
@@ -133,9 +147,7 @@ function readOperatingState() {
     if (parsed?.version !== 1 || !inventory) return undefined;
     const counts = ['total', 'active', 'draft', 'paused'].map((key) => inventory[key]);
     if (
-      counts.some(
-        (value) => !Number.isInteger(value) || value < 0 || value > 10_000,
-      ) ||
+      counts.some((value) => !Number.isInteger(value) || value < 0 || value > 10_000) ||
       inventory.active + inventory.draft + inventory.paused !== inventory.total
     ) {
       return undefined;
@@ -169,6 +181,11 @@ function readJourney(publicKey) {
       continuationToken:
         typeof parsed.continuationToken === 'string' ? parsed.continuationToken : undefined,
       isOpen: parsed.isOpen !== false,
+      viewMode: ['open', 'compact', 'closed'].includes(parsed.viewMode)
+        ? parsed.viewMode
+        : parsed.isOpen === false
+          ? 'closed'
+          : 'open',
       resumeVoice: parsed.resumeVoice === true,
     };
   } catch {
@@ -185,6 +202,7 @@ function writeJourney(publicKey, state) {
         conversationId: state.conversationId,
         continuationToken: state.continuationToken,
         isOpen: state.isOpen,
+        viewMode: state.viewMode,
         resumeVoice: state.resumeVoice === true,
       }),
     );
@@ -374,8 +392,49 @@ export async function mountWidget(host, config) {
   const minimize = element('button', 'minimize');
   minimize.type = 'button';
   minimize.setAttribute('aria-label', 'Minimize assistant');
+  minimize.title = 'Minimize';
   minimize.append(chevronIcon());
-  header.append(agentMark, identity, minimize);
+  const headerClose = element('button', 'header-close');
+  headerClose.type = 'button';
+  headerClose.setAttribute('aria-label', 'Close assistant');
+  headerClose.title = 'Close';
+  const headerCloseGlyph = element('span', 'close-glyph', '×');
+  headerCloseGlyph.setAttribute('aria-hidden', 'true');
+  headerClose.append(headerCloseGlyph);
+  const headerActions = element('div', 'header-actions');
+  headerActions.append(minimize, headerClose);
+  header.append(agentMark, identity, headerActions);
+
+  const compactIsland = element('div', 'compact-island');
+  compactIsland.setAttribute('role', 'group');
+  compactIsland.setAttribute('aria-label', 'Minimized assistant');
+  compactIsland.setAttribute('aria-hidden', 'true');
+  const compactCore = element('div', 'compact-core');
+  const compactOpen = element('button', 'compact-open');
+  compactOpen.type = 'button';
+  compactOpen.setAttribute('aria-label', 'Expand assistant');
+  compactOpen.title = 'Expand assistant';
+  const compactMark = element('span', 'compact-mark');
+  compactMark.setAttribute('aria-hidden', 'true');
+  const compactCopy = element('span', 'compact-copy');
+  const compactName = element('span', 'compact-name', 'Assistant');
+  const compactStatus = element('span', 'compact-status', 'Connecting securely');
+  compactStatus.setAttribute('role', 'status');
+  compactStatus.setAttribute('aria-live', 'polite');
+  compactCopy.append(compactName, compactStatus);
+  const compactExpand = element('span', 'compact-expand');
+  compactExpand.setAttribute('aria-hidden', 'true');
+  compactExpand.append(chevronIcon());
+  compactOpen.append(compactMark, compactCopy, compactExpand);
+  const compactClose = element('button', 'compact-close');
+  compactClose.type = 'button';
+  compactClose.setAttribute('aria-label', 'Close assistant');
+  compactClose.title = 'Close';
+  const compactCloseGlyph = element('span', 'close-glyph', '×');
+  compactCloseGlyph.setAttribute('aria-hidden', 'true');
+  compactClose.append(compactCloseGlyph);
+  compactCore.append(compactOpen, compactClose);
+  compactIsland.append(compactCore);
 
   const messages = element('div', 'messages');
   messages.setAttribute('role', 'log');
@@ -447,7 +506,7 @@ export async function mountWidget(host, config) {
   navigationStage.append(navigationState);
 
   panel.append(header, messages, voiceStage, status, attachments, form, navigationStage);
-  shell.append(launcher, panel);
+  shell.append(launcher, compactIsland, panel);
   root.append(shell);
 
   const sphere = createVoiceSphere(voiceCanvas);
@@ -464,7 +523,8 @@ export async function mountWidget(host, config) {
   let voiceUserNode;
   let voiceAssistantNode;
   let selectedFiles = [];
-  let isOpen = storedJourney.isOpen !== false;
+  let viewMode = storedJourney.viewMode ?? (storedJourney.isOpen === false ? 'closed' : 'open');
+  let isOpen = viewMode === 'open';
   let navigationTimer;
   let navigationCompletionListener;
   let navigationShownAt = 0;
@@ -476,6 +536,7 @@ export async function mountWidget(host, config) {
       conversationId,
       continuationToken,
       isOpen,
+      viewMode,
       resumeVoice,
     });
   };
@@ -495,16 +556,21 @@ export async function mountWidget(host, config) {
     persistJourney(Boolean(voiceSession || voiceStarting));
   };
 
-  const setOpen = (open) => {
-    isOpen = open;
-    panel.classList.toggle('is-open', open);
-    launcher.classList.toggle('is-visible', !open);
-    panel.setAttribute('aria-hidden', String(!open));
-    launcher.setAttribute('aria-expanded', String(open));
+  const setViewMode = (nextMode) => {
+    viewMode = ['open', 'compact', 'closed'].includes(nextMode) ? nextMode : 'closed';
+    isOpen = viewMode === 'open';
+    panel.classList.toggle('is-open', viewMode === 'open');
+    compactIsland.classList.toggle('is-visible', viewMode === 'compact');
+    launcher.classList.toggle('is-visible', viewMode === 'closed');
+    panel.setAttribute('aria-hidden', String(viewMode !== 'open'));
+    compactIsland.setAttribute('aria-hidden', String(viewMode !== 'compact'));
+    compactOpen.setAttribute('aria-expanded', String(viewMode === 'open'));
+    launcher.setAttribute('aria-expanded', String(viewMode === 'open'));
+    host.dataset.voomateView = viewMode;
     persistJourney(Boolean(voiceSession || voiceStarting));
-    sphere.setActive(open && Boolean(voiceSession || voiceStarting));
-    if (open && matchMedia('(pointer:fine)').matches && !voiceSession && !voiceStarting) {
-      window.setTimeout(() => input.focus(), 220);
+    sphere.setActive(isOpen && Boolean(voiceSession || voiceStarting));
+    if (isOpen && matchMedia('(pointer:fine)').matches && !voiceSession && !voiceStarting) {
+      window.setTimeout(() => input.focus(), 420);
     }
   };
 
@@ -701,6 +767,7 @@ export async function mountWidget(host, config) {
   const setVoiceState = (state) => {
     sphere.setState(state);
     launcher.dataset.state = state;
+    compactIsland.dataset.state = state;
     voiceStage.dataset.state = state;
     const labels = {
       connecting: 'Connecting securely',
@@ -709,8 +776,11 @@ export async function mountWidget(host, config) {
       speaking: `${name.textContent} is speaking`,
       ended: 'Voice ended',
     };
+    const currentLabel = state === 'ended' ? 'Online for chat' : labels[state] || 'Voice mode';
     voiceTitle.textContent = labels[state] || 'Voice mode';
-    presence.textContent = state === 'ended' ? 'Online for chat' : labels[state];
+    presence.textContent = currentLabel;
+    compactStatus.textContent = currentLabel;
+    presence.setAttribute('aria-hidden', String(state !== 'ended'));
   };
 
   const stopVoice = async () => {
@@ -726,7 +796,6 @@ export async function mountWidget(host, config) {
     shell.style.setProperty('--audio-level', '0');
     sphere.setActive(false);
     setVoiceState('ended');
-    presence.textContent = 'Online for chat';
     if (active) await active.disconnect().catch(() => undefined);
     persistJourney(false);
     if (isOpen && matchMedia('(pointer:fine)').matches) input.focus();
@@ -881,10 +950,18 @@ export async function mountWidget(host, config) {
     executeClientCommands(clientCommands, pageContext);
   };
 
-  minimize.addEventListener('click', () => setOpen(false));
-  launcher.addEventListener('click', () => setOpen(true));
+  const closeToLauncher = async () => {
+    if (voiceSession || voiceStarting) await stopVoice();
+    setViewMode('closed');
+  };
+
+  minimize.addEventListener('click', () => setViewMode('compact'));
+  headerClose.addEventListener('click', () => void closeToLauncher());
+  compactOpen.addEventListener('click', () => setViewMode('open'));
+  compactClose.addEventListener('click', () => void closeToLauncher());
+  launcher.addEventListener('click', () => setViewMode('open'));
   panel.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') setOpen(false);
+    if (event.key === 'Escape') setViewMode('compact');
   });
   attach.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', () => {
@@ -904,7 +981,7 @@ export async function mountWidget(host, config) {
     if (event.dataTransfer?.files) selectImages(event.dataTransfer.files);
   });
 
-  requestAnimationFrame(() => setOpen(storedJourney.isOpen !== false));
+  requestAnimationFrame(() => setViewMode(viewMode));
   try {
     let session;
     try {
@@ -928,7 +1005,9 @@ export async function mountWidget(host, config) {
     continuationToken = session.session.continuationToken;
     voiceConfig = session.agent.voice;
     name.textContent = session.agent.displayName;
+    compactName.textContent = session.agent.displayName;
     presence.textContent = 'Online for chat';
+    compactStatus.textContent = 'Online for chat';
     if (session.resumedConversation?.conversationId) {
       conversationId = session.resumedConversation.conversationId;
       for (const message of session.resumedConversation.messages ?? []) {
@@ -943,10 +1022,14 @@ export async function mountWidget(host, config) {
     const micAvailable = Boolean(navigator.mediaDevices?.getUserMedia);
     if (!session.agent.voiceEnabled || !voiceConfig || !micAvailable) {
       mic.hidden = true;
-      if (session.agent.voiceEnabled && !micAvailable) presence.textContent = 'Chat available';
+      if (session.agent.voiceEnabled && !micAvailable) {
+        presence.textContent = 'Chat available';
+        compactStatus.textContent = 'Chat available';
+      }
     }
   } catch (error) {
     presence.textContent = 'Unavailable';
+    compactStatus.textContent = 'Unavailable';
     addMessage('assistant', error instanceof Error ? error.message : 'Assistant unavailable.');
     input.disabled = true;
     attach.disabled = true;
@@ -1061,7 +1144,11 @@ export async function mountWidget(host, config) {
     attach.disabled = true;
     mic.disabled = true;
     setStatus(selectedFiles.length ? 'Securing and optimizing images' : '');
+    compactStatus.textContent = selectedFiles.length
+      ? 'Preparing images'
+      : `${name.textContent} is thinking`;
     let assistantNode;
+    let completed = false;
     try {
       const imageIds = await uploadImages();
       addMessage('visitor', typed || message, {
@@ -1073,18 +1160,22 @@ export async function mountWidget(host, config) {
       selectedFiles = [];
       renderAttachments();
       setStatus('');
+      compactStatus.textContent = `${name.textContent} is thinking`;
       assistantNode = addMessage('assistant', '', { pending: true });
       await streamMessage(message, imageIds, assistantNode);
+      completed = true;
     } catch (error) {
       const text = error instanceof Error ? error.message : 'I could not complete that request.';
       if (assistantNode) setMessageText(assistantNode, text);
       else addMessage('assistant', text);
       setStatus(text, 'error');
+      compactStatus.textContent = 'Needs attention';
     } finally {
       form.classList.remove('busy');
       input.disabled = false;
       attach.disabled = false;
       mic.disabled = false;
+      if (completed) compactStatus.textContent = 'Online for chat';
       if (isOpen && matchMedia('(pointer:fine)').matches) input.focus();
     }
   });

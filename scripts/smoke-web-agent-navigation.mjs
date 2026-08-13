@@ -75,6 +75,36 @@ async function expectNoNavigation(page, host, message, expectedReply) {
   assert.doesNotMatch(response, /need (?:the|a) url|provide (?:the|a) url/i);
 }
 
+async function assertWidgetChrome(page, host) {
+  const fontSize = await host
+    .locator('.message')
+    .first()
+    .evaluate((node) => Number.parseFloat(window.getComputedStyle(node).fontSize));
+  assert.ok(fontSize >= 16, `Widget message text is still too small: ${fontSize}px`);
+
+  await host.locator('button[aria-label="Minimize assistant"]').click();
+  await page.waitForFunction(
+    () => document.querySelector('voomate-agent')?.dataset.voomateView === 'compact',
+  );
+  assert.equal(await host.locator('.compact-island').getAttribute('aria-hidden'), 'false');
+
+  await host.locator('button[aria-label="Expand assistant"]').click();
+  await page.waitForFunction(
+    () => document.querySelector('voomate-agent')?.dataset.voomateView === 'open',
+  );
+
+  await host.locator('button.header-close[aria-label="Close assistant"]').click();
+  await page.waitForFunction(
+    () => document.querySelector('voomate-agent')?.dataset.voomateView === 'closed',
+  );
+  assert.ok(await host.locator('button[aria-label="Open assistant"]').isVisible());
+
+  await host.locator('button[aria-label="Open assistant"]').click();
+  await page.waitForFunction(
+    () => document.querySelector('voomate-agent')?.dataset.voomateView === 'open',
+  );
+}
+
 async function assertHardReloadContinuation(page, host) {
   const transcriptBeforeReload = await host.locator('.message-copy').allTextContents();
   await page.reload();
@@ -100,6 +130,7 @@ async function testLanding() {
   await host.evaluate((element) => {
     element.dataset.navigationSmokeIdentity = 'landing-preserved';
   });
+  await assertWidgetChrome(page, host);
 
   await expectNavigation(page, host, 'hi can you place take me to priing pages', '/pricing');
   await expectNoNavigation(
@@ -156,9 +187,18 @@ async function testMobileLanding() {
     element.dataset.navigationSmokeIdentity = 'mobile-preserved';
   });
   await expectNavigation(page, host, 'can you take me to priing', '/pricing');
+  await host.locator('button[aria-label="Minimize assistant"]').click();
+  await page.waitForFunction(
+    () => document.querySelector('voomate-agent')?.dataset.voomateView === 'compact',
+  );
+  const islandBox = await host.locator('.compact-island').boundingBox();
   const box = await host.boundingBox();
   const viewport = page.viewportSize();
   assert.ok(box && viewport && box.width <= viewport.width && box.height <= viewport.height);
+  assert.ok(
+    islandBox && viewport && islandBox.width <= viewport.width && islandBox.x >= 0,
+    'The compact island overflowed the mobile viewport.',
+  );
   assert.equal(
     await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
     0,
@@ -180,6 +220,8 @@ try {
       passed: true,
       landing: {
         currentDesign: true,
+        threeStateWidgetChrome: true,
+        readableMessageType: true,
         informationalNoRedirect: true,
         typoNavigation: true,
         aliases: true,
