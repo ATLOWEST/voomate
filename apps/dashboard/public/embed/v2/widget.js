@@ -17,16 +17,20 @@ stylesheet.replaceSync(`
   .launcher-rings::before,.launcher-rings::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:13px;border:1px solid rgba(255,255,255,.55);border-radius:50%;transform:translate(-50%,-50%) rotate(calc(var(--audio-level) * 38deg));transition:transform .08s linear}
   .launcher-rings::after{width:13px;height:34px;transform:translate(-50%,-50%) rotate(calc(-1 * var(--audio-level) * 44deg))}
   .launcher[data-state="listening"] .launcher-rings,.launcher[data-state="speaking"] .launcher-rings{box-shadow:0 0 calc(12px + var(--audio-level) * 24px) rgba(92,112,255,.72)}
-  .compact-island{position:absolute;right:0;bottom:0;width:min(318px,calc(100vw - 36px));min-height:76px;padding:1.5px;border-radius:25px;background:linear-gradient(105deg,#ff6b42,#9b7bff,#4ec7d8,#a4d95b,#ff6b42);background-size:320% 100%;box-shadow:0 22px 62px rgba(22,20,18,.18),0 4px 16px rgba(22,20,18,.08);opacity:0;visibility:hidden;pointer-events:none;transform:translate3d(22px,18px,0) scale(.82);transform-origin:100% 100%;transition:opacity .3s cubic-bezier(.32,.72,0,1),visibility 0s linear .6s,transform .62s cubic-bezier(.32,.72,0,1);animation:island-color-flow 2s cubic-bezier(.45,0,.55,1) infinite;animation-play-state:paused}
+  .compact-island{position:absolute;right:0;bottom:0;width:min(336px,calc(100vw - 36px));min-height:76px;padding:1px;border-radius:25px;background:linear-gradient(118deg,#ff7259 0%,#d588ff 24%,#718cff 48%,#51c9c3 72%,#b4dc75 100%);background-size:240% 240%;box-shadow:0 22px 62px rgba(22,20,18,.16),0 4px 16px rgba(22,20,18,.07),0 0 0 1px rgba(255,255,255,.7);opacity:0;visibility:hidden;pointer-events:none;transform:translate3d(22px,18px,0) scale(.82);transform-origin:100% 100%;transition:opacity .3s cubic-bezier(.32,.72,0,1),visibility 0s linear .6s,transform .62s cubic-bezier(.32,.72,0,1),box-shadow .6s ease;animation:island-color-flow 9s cubic-bezier(.45,0,.55,1) infinite alternate;animation-play-state:paused}
   .compact-island.is-visible{opacity:1;visibility:visible;pointer-events:auto;transform:translate3d(0,0,0) scale(1);transition:opacity .36s cubic-bezier(.32,.72,0,1),visibility 0s,transform .7s cubic-bezier(.32,.72,0,1);animation-play-state:running}
-  .compact-core{min-height:73px;display:grid;grid-template-columns:minmax(0,1fr) 46px;align-items:center;padding:6px;border-radius:23.5px;background:rgba(250,250,250,.975);box-shadow:inset 0 1px 0 rgba(255,255,255,.98);backdrop-filter:blur(18px) saturate(1.08)}
-  .compact-open{min-width:0;height:61px;display:grid;grid-template-columns:46px minmax(0,1fr) 34px;align-items:center;gap:10px;padding:7px 7px 7px 8px;border:0;border-radius:18px;background:transparent;color:#111;text-align:left;cursor:pointer;transition:background .24s cubic-bezier(.32,.72,0,1),transform .3s cubic-bezier(.32,.72,0,1)}
+  .compact-island[data-voice-active="true"]{box-shadow:0 24px 66px rgba(22,20,18,.18),0 5px 18px rgba(22,20,18,.08),0 0 0 1px rgba(255,255,255,.76)}
+  .compact-core{min-height:74px;display:grid;grid-template-columns:minmax(0,1fr) 46px;align-items:center;padding:6px;border-radius:24px;background:rgba(252,252,252,.965);box-shadow:inset 0 1px 0 rgba(255,255,255,.98);backdrop-filter:blur(24px) saturate(1.12)}
+  .compact-open{min-width:0;height:62px;display:grid;grid-template-columns:46px minmax(0,1fr) 34px;align-items:center;gap:10px;padding:7px 7px 7px 8px;border:0;border-radius:18px;background:transparent;color:#111;text-align:left;cursor:pointer;transition:background .24s cubic-bezier(.32,.72,0,1),transform .3s cubic-bezier(.32,.72,0,1)}
   .compact-open:hover{background:rgba(12,12,12,.045)}.compact-open:active{transform:scale(.985)}
   .compact-mark{position:relative;width:42px;height:42px;border-radius:15px;background:radial-gradient(circle at 35% 28%,#fff 0 4%,#a9bfff 16%,#6877f3 33%,#121212 72%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 7px 18px rgba(47,52,112,.16)}
   .compact-mark::before{content:"";position:absolute;inset:10px 7px;border:1px solid rgba(255,255,255,.64);border-radius:50%;transform:rotate(calc(var(--audio-level) * 34deg));transition:transform .08s cubic-bezier(.32,.72,0,1)}
-  .compact-copy{min-width:0;display:grid;gap:4px}.compact-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:670;line-height:1.1}.compact-status{display:flex;align-items:center;gap:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6a6a6a;font-size:12px;font-weight:530}.compact-status::before{content:"";width:6px;height:6px;flex:0 0 auto;border-radius:50%;background:#151515;box-shadow:0 0 0 3px rgba(10,10,10,.065)}
+  .compact-copy{min-width:0;display:grid;gap:5px}.compact-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:670;line-height:1.1}.compact-status-row{min-width:0;display:flex;align-items:center;gap:8px}.compact-status{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#656565;font-size:12px;font-weight:560}.compact-activity{position:relative;width:29px;height:14px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:2px;color:#171717}.compact-activity i{display:block;width:3px;height:3px;border-radius:999px;background:currentColor;transform-origin:50% 50%;transition:height .16s ease,transform .16s ease,opacity .16s ease}.compact-island[data-state="ended"] .compact-activity i:nth-child(n+2){display:none}.compact-island[data-state="ended"] .compact-activity i:first-child{width:6px;height:6px;box-shadow:0 0 0 3px rgba(10,10,10,.065)}
+  .compact-island[data-state="connecting"] .compact-activity i{position:absolute;width:13px;height:13px;border:1.5px solid #dedede;border-top-color:#222;background:transparent;animation:compact-spin 1.1s linear infinite}.compact-island[data-state="connecting"] .compact-activity i:nth-child(n+2){display:none}
+  .compact-island[data-state="listening"] .compact-activity{align-items:center}.compact-island[data-state="listening"] .compact-activity i{width:2.5px;height:var(--bar-height,8px);border-radius:3px;transform:scaleY(calc(.48 + var(--audio-level) * 1.1));animation:compact-hearing 1.25s ease-in-out infinite}.compact-island[data-state="listening"] .compact-activity i:nth-child(1),.compact-island[data-state="listening"] .compact-activity i:nth-child(5){--bar-height:6px}.compact-island[data-state="listening"] .compact-activity i:nth-child(2),.compact-island[data-state="listening"] .compact-activity i:nth-child(4){--bar-height:11px;animation-delay:-.32s}.compact-island[data-state="listening"] .compact-activity i:nth-child(3){--bar-height:14px;animation-delay:-.58s}
+  .compact-island[data-state="thinking"] .compact-activity i,.compact-island[data-state="speaking"] .compact-activity i{width:5px;height:5px;animation:compact-float 1.35s cubic-bezier(.45,0,.55,1) infinite}.compact-island[data-state="thinking"] .compact-activity i:nth-child(n+4),.compact-island[data-state="speaking"] .compact-activity i:nth-child(n+4){display:none}.compact-island[data-state="thinking"] .compact-activity i:nth-child(2),.compact-island[data-state="speaking"] .compact-activity i:nth-child(2){animation-delay:-.92s}.compact-island[data-state="thinking"] .compact-activity i:nth-child(3),.compact-island[data-state="speaking"] .compact-activity i:nth-child(3){animation-delay:-.48s}.compact-island[data-state="speaking"] .compact-activity{color:#5869ed}
   .compact-expand{width:31px;height:31px;display:grid;place-items:center;border-radius:50%;background:#efefef;color:#303030}.compact-expand .icon-svg{width:17px;height:17px;transform:rotate(180deg)}
-  .compact-close{width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:14px;background:transparent;color:#686868;cursor:pointer;transition:background .22s cubic-bezier(.32,.72,0,1),color .22s cubic-bezier(.32,.72,0,1),transform .28s cubic-bezier(.32,.72,0,1)}.compact-close:hover{background:#ececec;color:#111}.compact-close:active{transform:scale(.94)}
+  .compact-close,.compact-stop{width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:14px;cursor:pointer;transition:background .22s cubic-bezier(.32,.72,0,1),color .22s cubic-bezier(.32,.72,0,1),transform .28s cubic-bezier(.32,.72,0,1),box-shadow .28s ease}.compact-close{background:transparent;color:#686868}.compact-close:hover{background:#ececec;color:#111}.compact-close:active,.compact-stop:active{transform:scale(.92)}.compact-stop{display:none;border-radius:50%;background:#e72d35;color:#fff;box-shadow:0 8px 20px rgba(190,27,35,.24),inset 0 1px 0 rgba(255,255,255,.28)}.compact-stop::before{content:"";width:12px;height:12px;border-radius:3px;background:currentColor}.compact-stop:hover{background:#d9222b;box-shadow:0 10px 25px rgba(190,27,35,.32),0 0 0 5px rgba(231,45,53,.1),inset 0 1px 0 rgba(255,255,255,.3)}.compact-island[data-voice-active="true"] .compact-stop{display:grid}.compact-island[data-voice-active="true"] .compact-close{display:none}
   header{height:80px;display:flex;align-items:center;gap:12px;padding:14px 14px 14px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.86)}
   .agent-mark{position:relative;width:38px;height:38px;flex:0 0 auto;border-radius:50%;background:#0b0b0b;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
   .agent-mark::before{content:"";position:absolute;width:19px;height:19px;left:9px;top:9px;border:1px solid rgba(255,255,255,.76);border-radius:50%;box-shadow:7px 0 0 -5px #9db8ff,-7px 0 0 -5px #fff}
@@ -53,18 +57,21 @@ stylesheet.replaceSync(`
   .panel.dragging{box-shadow:0 32px 90px rgba(0,0,0,.19),inset 0 0 0 2px #111}.panel.dragging .composer{transform:translateY(-3px)}
   .navigation-stage{position:absolute;inset:0;z-index:20;display:grid;place-items:center;padding:28px;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility 0s linear .25s}.navigation-stage.active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .2s ease,visibility 0s}.navigation-state{display:grid;justify-items:center;gap:14px;max-width:260px;text-align:center}.navigation-spinner{width:38px;height:38px;border:2px solid #dedede;border-top-color:#111;border-radius:50%;animation:navigation-spin .75s linear infinite}.navigation-title{font-size:15px;font-weight:650}.navigation-detail{color:#717171;font-size:12px;line-height:1.5}.navigation-cancel{margin-top:4px;padding:8px 12px;border:0;background:transparent;color:#595959;font-size:12px;text-decoration:underline;cursor:pointer}
   .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-  .minimize:focus-visible,.header-close:focus-visible,.compact-open:focus-visible,.compact-close:focus-visible,.launcher:focus-visible,.attach:focus-visible,.mic:focus-visible,.remove:focus-visible,input:focus-visible{outline:3px solid rgba(72,100,255,.3);outline-offset:3px}
+  .minimize:focus-visible,.header-close:focus-visible,.compact-open:focus-visible,.compact-close:focus-visible,.compact-stop:focus-visible,.launcher:focus-visible,.attach:focus-visible,.mic:focus-visible,.remove:focus-visible,input:focus-visible{outline:3px solid rgba(72,100,255,.3);outline-offset:3px}
   [hidden]{display:none!important}
   @keyframes message-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
   @keyframes dots{to{background-position:21px 0}}
   @keyframes pending-sheen{to{transform:translateX(110%)}}
-  @keyframes island-color-flow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  @keyframes island-color-flow{0%{background-position:0% 35%}50%{background-position:100% 65%}100%{background-position:15% 100%}}
+  @keyframes compact-spin{to{transform:rotate(360deg)}}
+  @keyframes compact-hearing{0%,100%{opacity:.58;filter:saturate(.8)}50%{opacity:1;filter:saturate(1.15)}}
+  @keyframes compact-float{0%,100%{opacity:.42;transform:translateY(2px) scale(.84)}50%{opacity:1;transform:translateY(-3px) scale(1)}}
   @keyframes wave-idle{0%,100%{transform:scaleY(.62)}50%{transform:scaleY(1)}}
   @keyframes stop-breathe{0%,100%{transform:scale(1)}50%{transform:scale(calc(1 + var(--audio-level) * .035))}}
   @keyframes navigation-spin{to{transform:rotate(360deg)}}
-  @media(max-width:520px){:host{right:0;bottom:0}.shell{width:100vw;height:100dvh}.panel{border:0;border-radius:0;transform-origin:100% 100%}.launcher{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}.compact-island{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:min(318px,calc(100vw - 24px))}.messages{padding-left:17px;padding-right:17px}.message{font-size:16px}.message.visitor{max-width:88%}.composer{margin-bottom:max(10px,env(safe-area-inset-bottom))}}
+  @media(max-width:520px){:host{right:0;bottom:0}.shell{width:100vw;height:100dvh}.panel{border:0;border-radius:0;transform-origin:100% 100%}.launcher{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}.compact-island{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:min(336px,calc(100vw - 24px))}.messages{padding-left:17px;padding-right:17px}.message{font-size:16px}.message.visitor{max-width:88%}.composer{margin-bottom:max(10px,env(safe-area-inset-bottom))}}
   @media(max-height:590px) and (min-width:521px){.shell{height:calc(100dvh - 24px)}.voice-stage.active{height:218px}.sphere-wrap{width:206px;height:196px}}
-  @media(prefers-reduced-motion:reduce){.panel,.launcher,.compact-island,.message,.preview,.voice-stage,.navigation-stage{transition:none;animation:none}.messages{scroll-behavior:auto}.mic,.mic .wave i,.navigation-spinner,.message.pending .message-copy::before{animation:none}}
+  @media(prefers-reduced-motion:reduce){.panel,.launcher,.compact-island,.message,.preview,.voice-stage,.navigation-stage{transition:none;animation:none}.messages{scroll-behavior:auto}.mic,.mic .wave i,.navigation-spinner,.message.pending .message-copy::before,.compact-activity i{animation:none}}
 `);
 
 function element(tag, className, text) {
@@ -409,6 +416,8 @@ export async function mountWidget(host, config) {
   compactIsland.setAttribute('role', 'group');
   compactIsland.setAttribute('aria-label', 'Minimized assistant');
   compactIsland.setAttribute('aria-hidden', 'true');
+  compactIsland.dataset.state = 'ended';
+  compactIsland.dataset.voiceActive = 'false';
   const compactCore = element('div', 'compact-core');
   const compactOpen = element('button', 'compact-open');
   compactOpen.type = 'button';
@@ -421,7 +430,12 @@ export async function mountWidget(host, config) {
   const compactStatus = element('span', 'compact-status', 'Connecting securely');
   compactStatus.setAttribute('role', 'status');
   compactStatus.setAttribute('aria-live', 'polite');
-  compactCopy.append(compactName, compactStatus);
+  const compactStatusRow = element('span', 'compact-status-row');
+  const compactActivity = element('span', 'compact-activity');
+  compactActivity.setAttribute('aria-hidden', 'true');
+  for (let index = 0; index < 5; index += 1) compactActivity.append(element('i'));
+  compactStatusRow.append(compactActivity, compactStatus);
+  compactCopy.append(compactName, compactStatusRow);
   const compactExpand = element('span', 'compact-expand');
   compactExpand.setAttribute('aria-hidden', 'true');
   compactExpand.append(chevronIcon());
@@ -433,7 +447,12 @@ export async function mountWidget(host, config) {
   const compactCloseGlyph = element('span', 'close-glyph', '×');
   compactCloseGlyph.setAttribute('aria-hidden', 'true');
   compactClose.append(compactCloseGlyph);
-  compactCore.append(compactOpen, compactClose);
+  const compactStop = element('button', 'compact-stop');
+  compactStop.type = 'button';
+  compactStop.setAttribute('aria-label', 'Stop voice conversation');
+  compactStop.setAttribute('aria-hidden', 'true');
+  compactStop.title = 'Stop voice conversation';
+  compactCore.append(compactOpen, compactClose, compactStop);
   compactIsland.append(compactCore);
 
   const messages = element('div', 'messages');
@@ -519,6 +538,7 @@ export async function mountWidget(host, config) {
   let voiceConfig;
   let voiceSession;
   let voiceStarting = false;
+  let voiceStopping = false;
   let voiceRequestId = 0;
   let voiceUserNode;
   let voiceAssistantNode;
@@ -768,6 +788,7 @@ export async function mountWidget(host, config) {
     sphere.setState(state);
     launcher.dataset.state = state;
     compactIsland.dataset.state = state;
+    compactIsland.dataset.voiceActive = String(state !== 'ended');
     voiceStage.dataset.state = state;
     const labels = {
       connecting: 'Connecting securely',
@@ -780,10 +801,13 @@ export async function mountWidget(host, config) {
     voiceTitle.textContent = labels[state] || 'Voice mode';
     presence.textContent = currentLabel;
     compactStatus.textContent = currentLabel;
+    compactStop.setAttribute('aria-hidden', String(state === 'ended'));
     presence.setAttribute('aria-hidden', String(state !== 'ended'));
   };
 
   const stopVoice = async () => {
+    if (voiceStopping) return;
+    voiceStopping = true;
     voiceRequestId += 1;
     voiceStarting = false;
     const active = voiceSession;
@@ -796,9 +820,13 @@ export async function mountWidget(host, config) {
     shell.style.setProperty('--audio-level', '0');
     sphere.setActive(false);
     setVoiceState('ended');
-    if (active) await active.disconnect().catch(() => undefined);
-    persistJourney(false);
-    if (isOpen && matchMedia('(pointer:fine)').matches) input.focus();
+    try {
+      if (active) await active.disconnect().catch(() => undefined);
+    } finally {
+      voiceStopping = false;
+      persistJourney(false);
+      if (isOpen && matchMedia('(pointer:fine)').matches) input.focus();
+    }
   };
 
   const renderAttachments = () => {
@@ -959,6 +987,10 @@ export async function mountWidget(host, config) {
   headerClose.addEventListener('click', () => void closeToLauncher());
   compactOpen.addEventListener('click', () => setViewMode('open'));
   compactClose.addEventListener('click', () => void closeToLauncher());
+  compactStop.addEventListener('click', (event) => {
+    event.stopPropagation();
+    void stopVoice();
+  });
   launcher.addEventListener('click', () => setViewMode('open'));
   panel.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') setViewMode('compact');
@@ -1060,7 +1092,10 @@ export async function mountWidget(host, config) {
         pageUrl: window.location.href,
         pageContext: collectPageContext(),
         audioElement: audio,
-        onState: setVoiceState,
+        onState: (state) => {
+          if (state === 'ended') void stopVoice();
+          else setVoiceState(state);
+        },
         onAudioLevel: (source, level) => {
           const normalized = sphere.setLevel(source === 'user' ? 'user' : 'assistant', level);
           shell.style.setProperty('--audio-level', normalized.toFixed(3));

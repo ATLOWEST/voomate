@@ -88,6 +88,45 @@ async function assertWidgetChrome(page, host) {
   );
   assert.equal(await host.locator('.compact-island').getAttribute('aria-hidden'), 'false');
 
+  const compactVoice = await host.locator('.compact-island').evaluate((island) => {
+    const stop = island.querySelector('.compact-stop');
+    const activity = island.querySelector('.compact-activity i');
+    island.dataset.state = 'listening';
+    island.dataset.voiceActive = 'true';
+    island.closest('.shell')?.style.setProperty('--audio-level', '.8');
+    stop?.setAttribute('aria-hidden', 'false');
+    const listeningAnimation = activity ? window.getComputedStyle(activity).animationName : '';
+    island.dataset.state = 'speaking';
+    const speakingAnimation = activity ? window.getComputedStyle(activity).animationName : '';
+    return {
+      borderDuration: Number.parseFloat(window.getComputedStyle(island).animationDuration),
+      listeningAnimation,
+      speakingAnimation,
+      stopDisplay: stop ? window.getComputedStyle(stop).display : 'none',
+      stopColor: stop ? window.getComputedStyle(stop).backgroundColor : '',
+    };
+  });
+  assert.ok(compactVoice.borderDuration >= 8.5, 'The island color flow is still too fast.');
+  assert.match(compactVoice.listeningAnimation, /compact-hearing/);
+  assert.match(compactVoice.speakingAnimation, /compact-float/);
+  assert.equal(compactVoice.stopDisplay, 'grid');
+  assert.match(compactVoice.stopColor, /rgb\((?:231|215|214),/);
+
+  await host.locator('button[aria-label="Stop voice conversation"]').click();
+  await page.waitForFunction(() => {
+    const host = document.querySelector('voomate-agent');
+    const island = host?.shadowRoot?.querySelector('.compact-island');
+    return (
+      host?.dataset.voomateView === 'compact' &&
+      island?.dataset.state === 'ended' &&
+      island?.dataset.voiceActive === 'false'
+    );
+  });
+  assert.equal(
+    await host.locator('button[aria-label="Stop voice conversation"]').getAttribute('aria-hidden'),
+    'true',
+  );
+
   await host.locator('button[aria-label="Expand assistant"]').click();
   await page.waitForFunction(
     () => document.querySelector('voomate-agent')?.dataset.voomateView === 'open',

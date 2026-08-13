@@ -40,7 +40,11 @@ versioned assets.
 Widget v2 keeps one mounted conversation across three visual states. **Minimize** collapses the
 panel into a compact island that preserves chat and any active voice session. **Close** stops an
 active microphone session and returns to the circular launcher. Tapping the island or launcher
-restores the same conversation. The compact island uses a restrained two-second animated border;
+restores the same conversation. During live voice, the island remains the session controller: it
+shows connecting, listening, thinking, or speaking state and provides a dedicated red stop control.
+Listening motion follows the incoming microphone level; speaking and thinking use restrained
+floating dots. Manual stops and provider disconnects share one cleanup path so the next voice
+session starts cleanly. The island border uses a slow nine-second color drift;
 `prefers-reduced-motion` disables it.
 
 The deployment should route `widget.voomate.com` to the dashboard Next.js service for this
