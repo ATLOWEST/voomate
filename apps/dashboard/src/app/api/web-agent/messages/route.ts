@@ -1,5 +1,5 @@
-import { ImageUploadError } from '@/lib/web-agent/images';
 import { flushRunEvents, logRunEvent, type RunContext } from '@/lib/web-agent/log';
+import { publicWebAgentError } from '@/lib/web-agent/public-error';
 import { enforceWidgetRateLimit } from '@/lib/web-agent/rate-limit';
 import {
   bearerToken,
@@ -22,23 +22,33 @@ export async function POST(request: Request): Promise<Response> {
   if (!origin) return Response.json({ error: 'Origin header required.' }, { status: 403 });
 
   let context: RunContext | undefined;
+  let imageCount = 0;
   try {
     const token = bearerToken(request);
     if (!token) throw new Error('Session token required.');
     const claims = await verifyWidgetSession(token, origin);
     await enforceWidgetRateLimit(`${claims.keyFingerprint}:${origin}`);
     const input = messageRequestSchema.parse(await request.json());
+    imageCount = input.imageIds.length;
     const result = await runWebAgentTurn({
       claims,
       token,
       origin,
       input: { ...input, channel: 'text' },
+      onStarted: (startedContext) => {
+        context = startedContext;
+      },
     });
     context = result.context;
     await flushRunEvents(context);
 
     return Response.json(
-      { conversationId: result.conversationId, message: result.message },
+      {
+        conversationId: result.conversationId,
+        messageId: result.messageId,
+        message: result.message,
+        clientCommands: result.clientCommands,
+      },
       { headers: { ...corsHeaders(origin), 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
@@ -48,24 +58,16 @@ export async function POST(request: Request): Promise<Response> {
       }).catch(() => undefined);
       await flushRunEvents(context).catch(() => undefined);
     }
-    const rateLimited = error instanceof Error && error.message === 'RATE_LIMITED';
-    const invalidImage = error instanceof ImageUploadError;
-    const bedrockThrottled =
-      error instanceof Error &&
-      (error.name === 'ThrottlingException' || /too many requests|throttl/i.test(error.message));
+    const publicError = publicWebAgentError(error, imageCount);
     console.error('Web Agent message error', error);
     return Response.json(
       {
-        error: rateLimited
-          ? 'Too many requests. Please try again shortly.'
-          : invalidImage
-            ? error.message
-            : bedrockThrottled
-              ? 'Image analysis is temporarily busy. To prevent duplicate billing, attach the images again in a minute.'
-              : 'The assistant could not complete that request.',
+        error: publicError.message,
+        code: publicError.code,
+        ...(context?.conversationId ? { conversationId: context.conversationId } : {}),
       },
       {
-        status: rateLimited ? 429 : invalidImage ? error.status : bedrockThrottled ? 503 : 400,
+        status: publicError.status,
         headers: corsHeaders(origin),
       },
     );

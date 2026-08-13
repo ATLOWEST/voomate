@@ -339,6 +339,9 @@ CRITICAL DIRECTIVES:
           maxTokens: request.channel === 'voice' ? 300 : 800,
         },
       });
+      console.log('--- EXACT BEDROCK INPUT START ---');
+      console.log(JSON.stringify({ system, messages }, null, 2));
+      console.log('--- EXACT BEDROCK INPUT END ---');
 
       const response = await getClient().send(command, { abortSignal: request.signal });
       if (response.stream === undefined) throw internal('Bedrock returned no stream.');

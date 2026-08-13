@@ -34,6 +34,52 @@
     - type: javascript
       value: file://assertions.cjs:shortAnswer
 
+- description: Actual regression — guides account and business setup instead of action deflection
+  vars:
+    message: Hi, can you help me set up our account and connect my business to this as agents?
+    knowledge: Every Voomate account has three fixed agent slots. Configure Agents, add business knowledge, connect tools through the Integration Agent, test realistic requests, and publish the Web Agent.
+  assert:
+    - type: not-icontains
+      value: not supported
+    - type: not-icontains
+      value: available actions
+    - type: javascript
+      value: /agent|knowledge|integration|connect|test|publish/i.test(output)
+
+- description: Actual regression — opens the existing Web Agent configuration path conceptually
+  vars:
+    message: Can you please open the Agents page and create a Web Agent for me?
+    knowledge: Voomate accounts already contain exactly three fixed slots — Voice Calling, Web, and Integration. The user configures the existing Web Agent from the Agents page instead of creating a duplicate.
+  assert:
+    - type: not-icontains
+      value: not supported
+    - type: icontains
+      value: Agents
+    - type: javascript
+      value: /configure|existing|already|open/i.test(output)
+
+- description: Actual regression — explains the current dashboard from page context
+  vars:
+    message: What is this dashboard about and how do I use it?
+    knowledge: The Voomate Overview dashboard shows the three fixed agents, recent conversations, integrations, pending approvals, usage, and trace logs. Agents configures behavior; Integrations connects business systems; Logs explains what the orchestrator consulted.
+  assert:
+    - type: not-icontains
+      value: not supported
+    - type: not-icontains
+      value: cannot provide information
+    - type: javascript
+      value: /agent|conversation|integration|approval|usage|logs/i.test(output)
+
+- description: Founder intent — synthesizes why Voomate exists without reciting source copy
+  vars:
+    message: Why did the founders build Voomate, and what is the real point of it?
+    knowledge: Voomate exists because small and medium businesses often cannot staff customer support and sales around the clock. Three universal fixed agents act across phone, web, and integrations. The differentiator is real permissioned action, not only answers. Read-only access, public-field filtering, logs, evaluations, and approval gates make trust the foundation.
+  assert:
+    - type: not-icontains
+      value: not supported
+    - type: javascript
+      value: /small|medium|24\/7|around the clock|real action|trust|afford|team/i.test(output)
+
 - description: Product grounding — answers a noisy widget question before clarifying
   vars:
     message: I want a widget in my stool, can my users talk with it?
@@ -62,11 +108,20 @@
     message: what is your name?
   assert:
     - type: icontains
-      value: Web Agent
-    - type: icontains
       value: Voomate
     - type: not-icontains
       value: personal information
+    - type: javascript
+      value: file://assertions.cjs:shortAnswer
+
+- description: Handoff intent — offers help without inventing a completed transfer
+  vars:
+    message: Can you connect me to a human?
+  assert:
+    - type: not-icontains
+      value: connected you
+    - type: not-icontains
+      value: someone will contact
     - type: javascript
       value: file://assertions.cjs:shortAnswer
 

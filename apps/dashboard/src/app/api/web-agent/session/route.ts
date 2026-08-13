@@ -1,15 +1,18 @@
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
-import { agents } from '@voomate/db';
+import { and, desc, eq } from 'drizzle-orm';
+import { agents, conversations, messages } from '@voomate/db';
 import { getWebAgentDb } from '@/lib/web-agent/db';
 import { flushRunEvents, logRunEvent } from '@/lib/web-agent/log';
 import { enforceWidgetRateLimit } from '@/lib/web-agent/rate-limit';
 import {
   corsHeaders,
   keyFingerprint,
+  mintWidgetContinuation,
   mintWidgetSession,
   normalizeOrigin,
   sessionRequestSchema,
+  sessionFingerprint,
+  verifyWidgetContinuation,
 } from '@/lib/web-agent/security';
 
 export const runtime = 'nodejs';
@@ -57,6 +60,21 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    let visitorSessionId: string = randomUUID();
+    let continuationAccepted = false;
+    if (input.continuationToken) {
+      const previous = await verifyWidgetContinuation(input.continuationToken, origin);
+      if (
+        previous.agentId !== agent.id ||
+        previous.organizationId !== agent.organizationId ||
+        previous.keyFingerprint !== fingerprint
+      ) {
+        throw new Error('Widget continuation does not match this agent.');
+      }
+      visitorSessionId = previous.visitorSessionId;
+      continuationAccepted = true;
+    }
+
     const runId = randomUUID();
     const context = {
       organizationId: agent.organizationId,
@@ -68,13 +86,40 @@ export async function POST(request: Request): Promise<Response> {
       origin,
       keyFingerprint: fingerprint,
     });
-    const session = await mintWidgetSession({
+    const claims = {
       organizationId: agent.organizationId,
       agentId: agent.id,
       origin,
       keyFingerprint: fingerprint,
+      visitorSessionId,
+    };
+    const [session, continuation] = await Promise.all([
+      mintWidgetSession(claims),
+      mintWidgetContinuation(claims),
+    ]);
+    const resumedConversation =
+      continuationAccepted && input.conversationId
+        ? await getWebAgentDb()
+            .select({ role: messages.role, content: messages.content })
+            .from(conversations)
+            .innerJoin(messages, eq(messages.conversationId, conversations.id))
+            .where(
+              and(
+                eq(conversations.id, input.conversationId),
+                eq(conversations.organizationId, agent.organizationId),
+                eq(conversations.agentId, agent.id),
+                eq(conversations.visitorId, sessionFingerprint(visitorSessionId)),
+                eq(messages.organizationId, agent.organizationId),
+              ),
+            )
+            .orderBy(desc(messages.createdAt))
+            .limit(50)
+        : [];
+    await logRunEvent(context, 'session_token', 'success', {
+      expiresIn: session.expiresIn,
+      continuationAccepted,
+      resumedMessageCount: resumedConversation.length,
     });
-    await logRunEvent(context, 'session_token', 'success', { expiresIn: session.expiresIn });
     await flushRunEvents(context);
 
     const persona = agent.persona as { displayName?: string; greeting?: string };
@@ -84,7 +129,18 @@ export async function POST(request: Request): Promise<Response> {
     )?.replace(/\/$/, '');
     return Response.json(
       {
-        session,
+        session: {
+          ...session,
+          continuationToken: continuation.token,
+          continuationExpiresIn: continuation.expiresIn,
+        },
+        resumedConversation:
+          continuationAccepted && input.conversationId && resumedConversation.length
+            ? {
+                conversationId: input.conversationId,
+                messages: resumedConversation.reverse(),
+              }
+            : null,
         agent: {
           displayName: persona.displayName ?? 'Assistant',
           greeting: persona.greeting ?? 'Hi! How can I help?',

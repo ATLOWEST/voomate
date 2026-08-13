@@ -63,9 +63,15 @@ if (/\b(?:TestAgent|Web Agent)\b/i.test(greeting.answer)) {
 }
 
 const product = await turn('What is Voomate actually about?');
-if (!/AI agent/i.test(product.answer) || /provide more details/i.test(product.answer)) {
+if (
+  !/\bAI\b/i.test(product.answer) ||
+  !/\b(?:agents?|operating team)\b/i.test(product.answer) ||
+  /provide more details/i.test(product.answer)
+) {
   throw new Error(`Product answer was not direct and grounded: ${product.answer}`);
 }
+
+await new Promise((resolve) => setTimeout(resolve, 1_200));
 
 const noisy = await turn('I want a widget in my stool. Can my users talk with it?');
 if (!/(chat|speak|voice|talk)/i.test(noisy.answer) || /provide more details/i.test(noisy.answer)) {
@@ -83,7 +89,7 @@ const events = await db`
 await db.end();
 
 const stages = new Set(events.map((event) => event.stage));
-for (const expected of ['knowledge_retrieval', 'agent_runtime', 'nova_first_token']) {
+for (const expected of ['knowledge_retrieval', 'agent_runtime', 'bedrock_agent_first_token']) {
   if (!stages.has(expected)) throw new Error(`Logs are missing ${expected}.`);
 }
 const grounded = events.some(

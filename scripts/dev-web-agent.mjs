@@ -3,6 +3,7 @@ import process from 'node:process';
 
 const STARTUP_TIMEOUT_MS = 45_000;
 const HEALTH_INTERVAL_MS = 350;
+const stackStartedAt = Date.now();
 
 const services = [
   {
@@ -11,7 +12,7 @@ const services = [
     url: 'http://127.0.0.1:4000/health',
   },
   {
-    name: 'Widget runtime',
+    name: 'Dashboard + widget runtime',
     command: ['run', 'dev:dashboard'],
     url: 'http://127.0.0.1:3001/embed.js',
   },
@@ -43,6 +44,7 @@ async function isReady(url) {
 }
 
 function start(service) {
+  service.startedAt = Date.now();
   const child = spawn('npm', service.command, {
     cwd: process.cwd(),
     env: process.env,
@@ -62,7 +64,11 @@ function start(service) {
 async function waitUntilReady(service) {
   const deadline = Date.now() + STARTUP_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    if (await isReady(service.url)) return;
+    if (await isReady(service.url)) {
+      const elapsed = Date.now() - (service.startedAt ?? stackStartedAt);
+      console.log(`[Voomate] ${service.name} ready in ${elapsed}ms`);
+      return;
+    }
     const child = children.get(service.name);
     if (child && child.exitCode !== null) {
       throw new Error(`${service.name} exited with code ${child.exitCode}.`);
@@ -96,7 +102,7 @@ try {
 
   await Promise.all(services.map(waitUntilReady));
   console.log('\n[Voomate] Web Agent development stack is ready:');
-  console.log('  Landing + installed widget  http://localhost:3000');
+  console.log('  Landing site                http://localhost:3000');
   console.log('  Dashboard + widget runtime  http://localhost:3001');
   console.log('  Connect/control API         http://localhost:4000');
   console.log('\nPress Ctrl+C to stop only the services started by this command.');

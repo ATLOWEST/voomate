@@ -10,7 +10,7 @@ if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required.');
 
 const apiBase = (process.env.API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
 const widgetBase = (process.env.WEB_AGENT_URL ?? 'http://localhost:3001').replace(/\/$/, '');
-const widgetOrigin = process.env.WEB_AGENT_ORIGIN ?? 'http://localhost:3001';
+const widgetOrigin = process.env.WEB_AGENT_ORIGIN ?? 'http://localhost:3000';
 const endpoint = `${apiBase}/v1/connect/sync`;
 const db = postgres(process.env.DATABASE_URL, { prepare: false, max: 1 });
 const startedAt = new Date();

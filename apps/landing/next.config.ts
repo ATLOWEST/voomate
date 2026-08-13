@@ -16,7 +16,10 @@ if (existsSync(rootEnv)) {
     if (!key.startsWith('NEXT_PUBLIC_')) continue;
     const existing = process.env[key];
     if (existing !== undefined && existing !== '') continue;
-    process.env[key] = line.slice(separator + 1).trim().replace(/^['"]|['"]$/g, '');
+    process.env[key] = line
+      .slice(separator + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, '');
   }
 }
 

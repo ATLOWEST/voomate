@@ -1,16 +1,49 @@
 import { PipecatClient } from '@pipecat-ai/client-js';
 import { SmallWebRTCTransport } from '@pipecat-ai/small-webrtc-transport';
 
+type Serializable =
+  string | number | boolean | null | Serializable[] | { [key: string]: Serializable };
+
+function asSerializable(value: unknown): Serializable {
+  return JSON.parse(JSON.stringify(value)) as Serializable;
+}
+
 export interface VoiceSessionOptions {
   endpoint: string;
   sessionToken: string;
   conversationId?: string;
   pageUrl: string;
+  pageContext?: {
+    url: string;
+    title: string;
+    description: string;
+    headings: string[];
+    navigation: Array<{
+      label: string;
+      url: string;
+      description?: string;
+      aliases?: string[];
+      facts?: string[];
+      native?: {
+        ios?: { url: string; storeUrl?: string };
+        android?: { url: string; storeUrl?: string };
+      };
+    }>;
+    surface?: {
+      id: string;
+      title: string;
+      description: string;
+      aliases?: string[];
+      facts?: string[];
+    };
+    businessSummary?: string;
+  };
   audioElement: HTMLAudioElement;
   onState: (state: 'connecting' | 'listening' | 'thinking' | 'speaking' | 'ended') => void;
   onUserTranscript: (text: string, final: boolean) => void;
   onAssistantDelta: (text: string) => void;
   onConversationId: (conversationId: string) => void;
+  onClientCommands?: (commands: unknown[]) => void;
   onAudioLevel?: (source: 'user' | 'assistant', level: number) => void;
   onAudioSpectrum?: (
     source: 'user' | 'assistant',
@@ -21,6 +54,7 @@ export interface VoiceSessionOptions {
 
 export interface VoiceSession {
   disconnect(): Promise<void>;
+  updatePageContext(pageUrl: string, pageContext: VoiceSessionOptions['pageContext']): void;
   setMuted(muted: boolean): void;
   readonly muted: boolean;
 }
@@ -114,6 +148,9 @@ export async function createVoiceSession(options: VoiceSessionOptions): Promise<
         ) {
           options.onConversationId(event.conversationId);
         }
+        if (event?.type === 'voomate-turn-complete' && Array.isArray(event.clientCommands)) {
+          options.onClientCommands?.(event.clientCommands);
+        }
       },
       onTrackStarted: (track, participant) => {
         if (track.kind !== 'audio') return;
@@ -142,6 +179,7 @@ export async function createVoiceSession(options: VoiceSessionOptions): Promise<
         sessionToken: options.sessionToken,
         conversationId: options.conversationId ?? null,
         pageUrl: options.pageUrl,
+        ...(options.pageContext ? { pageContext: asSerializable(options.pageContext) } : {}),
       },
     },
   });
@@ -152,6 +190,12 @@ export async function createVoiceSession(options: VoiceSessionOptions): Promise<
       for (const stop of spectrumStops.values()) stop();
       spectrumStops.clear();
       await client.disconnect();
+    },
+    updatePageContext(pageUrl, pageContext) {
+      client.sendClientMessage('voomate-page-context', {
+        pageUrl,
+        ...(pageContext ? { pageContext: asSerializable(pageContext) } : {}),
+      });
     },
     setMuted(value: boolean) {
       muted = value;

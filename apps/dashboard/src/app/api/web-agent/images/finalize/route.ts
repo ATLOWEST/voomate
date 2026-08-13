@@ -38,7 +38,7 @@ export async function POST(request: Request): Promise<Response> {
     };
     const images = await finalizeImageUploads({
       context,
-      sessionFingerprint: sessionFingerprint(token),
+      sessionFingerprint: sessionFingerprint(claims.visitorSessionId),
       imageIds: input.imageIds,
     });
     await flushRunEvents(context);

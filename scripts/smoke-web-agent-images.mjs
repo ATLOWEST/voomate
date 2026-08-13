@@ -7,7 +7,7 @@ import { loadEnv } from '../packages/db/scripts/load-env.mjs';
 loadEnv();
 
 const baseUrl = (process.env.WEB_AGENT_URL ?? 'http://localhost:3001').replace(/\/$/, '');
-const origin = process.env.WEB_AGENT_ORIGIN ?? 'http://localhost:3001';
+const origin = process.env.WEB_AGENT_ORIGIN ?? 'http://localhost:3000';
 const publicKey = process.env.WEB_AGENT_PUBLIC_KEY ?? 'test-embed-key';
 
 async function post(path, body, token, expected = 200) {

@@ -54,6 +54,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     backend_origin = os.getenv("WEB_AGENT_BACKEND_ORIGIN", "http://localhost:3001")
     conversation_id = body.get("conversationId") or None
     page_url = body.get("pageUrl") or None
+    page_context = body.get("pageContext") if isinstance(body.get("pageContext"), dict) else None
 
     stt = VocabularyTranscribeSTTService(
         region=os.getenv("TRANSCRIBE_REGION", os.getenv("AWS_REGION", "us-east-1")),
@@ -70,6 +71,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         widget_origin=claims.origin,
         conversation_id=conversation_id,
         page_url=page_url,
+        page_context=page_context,
     )
     telemetry_state = VoiceTelemetryState()
     telemetry_in = VoiceTelemetryProcessor(

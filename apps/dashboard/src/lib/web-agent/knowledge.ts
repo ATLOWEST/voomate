@@ -43,13 +43,13 @@ export function shouldRetrieveKnowledge(message: string): boolean {
 export async function retrieveWebAgentKnowledge(
   context: RunContext,
   message: string,
-  actionRequest: boolean,
+  enabled = true,
 ): Promise<WebAgentKnowledge[]> {
   const startedAt = Date.now();
-  if (actionRequest) {
+  if (!enabled) {
     await logRunEvent(context, 'knowledge_retrieval', 'success', {
       sourceCount: 0,
-      skipped: 'real_time_action',
+      skipped: 'orchestrator_not_required',
     });
     return [];
   }

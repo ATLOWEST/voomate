@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-const ACTIVE_HARNESS = 'web-agent.v1.md';
+const ACTIVE_HARNESS = 'web-agent.v2.md';
 
 export interface LoadedHarness {
   id: string;

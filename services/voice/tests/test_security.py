@@ -8,7 +8,7 @@ from voomate_voice.security import redact_session_body, verify_widget_token
 SECRET = "a-secure-widget-token-secret-with-32-chars"
 
 
-def token(origin="http://localhost:3001"):
+def token(origin="http://localhost:3000"):
     now = int(time.time())
     return jwt.encode(
         {
@@ -28,7 +28,7 @@ def token(origin="http://localhost:3001"):
 
 
 def test_token_is_origin_bound():
-    assert verify_widget_token(token(), SECRET).origin == "http://localhost:3001"
+    assert verify_widget_token(token(), SECRET).origin == "http://localhost:3000"
 
 
 def test_insecure_remote_origin_is_rejected():

@@ -50,6 +50,12 @@ export const toolStatusEnum = pgEnum('tool_status', ['active', 'paused']);
 export const toolAuditStatusEnum = pgEnum('tool_audit_status', ['success', 'error', 'gated']);
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'denied']);
 export const integrationStatusEnum = pgEnum('integration_status', ['active', 'disconnected']);
+export const readConnectionStatusEnum = pgEnum('read_connection_status', [
+  'pending',
+  'active',
+  'error',
+  'revoked',
+]);
 export const knowledgeSourceTypeEnum = pgEnum('knowledge_source_type', [
   'website',
   'document',
@@ -74,6 +80,10 @@ export const conversationStatusEnum = pgEnum('conversation_status', [
   'abandoned',
 ]);
 export const messageRoleEnum = pgEnum('message_role', ['visitor', 'agent', 'system']);
+export const messageFeedbackRatingEnum = pgEnum('message_feedback_rating', [
+  'helpful',
+  'unhelpful',
+]);
 export const webAgentImageStatusEnum = pgEnum('web_agent_image_status', [
   'pending',
   'processed',
@@ -360,6 +370,97 @@ export const organizationIntegrations = pgTable(
   ],
 );
 
+/**
+ * Client-hosted, pull-only live-data capability endpoint. This is owned by the Integration
+ * Agent boundary: Web/Voice can request an approved read but can neither obtain credentials nor
+ * send a mutation. Volatile facts stay here and are never embedded into the knowledge corpus.
+ */
+export const readOnlyConnections = pgTable(
+  'read_only_connections',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    endpointUrl: text('endpoint_url').notNull(),
+    endpointOrigin: text('endpoint_origin').notNull(),
+    status: readConnectionStatusEnum('status').notNull().default('pending'),
+    /** Public capability descriptions and schemas. Never contains credentials or sample data. */
+    capabilities: jsonb('capabilities').notNull().default([]),
+    lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    lastErrorCode: text('last_error_code'),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index('read_only_connections_organization_idx').on(table.organizationId),
+    index('read_only_connections_agent_status_idx').on(table.agentId, table.status),
+    uniqueIndex('read_only_connections_agent_endpoint_idx').on(table.agentId, table.endpointUrl),
+  ],
+);
+
+/**
+ * Secret ciphertext is physically separated from dashboard-readable metadata. There is no
+ * client SELECT policy for this table; only the service backend may decrypt it.
+ */
+export const readOnlyConnectionSecrets = pgTable(
+  'read_only_connection_secrets',
+  {
+    connectionId: uuid('connection_id')
+      .primaryKey()
+      .references(() => readOnlyConnections.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    ciphertext: text('ciphertext').notNull(),
+    keyVersion: text('key_version').notNull().default('local-aes-v1'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    rotatedAt: timestamp('rotated_at', { withTimezone: true }),
+  },
+  (table) => [index('read_only_connection_secrets_organization_idx').on(table.organizationId)],
+);
+
+/** Metadata-only read audit: hashes and field names prove access without retaining PII. */
+export const readOnlyInvocations = pgTable(
+  'read_only_invocations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    connectionId: uuid('connection_id')
+      .notNull()
+      .references(() => readOnlyConnections.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id').references(() => conversations.id, {
+      onDelete: 'set null',
+    }),
+    runId: uuid('run_id'),
+    capability: text('capability').notNull(),
+    status: toolAuditStatusEnum('status').notNull(),
+    inputHash: text('input_hash').notNull(),
+    inputFields: text('input_fields').array().notNull().default(sql`ARRAY[]::text[]`),
+    outputFields: text('output_fields').array().notNull().default(sql`ARRAY[]::text[]`),
+    latencyMs: integer('latency_ms').notNull(),
+    errorCode: text('error_code'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('read_only_invocations_organization_created_idx').on(
+      table.organizationId,
+      table.createdAt,
+    ),
+    index('read_only_invocations_connection_created_idx').on(table.connectionId, table.createdAt),
+  ],
+);
+
 export const approvalRequests = pgTable(
   'approval_requests',
   {
@@ -603,6 +704,89 @@ export const messages = pgTable(
   (table) => [
     index('messages_organization_idx').on(table.organizationId),
     index('messages_conversation_created_idx').on(table.conversationId, table.createdAt),
+  ],
+);
+
+/**
+ * Explicit visitor feedback and offline RLAIF scores for a single public assistant message.
+ * These are evidence for evals, never automatic training data. A policy version is promoted only
+ * after a reviewed offline evaluation, so one malicious visitor cannot teach the live agent.
+ */
+export const messageFeedback = pgTable(
+  'message_feedback',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    sessionFingerprint: text('session_fingerprint').notNull(),
+    rating: messageFeedbackRatingEnum('rating').notNull(),
+    reason: text('reason'),
+    /** Offline Amazon Nova judge output, written by the evaluation worker only. */
+    rlaifScore: real('rlaif_score'),
+    rlaifDimensions: jsonb('rlaif_dimensions'),
+    evaluatorModel: text('evaluator_model'),
+    policyVersion: text('policy_version').notNull(),
+    evaluatedAt: timestamp('evaluated_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('message_feedback_message_session_idx').on(
+      table.messageId,
+      table.sessionFingerprint,
+    ),
+    index('message_feedback_organization_idx').on(table.organizationId),
+    index('message_feedback_agent_created_idx').on(table.agentId, table.createdAt),
+  ],
+);
+
+/** Immutable offline model-as-judge result for one public assistant turn and policy version. */
+export const agentTurnEvaluations = pgTable(
+  'agent_turn_evaluations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    policyVersion: text('policy_version').notNull(),
+    evaluatorVersion: text('evaluator_version').notNull(),
+    evaluatorModel: text('evaluator_model').notNull(),
+    overallScore: real('overall_score').notNull(),
+    dimensions: jsonb('dimensions').notNull(),
+    flags: text('flags')
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
+    rationale: text('rationale').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('agent_turn_evaluations_message_policy_evaluator_idx').on(
+      table.messageId,
+      table.policyVersion,
+      table.evaluatorVersion,
+    ),
+    index('agent_turn_evaluations_organization_idx').on(table.organizationId),
+    index('agent_turn_evaluations_agent_created_idx').on(table.agentId, table.createdAt),
   ],
 );
 
@@ -854,6 +1038,24 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+export const messageFeedbackRelations = relations(messageFeedback, ({ one }) => ({
+  agent: one(agents, { fields: [messageFeedback.agentId], references: [agents.id] }),
+  conversation: one(conversations, {
+    fields: [messageFeedback.conversationId],
+    references: [conversations.id],
+  }),
+  message: one(messages, { fields: [messageFeedback.messageId], references: [messages.id] }),
+}));
+
+export const agentTurnEvaluationsRelations = relations(agentTurnEvaluations, ({ one }) => ({
+  agent: one(agents, { fields: [agentTurnEvaluations.agentId], references: [agents.id] }),
+  conversation: one(conversations, {
+    fields: [agentTurnEvaluations.conversationId],
+    references: [conversations.id],
+  }),
+  message: one(messages, { fields: [agentTurnEvaluations.messageId], references: [messages.id] }),
+}));
+
 export const webAgentImageUploadsRelations = relations(webAgentImageUploads, ({ one }) => ({
   agent: one(agents, { fields: [webAgentImageUploads.agentId], references: [agents.id] }),
   conversation: one(conversations, {
@@ -880,6 +1082,8 @@ export const TENANT_SCOPED_TABLES = [
   'knowledge_chunks',
   'conversations',
   'messages',
+  'message_feedback',
+  'agent_turn_evaluations',
   'api_keys',
   'usage_records',
   'audit_logs',
@@ -890,4 +1094,7 @@ export const TENANT_SCOPED_TABLES = [
   'web_agent_orders',
   'web_agent_image_uploads',
   'organization_integrations',
+  'read_only_connections',
+  'read_only_connection_secrets',
+  'read_only_invocations',
 ] as const;

@@ -1,18 +1,30 @@
 import { createHash } from 'node:crypto';
 import { jwtVerify, SignJWT } from 'jose';
 import { z } from 'zod';
+import { pageContextSchema } from './page-context';
 
 const SESSION_TTL_SECONDS = 15 * 60;
+const CONTINUATION_TTL_SECONDS = 24 * 60 * 60;
 
 export const sessionRequestSchema = z.object({
   publicKey: z.string().min(12).max(160),
+  continuationToken: z.string().min(80).max(4_096).optional(),
+  conversationId: z.string().uuid().optional(),
 });
 
 export const messageRequestSchema = z.object({
   message: z.string().trim().min(1).max(4_000),
   conversationId: z.string().uuid().optional(),
   pageUrl: z.string().url().max(2_048).optional(),
+  pageContext: pageContextSchema.optional(),
   imageIds: z.array(z.string().uuid()).max(2).default([]),
+});
+
+export const messageFeedbackRequestSchema = z.object({
+  conversationId: z.string().uuid(),
+  messageId: z.string().uuid(),
+  rating: z.enum(['helpful', 'unhelpful']),
+  reason: z.string().trim().max(500).optional(),
 });
 
 export const voiceMessageRequestSchema = messageRequestSchema.extend({
@@ -66,6 +78,8 @@ export interface WidgetClaims {
   organizationId: string;
   origin: string;
   keyFingerprint: string;
+  /** Stable opaque browser session ID. It contains no identity or tenant information. */
+  visitorSessionId: string;
 }
 
 function tokenSecret(): Uint8Array {
@@ -112,6 +126,21 @@ export async function mintWidgetSession(claims: WidgetClaims): Promise<{
   return { token, expiresIn: SESSION_TTL_SECONDS };
 }
 
+export async function mintWidgetContinuation(claims: WidgetClaims): Promise<{
+  token: string;
+  expiresIn: number;
+}> {
+  const token = await new SignJWT({ ...claims, purpose: 'conversation-continuation' })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setIssuer('voomate-web-agent')
+    .setAudience('voomate-widget-continuation')
+    .setSubject(claims.agentId)
+    .setIssuedAt()
+    .setExpirationTime(`${CONTINUATION_TTL_SECONDS}s`)
+    .sign(tokenSecret());
+  return { token, expiresIn: CONTINUATION_TTL_SECONDS };
+}
+
 export async function verifyWidgetSession(token: string, origin: string): Promise<WidgetClaims> {
   const { payload } = await jwtVerify(token, tokenSecret(), {
     issuer: 'voomate-web-agent',
@@ -123,9 +152,32 @@ export async function verifyWidgetSession(token: string, origin: string): Promis
       organizationId: z.string().uuid(),
       origin: z.string(),
       keyFingerprint: z.string().length(16),
+      visitorSessionId: z.string().uuid(),
     })
     .parse(payload);
   if (claims.origin !== origin) throw new Error('Widget token origin mismatch.');
+  return claims;
+}
+
+export async function verifyWidgetContinuation(
+  token: string,
+  origin: string,
+): Promise<WidgetClaims> {
+  const { payload } = await jwtVerify(token, tokenSecret(), {
+    issuer: 'voomate-web-agent',
+    audience: 'voomate-widget-continuation',
+  });
+  const claims = z
+    .object({
+      agentId: z.string().uuid(),
+      organizationId: z.string().uuid(),
+      origin: z.string(),
+      keyFingerprint: z.string().length(16),
+      visitorSessionId: z.string().uuid(),
+      purpose: z.literal('conversation-continuation'),
+    })
+    .parse(payload);
+  if (claims.origin !== origin) throw new Error('Widget continuation origin mismatch.');
   return claims;
 }
 

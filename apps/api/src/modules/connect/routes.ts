@@ -8,11 +8,24 @@ import {
   type AgentId,
   type OrganizationId,
 } from '@voomate/core';
-import { agents, apiKeys, auditLogs, tenantScope } from '@voomate/db';
+import {
+  describeReadOnlyEndpoint,
+  sealConnectionSecret,
+} from '@voomate/connect/server';
+import {
+  agents,
+  apiKeys,
+  auditLogs,
+  readOnlyConnections,
+  readOnlyConnectionSecrets,
+  tenantScope,
+} from '@voomate/db';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { and, desc, eq, gt, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { getDb } from '../../lib/db.js';
+import { isDevelopment } from '../../config.js';
 import { generateApiKey, hashApiKey } from '../../lib/keys.js';
 import { tenantOf } from '../../plugins/auth.js';
 import { connectSyncRequestSchema } from './schemas.js';
@@ -29,6 +42,31 @@ const createKeySchema = z
   })
   .strict();
 const keyParams = z.object({ keyId: uuidSchema });
+const connectionParams = z.object({ connectionId: uuidSchema });
+const createReadConnectionSchema = z
+  .object({
+    agentId: uuidSchema,
+    name: z.string().trim().min(1).max(80),
+    endpointUrl: z.string().url().max(2_048),
+  })
+  .strict();
+
+const encryptionKey = (): string => {
+  const value = process.env.CONNECT_ENCRYPTION_KEY;
+  if (!value || Buffer.from(value, 'base64').byteLength !== 32) {
+    throw new Error('CONNECT_ENCRYPTION_KEY must be a base64-encoded 32-byte key.');
+  }
+  return value;
+};
+
+const safeEndpointOrigin = (value: string): string => {
+  const url = new URL(value);
+  const loopback = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '::1';
+  if (url.username || url.password || url.hash || (url.protocol !== 'https:' && !(isDevelopment && loopback))) {
+    throw new Error('Live-read endpoint must use HTTPS.');
+  }
+  return url.origin;
+};
 
 /** Resolve tenant and target agent entirely from the secret key. */
 const connectKeyOf = async (request: FastifyRequest): Promise<ConnectKeyContext> => {
@@ -70,6 +108,150 @@ const connectKeyOf = async (request: FastifyRequest): Promise<ConnectKeyContext>
 };
 
 export const connectRoutes: FastifyPluginAsync = async (app) => {
+  /** Safe metadata only. Ciphertext lives in a separate table with no dashboard SELECT policy. */
+  app.get('/read-connections', { preHandler: app.requireTenant(OrgRole.ADMIN) }, async (request) => {
+    const tenant = tenantOf(request);
+    const connections = await getDb()
+      .select({
+        id: readOnlyConnections.id,
+        agentId: readOnlyConnections.agentId,
+        name: readOnlyConnections.name,
+        endpointUrl: readOnlyConnections.endpointUrl,
+        status: readOnlyConnections.status,
+        capabilities: readOnlyConnections.capabilities,
+        lastVerifiedAt: readOnlyConnections.lastVerifiedAt,
+        lastUsedAt: readOnlyConnections.lastUsedAt,
+        lastErrorCode: readOnlyConnections.lastErrorCode,
+        createdAt: readOnlyConnections.createdAt,
+      })
+      .from(readOnlyConnections)
+      .where(tenantScope(readOnlyConnections, tenant.organizationId))
+      .orderBy(desc(readOnlyConnections.createdAt));
+    return { connections };
+  });
+
+  /** Creates a pull-only connection. The HMAC secret is returned once and never logged. */
+  app.post('/read-connections', { preHandler: app.requireTenant(OrgRole.ADMIN) }, async (request, reply) => {
+    const tenant = tenantOf(request);
+    const input = createReadConnectionSchema.parse(request.body);
+    const endpointOrigin = safeEndpointOrigin(input.endpointUrl);
+    const db = getDb();
+    const [agent] = await db
+      .select({ id: agents.id })
+      .from(agents)
+      .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, input.agentId)))
+      .limit(1);
+    if (!agent) throw notFound('Agent', input.agentId);
+
+    const connectionId = randomUUID();
+    const secret = `read_${randomBytes(32).toString('base64url')}`;
+    const ciphertext = sealConnectionSecret(secret, encryptionKey());
+    await db.transaction(async (tx) => {
+      await tx.insert(readOnlyConnections).values({
+        id: connectionId,
+        organizationId: tenant.organizationId,
+        agentId: agent.id,
+        name: input.name,
+        endpointUrl: input.endpointUrl,
+        endpointOrigin,
+      });
+      await tx.insert(readOnlyConnectionSecrets).values({
+        connectionId,
+        organizationId: tenant.organizationId,
+        ciphertext,
+      });
+      await tx.insert(auditLogs).values({
+        organizationId: tenant.organizationId,
+        actorId: tenant.userId,
+        action: 'read_connection.created',
+        resourceType: 'read_connection',
+        resourceId: connectionId,
+        metadata: { agentId: agent.id, endpointOrigin },
+        ipAddress: request.ip,
+      });
+    });
+    request.log.info({ connectionId, agentId: agent.id, endpointOrigin }, 'Read-only connection created');
+    reply.status(201);
+    return { connection: { id: connectionId, agentId: agent.id, name: input.name, status: 'pending' }, secret };
+  });
+
+  app.post('/read-connections/:connectionId/verify', { preHandler: app.requireTenant(OrgRole.ADMIN) }, async (request) => {
+    const tenant = tenantOf(request);
+    const { connectionId } = connectionParams.parse(request.params);
+    const db = getDb();
+    const [connection] = await db
+      .select({
+        id: readOnlyConnections.id,
+        endpointUrl: readOnlyConnections.endpointUrl,
+        ciphertext: readOnlyConnectionSecrets.ciphertext,
+      })
+      .from(readOnlyConnections)
+      .innerJoin(readOnlyConnectionSecrets, eq(readOnlyConnectionSecrets.connectionId, readOnlyConnections.id))
+      .where(and(tenantScope(readOnlyConnections, tenant.organizationId), eq(readOnlyConnections.id, connectionId)))
+      .limit(1);
+    if (!connection) throw notFound('Read-only connection', connectionId);
+    const { openConnectionSecret } = await import('@voomate/connect/server');
+    const secret = openConnectionSecret(connection.ciphertext, encryptionKey());
+    try {
+      const capabilities = await describeReadOnlyEndpoint({
+        endpoint: connection.endpointUrl,
+        connectionId,
+        secret,
+        allowInsecureLoopback: isDevelopment,
+      });
+      await db.transaction(async (tx) => {
+        await tx.update(readOnlyConnections).set({
+          status: 'active',
+          capabilities,
+          lastVerifiedAt: new Date(),
+          lastErrorCode: null,
+          updatedAt: new Date(),
+        }).where(and(tenantScope(readOnlyConnections, tenant.organizationId), eq(readOnlyConnections.id, connectionId)));
+        await tx.insert(auditLogs).values({
+          organizationId: tenant.organizationId,
+          actorId: tenant.userId,
+          action: 'read_connection.verified',
+          resourceType: 'read_connection',
+          resourceId: connectionId,
+          metadata: { capabilities: capabilities.map(({ name }) => name) },
+          ipAddress: request.ip,
+        });
+      });
+      return { ok: true, capabilities };
+    } catch (error) {
+      await db.update(readOnlyConnections).set({ status: 'error', lastErrorCode: 'verification_failed', updatedAt: new Date() })
+        .where(and(tenantScope(readOnlyConnections, tenant.organizationId), eq(readOnlyConnections.id, connectionId)));
+      request.log.warn({ connectionId, err: error }, 'Read-only connection verification failed');
+      throw new Error('Connection verification failed. Check the endpoint and secret.');
+    }
+  });
+
+  app.delete('/read-connections/:connectionId', { preHandler: app.requireTenant(OrgRole.ADMIN) }, async (request, reply) => {
+    const tenant = tenantOf(request);
+    const { connectionId } = connectionParams.parse(request.params);
+    const db = getDb();
+    const [revoked] = await db.update(readOnlyConnections).set({
+      status: 'revoked', revokedAt: new Date(), updatedAt: new Date(),
+    }).where(and(tenantScope(readOnlyConnections, tenant.organizationId), eq(readOnlyConnections.id, connectionId)))
+      .returning({ id: readOnlyConnections.id });
+    if (!revoked) throw notFound('Read-only connection', connectionId);
+    await db.transaction(async (tx) => {
+      await tx.delete(readOnlyConnectionSecrets).where(and(
+        tenantScope(readOnlyConnectionSecrets, tenant.organizationId),
+        eq(readOnlyConnectionSecrets.connectionId, connectionId),
+      ));
+      await tx.insert(auditLogs).values({
+        organizationId: tenant.organizationId,
+        actorId: tenant.userId,
+        action: 'read_connection.revoked',
+        resourceType: 'read_connection',
+        resourceId: connectionId,
+        ipAddress: request.ip,
+      });
+    });
+    reply.status(204);
+  });
+
   /** List Connect keys without ever selecting their hashes. */
   app.get('/keys', { preHandler: app.requireTenant(OrgRole.ADMIN) }, async (request) => {
     const tenant = tenantOf(request);

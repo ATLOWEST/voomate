@@ -23,6 +23,7 @@
     "@fastify/sensible": "^6.0.3",
     "@fastify/websocket": "^11.3.0",
     "@voomate/core": "*",
+    "@voomate/connect": "*",
     "@voomate/db": "*",
     "@voomate/i18n": "*",
     "@upstash/redis": "^1.38.2",

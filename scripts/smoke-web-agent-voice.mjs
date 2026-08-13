@@ -23,7 +23,7 @@ if (existsSync(envPath)) {
 }
 
 const dashboard = process.env.WEB_AGENT_BACKEND_ORIGIN ?? 'http://localhost:3001';
-const origin = process.env.WEB_AGENT_SMOKE_ORIGIN ?? 'http://localhost:3001';
+const origin = process.env.WEB_AGENT_SMOKE_ORIGIN ?? 'http://localhost:3000';
 const publicKey = process.env.WEB_AGENT_PUBLIC_KEY ?? 'test-embed-key';
 const region = process.env.POLLY_REGION ?? process.env.AWS_REGION ?? 'us-east-1';
 const voice = process.env.POLLY_VOICE_ID ?? 'Danielle';

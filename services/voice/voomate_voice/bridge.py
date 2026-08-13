@@ -3,6 +3,7 @@
 import json
 from collections.abc import AsyncIterator
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from pipecat.frames.frames import (
@@ -13,7 +14,11 @@ from pipecat.frames.frames import (
     LLMTextFrame,
 )
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
-from pipecat.processors.frameworks.rtvi.frames import RTVIServerMessageFrame
+from pipecat.processors.frameworks.rtvi.frames import (
+    RTVIClientMessageFrame,
+    RTVIServerMessageFrame,
+    RTVIServerResponseFrame,
+)
 
 
 def latest_user_text(context: Any) -> str | None:
@@ -44,7 +49,10 @@ async def iter_ndjson(response: httpx.Response) -> AsyncIterator[dict[str, Any]]
 
 
 def voice_turn_payload(
-    message: str, conversation_id: str | None, page_url: str | None
+    message: str,
+    conversation_id: str | None,
+    page_url: str | None,
+    page_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a schema-valid request for the canonical Web Agent turn endpoint."""
     payload: dict[str, Any] = {"message": message, "imageIds": []}
@@ -52,6 +60,8 @@ def voice_turn_payload(
         payload["conversationId"] = conversation_id
     if page_url:
         payload["pageUrl"] = page_url
+    if page_context:
+        payload["pageContext"] = page_context
     return payload
 
 
@@ -66,6 +76,7 @@ class VoomateAgentBridge(FrameProcessor):
         widget_origin: str,
         conversation_id: str | None,
         page_url: str | None,
+        page_context: dict[str, Any] | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -75,6 +86,7 @@ class VoomateAgentBridge(FrameProcessor):
         self._conversation_id = conversation_id
         self._run_id: str | None = None
         self._page_url = page_url
+        self._page_context = page_context
         self._client = httpx.AsyncClient(timeout=httpx.Timeout(45, connect=5))
 
     @property
@@ -89,8 +101,40 @@ class VoomateAgentBridge(FrameProcessor):
         await self._client.aclose()
         await super().cleanup()
 
+    def update_page_context(self, page_url: Any, page_context: Any) -> bool:
+        if not isinstance(page_url, str) or not isinstance(page_context, dict):
+            return False
+        try:
+            page = urlparse(page_url)
+            allowed = urlparse(self._widget_origin)
+            serialized = json.dumps(page_context, separators=(",", ":"))
+        except (TypeError, ValueError):
+            return False
+        if (
+            page.scheme.lower() != allowed.scheme.lower()
+            or page.netloc.lower() != allowed.netloc.lower()
+            or len(page_url) > 2048
+            or len(serialized) > 40_000
+        ):
+            return False
+        self._page_url = page_url
+        self._page_context = page_context
+        return True
+
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
+        if isinstance(frame, RTVIClientMessageFrame) and frame.type == "voomate-page-context":
+            data = frame.data if isinstance(frame.data, dict) else {}
+            accepted = self.update_page_context(data.get("pageUrl"), data.get("pageContext"))
+            await self.push_frame(
+                RTVIServerResponseFrame(
+                    client_msg=frame,
+                    data={"accepted": accepted},
+                    error=None if accepted else "Invalid page context update.",
+                ),
+                direction,
+            )
+            return
         if not isinstance(frame, LLMContextFrame):
             await self.push_frame(frame, direction)
             return
@@ -108,7 +152,12 @@ class VoomateAgentBridge(FrameProcessor):
                     "content-type": "application/json",
                     "origin": self._widget_origin,
                 },
-                json=voice_turn_payload(message, self._conversation_id, self._page_url),
+                json=voice_turn_payload(
+                    message,
+                    self._conversation_id,
+                    self._page_url,
+                    self._page_context,
+                ),
             ) as response:
                 response.raise_for_status()
                 async for event in iter_ndjson(response):
@@ -134,6 +183,7 @@ class VoomateAgentBridge(FrameProcessor):
                                     "type": "voomate-turn-complete",
                                     "conversationId": self._conversation_id,
                                     "runId": event.get("runId"),
+                                    "clientCommands": event.get("clientCommands", []),
                                 }
                             )
                         )

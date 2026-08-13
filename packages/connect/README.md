@@ -51,3 +51,47 @@ For local or staging use, pass the complete `endpoint`, for example
 
 Connect is for descriptive business knowledge and deliberate updates. Minute-to-minute inventory,
 customer identity, order status, and appointments stay behind Voomate's authenticated live tools.
+
+## UI navigation manifest
+
+Applications can expose a bounded list of pages to the Web Agent without exposing router methods,
+DOM selectors, or arbitrary commands. The manifest supports same-origin browser routes and optional
+iOS Universal Links, Android App Links, and official store fallbacks:
+
+```ts
+import { defineUiManifest, serializeUiManifest } from '@voomate/connect';
+
+const manifest = defineUiManifest({
+  pages: [
+    {
+      id: 'pricing',
+      title: 'Pricing',
+      path: '/pricing',
+      description: 'Plans, included usage, and billing terms.',
+      aliases: ['plans', 'billing plans', 'cost'],
+      facts: ['Starter is free.', 'Growth includes 5,000 conversations each month.'],
+      native: {
+        ios: {
+          url: 'https://app.example.com/pricing',
+          storeUrl: 'https://apps.apple.com/app/id123456789',
+        },
+        android: {
+          url: 'https://app.example.com/pricing',
+          storeUrl: 'https://play.google.com/store/apps/details?id=com.example.app',
+        },
+      },
+    },
+  ],
+});
+
+const json = serializeUiManifest(manifest);
+```
+
+Render `json` in a `script[type="application/json"][data-voomate-ui-manifest]` element. Explicit
+movement requests may produce a verified navigation command. Information requests are answered in
+the widget and do not redirect. Native store handoff is used only when the visitor explicitly asks
+to install or download the app.
+
+SPA hosts can cancel the `voomate:navigation-request` window event, route internally, then dispatch
+`voomate:navigation-complete` with the same `requestId`. If no host accepts the event, the widget
+performs a normal full-page browser navigation and resumes the signed conversation on the next page.

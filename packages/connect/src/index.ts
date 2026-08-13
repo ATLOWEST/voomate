@@ -1,4 +1,11 @@
 import { containsSensitiveCredential } from './security.js';
+export { defineUiManifest, serializeUiManifest } from './ui-manifest.js';
+export type {
+  VoomateNativeDestination,
+  VoomateNativeDestinations,
+  VoomateUiManifest,
+  VoomateUiPage,
+} from './ui-manifest.js';
 
 export interface SyncMetadata {
   title?: string;

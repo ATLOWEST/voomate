@@ -229,6 +229,28 @@ create policy messages_select on public.messages
 create policy messages_delete on public.messages
   for delete using (public.user_has_role(organization_id, 'admin'));
 
+-- message_feedback — visitors write only through the signed Web Agent endpoint; tenant members
+-- may inspect aggregated learning evidence. Direct client mutation would let a dashboard user
+-- forge evaluation signals, so there is deliberately no client write policy.
+alter table public.message_feedback enable row level security;
+alter table public.message_feedback force row level security;
+
+create policy message_feedback_select on public.message_feedback
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy message_feedback_delete on public.message_feedback
+  for delete using (public.user_has_role(organization_id, 'admin'));
+
+-- agent_turn_evaluations — offline Nova judge evidence, append-only from the backend.
+alter table public.agent_turn_evaluations enable row level security;
+alter table public.agent_turn_evaluations force row level security;
+
+create policy agent_turn_evaluations_select on public.agent_turn_evaluations
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy agent_turn_evaluations_delete on public.agent_turn_evaluations
+  for delete using (public.user_has_role(organization_id, 'admin'));
+
 -- agent_run_events — runtime traces are written only by the backend and visible to members.
 alter table public.agent_run_events enable row level security;
 alter table public.agent_run_events force row level security;
@@ -260,6 +282,35 @@ create policy web_agent_image_uploads_select on public.web_agent_image_uploads
   for select using (organization_id in (select public.user_organization_ids()));
 
 create policy web_agent_image_uploads_delete on public.web_agent_image_uploads
+  for delete using (public.user_has_role(organization_id, 'admin'));
+
+-- read_only_connections — safe metadata is visible to members; configuration is admin-only.
+alter table public.read_only_connections enable row level security;
+alter table public.read_only_connections force row level security;
+
+create policy read_only_connections_select on public.read_only_connections
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy read_only_connections_write on public.read_only_connections
+  for all using (public.user_has_role(organization_id, 'admin'))
+  with check (public.user_has_role(organization_id, 'admin'));
+
+-- read_only_connection_secrets — deliberately no SELECT policy. Even an owner configures a
+-- connection through the API and can never read stored ciphertext through Supabase.
+alter table public.read_only_connection_secrets enable row level security;
+alter table public.read_only_connection_secrets force row level security;
+
+create policy read_only_connection_secrets_delete on public.read_only_connection_secrets
+  for delete using (public.user_has_role(organization_id, 'admin'));
+
+-- read_only_invocations — immutable, metadata-only runtime evidence written by the backend.
+alter table public.read_only_invocations enable row level security;
+alter table public.read_only_invocations force row level security;
+
+create policy read_only_invocations_select on public.read_only_invocations
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy read_only_invocations_delete on public.read_only_invocations
   for delete using (public.user_has_role(organization_id, 'admin'));
 
 -- api_keys — admin only, in both directions. key_hash must never be readable by a

@@ -36,7 +36,7 @@ export async function POST(request: Request): Promise<Response> {
     if (!token) throw new ImageUploadError('Session token required.', 401);
     const claims = await verifyWidgetSession(token, origin);
     const input = imageSignRequestSchema.parse(await request.json());
-    const fingerprint = sessionFingerprint(token);
+    const fingerprint = sessionFingerprint(claims.visitorSessionId);
     await enforceImageUploadRateLimit(
       `${claims.keyFingerprint}:${origin}:${fingerprint}`,
       input.files.length,

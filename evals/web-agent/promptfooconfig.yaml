@@ -1,32 +1,18 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
 description: Voomate Web Agent behavior harness — Amazon Bedrock/Nova only
 
+extensions:
+  - file://eval-extension.mjs:afterAll
+
 prompts:
   - file://prompt.mjs
 
 providers:
-  - id: bedrock:converse:us.amazon.nova-pro-v1:0
+  - id: file://bedrock-inline-provider.mjs
+    label: Amazon Nova Pro — Bedrock Inline Agent
     config:
       region: us-east-1
-      temperature: 0.1
-      maxTokens: 220
-      showThinking: false
-      tools:
-        - type: function
-          function:
-            name: check_order_status
-            description: Look up an order after verifying its order ID and checkout email.
-            parameters:
-              type: object
-              properties:
-                orderId:
-                  type: string
-                email:
-                  type: string
-                  format: email
-              required: [orderId, email]
-              additionalProperties: false
-      tool_choice: auto
+      model: us.amazon.nova-pro-v1:0
 
 defaultTest:
   vars:
@@ -37,5 +23,21 @@ defaultTest:
       value: As an AI
     - type: not-icontains
       value: language model
+    - type: llm-rubric
+      metric: AIJudge
+      threshold: 0.75
+      provider:
+        id: file://bedrock-judge-provider.mjs
+        config:
+          region: us-east-1
+          model: us.amazon.nova-pro-v1:0
+      value: |
+        Score this customer-facing Web Agent response from 0.0 to 1.0. Pass at 0.75.
+        It must be grounded in the supplied knowledge or tool result, use or avoid tools correctly,
+        answer the actual request directly, feel warm and naturally human, and protect private data.
+        It must not self-announce, repeat itself, invent a completed action, or deflect explanations,
+        onboarding, and navigation with “not supported by available actions.” When source content is
+        supplied, reward genuine synthesis in fresh natural language and penalize pasted or lightly
+        reworded marketing copy. A precise statement of a real unavailable-write boundary is allowed.
 
 tests: file://tests.yaml

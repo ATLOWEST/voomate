@@ -1,0 +1,160 @@
+export interface VoomateUiPage {
+  id: string;
+  title: string;
+  path: string;
+  description: string;
+  /** Natural-language names visitors use for this destination. */
+  aliases?: readonly string[];
+  /** Public, curated facts the agent may synthesize when answering without navigation. */
+  facts?: readonly string[];
+  native?: VoomateNativeDestinations;
+}
+
+export interface VoomateNativeDestination {
+  /** HTTPS universal/app link registered to the native application. */
+  url: string;
+  /** Official store fallback. Used only for an explicit install/download request. */
+  storeUrl?: string;
+}
+
+export interface VoomateNativeDestinations {
+  ios?: VoomateNativeDestination;
+  android?: VoomateNativeDestination;
+}
+
+export interface VoomateUiManifest {
+  version: 1;
+  businessSummary?: string;
+  pages: readonly VoomateUiPage[];
+}
+
+const PAGE_ID = /^[a-z][a-z0-9_-]{1,63}$/;
+
+function text(value: string, name: string, max: number): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (!normalized || normalized.length > max) throw new Error(`Invalid UI manifest ${name}.`);
+  return normalized;
+}
+
+function path(value: string): string {
+  if (!value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+    throw new Error('UI manifest paths must be same-origin absolute paths.');
+  }
+  const parsed = new URL(value, 'https://manifest.voomate.invalid');
+  if (parsed.origin !== 'https://manifest.voomate.invalid') {
+    throw new Error('UI manifest paths must be same-origin absolute paths.');
+  }
+  return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+}
+
+function facts(values: readonly string[] | undefined): readonly string[] | undefined {
+  if (!values) return undefined;
+  if (!Array.isArray(values) || values.length > 24) {
+    throw new Error('UI manifest page facts must contain no more than 24 entries.');
+  }
+  return Object.freeze(values.map((value) => text(value, 'page fact', 300)));
+}
+
+function aliases(values: readonly string[] | undefined): readonly string[] | undefined {
+  if (!values) return undefined;
+  if (!Array.isArray(values) || values.length > 16) {
+    throw new Error('UI manifest page aliases must contain no more than 16 entries.');
+  }
+  const result = [...new Set(values.map((value) => text(value, 'page alias', 80).toLowerCase()))];
+  return Object.freeze(result);
+}
+
+function httpsUrl(value: string, name: string): string {
+  const parsed = new URL(value);
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password) {
+    throw new Error(`UI manifest ${name} must be a credential-free HTTPS URL.`);
+  }
+  return parsed.href;
+}
+
+function nativeDestinations(
+  value: VoomateNativeDestinations | undefined,
+): Readonly<VoomateNativeDestinations> | undefined {
+  if (!value) return undefined;
+  if (Object.keys(value).some((key) => !['ios', 'android'].includes(key))) {
+    throw new Error('UI manifest native destinations contain an unsupported platform.');
+  }
+  const result: VoomateNativeDestinations = {};
+  for (const platform of ['ios', 'android'] as const) {
+    const destination = value[platform];
+    if (!destination) continue;
+    if (Object.keys(destination).some((key) => !['url', 'storeUrl'].includes(key))) {
+      throw new Error('UI manifest native destinations cannot declare commands.');
+    }
+    const storeUrl = destination.storeUrl
+      ? httpsUrl(destination.storeUrl, `${platform} store URL`)
+      : undefined;
+    if (storeUrl) {
+      const storeHost = new URL(storeUrl).hostname.toLowerCase();
+      const expected = platform === 'ios' ? 'apps.apple.com' : 'play.google.com';
+      if (storeHost !== expected)
+        throw new Error(`UI manifest ${platform} store URL is not official.`);
+    }
+    result[platform] = Object.freeze({
+      url: httpsUrl(destination.url, `${platform} app link`),
+      ...(storeUrl ? { storeUrl } : {}),
+    });
+  }
+  return Object.keys(result).length ? Object.freeze(result) : undefined;
+}
+
+/**
+ * Declares public, passive UI context for the Web Agent. The contract contains no callbacks,
+ * selectors, generic commands, or mutation operations; write actions use separately scoped tools.
+ */
+export function defineUiManifest(input: {
+  businessSummary?: string;
+  pages: readonly VoomateUiPage[];
+}): Readonly<VoomateUiManifest> {
+  if (!Array.isArray(input.pages) || input.pages.length === 0 || input.pages.length > 100) {
+    throw new Error('A UI manifest needs 1-100 pages.');
+  }
+  const seen = new Set<string>();
+  const pages = input.pages.map((page) => {
+    if (
+      Object.keys(page).some(
+        (key) =>
+          !['id', 'title', 'path', 'description', 'aliases', 'facts', 'native'].includes(key),
+      )
+    ) {
+      throw new Error('UI manifest pages cannot declare commands or additional fields.');
+    }
+    if (!PAGE_ID.test(page.id) || seen.has(page.id))
+      throw new Error('Invalid UI manifest page ID.');
+    seen.add(page.id);
+    const native = nativeDestinations(page.native);
+    const pageAliases = aliases(page.aliases);
+    const pageFacts = facts(page.facts);
+    return Object.freeze({
+      id: page.id,
+      title: text(page.title, 'page title', 120),
+      path: path(page.path),
+      description: text(page.description, 'page description', 600),
+      ...(pageAliases?.length ? { aliases: pageAliases } : {}),
+      ...(pageFacts?.length ? { facts: pageFacts } : {}),
+      ...(native ? { native } : {}),
+    });
+  });
+  return Object.freeze({
+    version: 1 as const,
+    ...(input.businessSummary
+      ? { businessSummary: text(input.businessSummary, 'business summary', 1_200) }
+      : {}),
+    pages: Object.freeze(pages),
+  });
+}
+
+/** Escapes a validated manifest for an application/json script element. */
+export function serializeUiManifest(manifest: Readonly<VoomateUiManifest>): string {
+  return JSON.stringify(manifest)
+    .replaceAll('<', '\\u003c')
+    .replaceAll('>', '\\u003e')
+    .replaceAll('&', '\\u0026')
+    .replaceAll('\u2028', '\\u2028')
+    .replaceAll('\u2029', '\\u2029');
+}

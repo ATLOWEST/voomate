@@ -1,0 +1,247 @@
+import { describe, expect, it } from 'vitest';
+import type { LiveReadCapability } from './live-data';
+import type { WebAgentPageContext } from './page-context';
+import { planWebAgentTurn } from './orchestration';
+
+function capability(name: string, description: string): LiveReadCapability {
+  return {
+    connectionId: `connection-${name}`,
+    name,
+    description,
+    sensitivity: 'public',
+    parameters: {},
+    publicFields: ['status'],
+  };
+}
+
+const pageContext: WebAgentPageContext = {
+  url: 'https://app.voomate.test/',
+  title: 'Overview',
+  description: 'A live operating overview of Voomate.',
+  headings: ['Your AI team'],
+  navigation: [
+    {
+      label: 'Agents',
+      url: 'https://app.voomate.test/agents',
+      description: 'Configure three fixed agents.',
+      aliases: ['agent board', 'AI team'],
+    },
+    { label: 'Logs', url: 'https://app.voomate.test/logs' },
+    {
+      label: 'Pricing',
+      url: 'https://app.voomate.test/pricing',
+      description: 'Compare plans and included usage.',
+      aliases: ['billing plans', 'cost', 'price'],
+      facts: ['Starter is free.', 'Growth costs ₹2,499 per month.'],
+      native: {
+        ios: {
+          url: 'https://native.voomate.test/pricing',
+          storeUrl: 'https://apps.apple.com/app/id123456789',
+        },
+        android: {
+          url: 'https://native.voomate.test/pricing',
+          storeUrl: 'https://play.google.com/store/apps/details?id=com.voomate.app',
+        },
+      },
+    },
+  ],
+};
+
+describe('web agent orchestration', () => {
+  it('exposes only capabilities relevant to the current turn', () => {
+    const result = planWebAgentTurn({
+      message: 'Where is order A-100?',
+      availableCapabilities: [
+        capability('get_inventory', 'Read sellable inventory for a product SKU.'),
+        capability('get_order', 'Read the current status of an order.'),
+      ],
+    });
+    expect(result.capabilities.map(({ name }) => name)).toEqual(['get_order']);
+    expect(result.controlledActions).toEqual(['check_order_status']);
+  });
+
+  it('plans live inventory and static policy knowledge for one compound question', () => {
+    const result = planWebAgentTurn({
+      message: 'Is the blue jacket in stock, and what is your return policy?',
+      availableCapabilities: [
+        capability('get_inventory', 'Read current sellable inventory for a product SKU.'),
+      ],
+    });
+    expect(result.route).toBe('web_multi_source');
+    expect(result.capabilities.map(({ name }) => name)).toEqual(['get_inventory']);
+    expect(result.useKnowledge).toBe(true);
+    expect(result.sources.map(({ source }) => source)).toEqual([
+      'conversation',
+      'knowledge',
+      'live_read',
+    ]);
+  });
+
+  it('turns an explicit page request into a same-origin advertised navigation command', () => {
+    const result = planWebAgentTurn({
+      message: 'Please open the Agents page and create a Web Agent for me.',
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.clientCommands).toEqual([
+      {
+        type: 'navigate',
+        label: 'Agents',
+        url: 'https://app.voomate.test/agents',
+        intent: 'web',
+      },
+    ]);
+    expect(result.responseGuidance).toContain('fixed Web Agent slot');
+    expect(result.directReply).toContain('already includes one Web Agent');
+    expect(result.sources.map(({ source }) => source)).toContain('page_context');
+  });
+
+  it('uses page context to explain the current dashboard', () => {
+    const result = planWebAgentTurn({
+      message: 'What is this dashboard about and how do I use it?',
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.route).toBe('web_multi_source');
+    expect(result.usePageContext).toBe(true);
+    expect(result.useKnowledge).toBe(true);
+    expect(result.directReply).toContain('Start with Agents');
+  });
+
+  it('keeps Voomate onboarding available without a model action', () => {
+    const result = planWebAgentTurn({
+      message: 'Can you help me set up our account and connect my business as agents?',
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.directReply).toContain('Here is the clean setup path');
+    expect(result.directReply).not.toContain('not supported');
+  });
+
+  it('synthesizes the founder purpose as specific operating principles', () => {
+    const result = planWebAgentTurn({
+      message: 'Why did the founders build Voomate, and what is the real point?',
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.directReply).toContain('small and medium businesses');
+    expect(result.directReply).toContain('trust the foundation');
+  });
+
+  it('does not expose unrelated customer data tools to a social turn', () => {
+    const result = planWebAgentTurn({
+      message: 'Hello, how are you?',
+      availableCapabilities: [capability('get_order', 'Read the current status of an order.')],
+    });
+    expect(result).toMatchObject({ route: 'web', selection: 'not_relevant' });
+    expect(result.capabilities).toEqual([]);
+  });
+
+  it('caps the model-visible tool surface', () => {
+    const capabilities = Array.from({ length: 12 }, (_, index) =>
+      capability(`search_product_${String(index)}`, 'Search current product availability.'),
+    );
+    expect(
+      planWebAgentTurn({ message: 'Search products', availableCapabilities: capabilities })
+        .capabilities,
+    ).toHaveLength(8);
+  });
+
+  it.each([
+    'What is the pricing?',
+    'How much does pricing cost?',
+    'Tell me about the Pricing page.',
+    'Compare your pricing plans.',
+    'Open Pricing and tell me what it costs.',
+  ])('keeps informational pricing requests in the widget: %s', (message) => {
+    const result = planWebAgentTurn({ message, availableCapabilities: [], pageContext });
+    expect(result.clientCommands).toEqual([]);
+    expect(result.useKnowledge).toBe(true);
+    expect(result.usePageContext).toBe(true);
+    expect(result.responseGuidance).toContain('host-curated Pricing facts');
+  });
+
+  it('answers from curated pricing facts without redirecting in platform mode', () => {
+    const result = planWebAgentTurn({
+      message: 'How much does pricing cost?',
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.clientCommands).toEqual([]);
+    expect(result.directReply).toContain('Starter is free.');
+    expect(result.directReply).toContain('Growth costs ₹2,499 per month.');
+  });
+
+  it.each(['Take me to Pricing.', 'Go to the Pricing page.', 'Open Pricing.', 'Visit Pricing.'])(
+    'navigates only for explicit movement: %s',
+    (message) => {
+      const result = planWebAgentTurn({ message, availableCapabilities: [], pageContext });
+      expect(result.clientCommands).toMatchObject([
+        { type: 'navigate', label: 'Pricing', intent: 'web' },
+      ]);
+      expect(result.directReply).toBe('Opening Pricing.');
+    },
+  );
+
+  it('repairs the real misspelled pricing request without asking for a URL', () => {
+    const result = planWebAgentTurn({
+      message: 'hi can you place take me to priing pages',
+      availableCapabilities: [],
+      pageContext,
+    });
+    expect(result.clientCommands).toMatchObject([
+      { type: 'navigate', label: 'Pricing', url: 'https://app.voomate.test/pricing' },
+    ]);
+    expect(result.directReply).toBe('Opening Pricing.');
+  });
+
+  it('clarifies ambiguous destinations and never asks the visitor for a URL', () => {
+    const result = planWebAgentTurn({
+      message: 'Open agent.',
+      availableCapabilities: [],
+      pageContext: {
+        ...pageContext,
+        navigation: [
+          ...pageContext.navigation,
+          { label: 'Web Agent', url: 'https://app.voomate.test/agents/web' },
+        ],
+      },
+    });
+    expect(result.clientCommands).toEqual([]);
+    expect(result.directReply).toContain('Did you mean');
+    expect(result.directReply).not.toContain('URL');
+  });
+
+  it('lists verified destinations instead of requesting a URL for an unknown page', () => {
+    const result = planWebAgentTurn({
+      message: 'Take me to refunds.',
+      availableCapabilities: [],
+      pageContext,
+    });
+    expect(result.clientCommands).toEqual([]);
+    expect(result.directReply).toContain('I can open');
+    expect(result.directReply).not.toContain('URL');
+  });
+
+  it('selects native and official store intents without exposing arbitrary destinations', () => {
+    expect(
+      planWebAgentTurn({
+        message: 'Open Pricing in the mobile app.',
+        availableCapabilities: [],
+        pageContext,
+      }).clientCommands,
+    ).toMatchObject([{ intent: 'open_app', label: 'Pricing' }]);
+    expect(
+      planWebAgentTurn({
+        message: 'Install the app from Pricing.',
+        availableCapabilities: [],
+        pageContext,
+      }).clientCommands,
+    ).toMatchObject([{ intent: 'install_app', label: 'Pricing' }]);
+  });
+});

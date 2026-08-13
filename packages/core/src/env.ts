@@ -31,7 +31,7 @@ export const serverEnvSchema = z.object({
 
   API_PORT: z.coerce.number().int().positive().default(4000),
   API_HOST: z.string().default('0.0.0.0'),
-  API_CORS_ORIGINS: csv.default('http://localhost:3000'),
+  API_CORS_ORIGINS: csv.default('http://localhost:3000,http://localhost:3001'),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

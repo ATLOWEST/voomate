@@ -7,7 +7,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 export default async function buildPrompt({ vars }) {
   const harnessFile =
-    process.env.WEB_AGENT_HARNESS_FILE ?? '../../apps/dashboard/harness/web-agent.v1.md';
+    process.env.WEB_AGENT_HARNESS_FILE ?? '../../apps/dashboard/harness/web-agent.v2.md';
   const harness = await readFile(resolve(here, harnessFile), 'utf8');
   const instructions = harness
     .replaceAll('{business_name}', vars.business_name ?? 'Voomate')

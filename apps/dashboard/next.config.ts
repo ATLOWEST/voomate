@@ -24,6 +24,7 @@ const SERVER_RUNTIME_KEYS = new Set([
   'EMBEDDING_DIMENSIONS',
   'EMBEDDING_MODEL_ID',
   'IMAGE_CLEANUP_SECRET',
+  'CONNECT_ENCRYPTION_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
   'SUPABASE_URL',
   'DATABASE_URL',
@@ -70,9 +71,12 @@ const config: NextConfig = {
   turbopack: { root: repoRoot },
   // The workspace packages ship TypeScript source, not built JS. Next compiles them itself
   // so we don't need a build step in the dependency graph during development.
-  transpilePackages: ['@voomate/core', '@voomate/db', '@voomate/i18n'],
+  transpilePackages: ['@voomate/core', '@voomate/connect', '@voomate/db', '@voomate/i18n'],
   outputFileTracingIncludes: {
-    '/api/web-agent/messages': ['./harness/*.md'],
+    '/api/web-agent/:path*': [
+      './harness/*.md',
+      '../../node_modules/@cedar-policy/cedar-wasm/nodejs/cedar_wasm_bg.wasm',
+    ],
   },
   async headers() {
     return [

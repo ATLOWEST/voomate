@@ -1,4 +1,4 @@
-/* global CSSStyleSheet, HTMLElement, URL, console, customElements, document */
+/* global CSSStyleSheet, HTMLElement, URL, console, customElements, document, window */
 (() => {
   'use strict';
 
@@ -58,18 +58,33 @@
       hint.textContent = 'Chat or speak';
       copy.append(title, hint);
       button.append(mark, copy);
-      button.addEventListener('click', async () => {
+      const mount = async () => {
+        if (this.loaded) return;
         button.disabled = true;
         try {
           const { mountWidget } = await import(widgetModule);
           this.loaded = true;
           await mountWidget(this, { publicKey, apiOrigin });
+          this.setAttribute('data-voomate-mounted', 'true');
         } catch (error) {
           button.disabled = false;
           console.error('[Voomate] Widget failed to load.', error);
         }
-      });
+      };
+      button.addEventListener('click', mount);
       this.shadowRoot.append(button);
+
+      try {
+        const stored = JSON.parse(
+          window.sessionStorage.getItem(`voomate:v2:journey:${String(publicKey).slice(0, 80)}`) ??
+            'null',
+        );
+        if (stored?.version === 1 && typeof stored.continuationToken === 'string') {
+          window.setTimeout(() => void mount(), 0);
+        }
+      } catch {
+        // The normal click-to-open path remains available when storage is disabled or malformed.
+      }
     }
   }
 

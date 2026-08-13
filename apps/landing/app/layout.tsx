@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { defineUiManifest, serializeUiManifest } from '@voomate/connect';
 import { Geist } from 'next/font/google';
 import './tailwind-output.css';
 import './globals.css';
@@ -8,6 +9,7 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { MarketingMotion } from '@/components/ui/marketing-motion';
 import { ShaderBackground } from '@/components/ui/shader-bg';
+import { VoomateNavigationBridge } from '@/components/voomate-navigation-bridge';
 
 const geist = Geist({ subsets: ['latin'], display: 'swap' });
 
@@ -32,6 +34,67 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const UI_MANIFEST = serializeUiManifest(
+  defineUiManifest({
+    businessSummary:
+      'Voomate helps small and medium businesses become AI-native with three fixed agents that handle customer conversations and approved tasks across phone, web, and connected tools.',
+    pages: [
+      {
+        id: 'home',
+        title: 'Voomate',
+        path: '/',
+        description:
+          'An introduction to Voomate as one connected AI team for customer conversations and real business work.',
+        aliases: ['home', 'main page', 'homepage'],
+      },
+      {
+        id: 'product',
+        title: 'Product',
+        path: '/product',
+        description: 'How the fixed Voice Calling, Web, and Integration agents work together.',
+        aliases: ['features', 'how it works', 'AI agents', 'platform'],
+      },
+      {
+        id: 'integrations',
+        title: 'Integrations',
+        path: '/integrations',
+        description:
+          'How Voomate connects to business systems through read-only data access and permissioned actions.',
+        aliases: ['connections', 'connected tools', 'apps', 'business systems'],
+      },
+      {
+        id: 'industries',
+        title: 'Industries',
+        path: '/industries',
+        description:
+          'Examples of how one universal Voomate agent system adapts to different business workflows without industry-specific agent types.',
+        aliases: ['use cases', 'business types', 'solutions'],
+      },
+      {
+        id: 'pricing',
+        title: 'Pricing',
+        path: '/pricing',
+        description: 'Plans and included platform usage.',
+        aliases: ['plans', 'billing plans', 'cost', 'price', 'subscriptions'],
+        facts: [
+          'Starter is free and includes 100 conversations each month, one three-agent workspace, website chat and voice, grounded knowledge answers, and community support.',
+          'Growth costs ₹2,499 per month and includes 5,000 monthly conversations, all three agents, multilingual conversations, approved action tools, live data, adapters, reports, and custom widget branding.',
+          'Growth includes a 14-day trial.',
+          'Enterprise uses custom pricing for custom volume, multiple tenant-scoped workspaces, dedicated onboarding, custom adapters, security review support, and priority support.',
+          'Every plan uses tenant-scoped data, controlled tools, and visible usage; the safety model is not a paid add-on.',
+        ],
+      },
+      {
+        id: 'about',
+        title: 'About',
+        path: '/about',
+        description: 'Why Voomate exists and the operating principles behind the product.',
+        aliases: ['company', 'story', 'mission', 'why Voomate'],
+      },
+    ],
+  }),
+);
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const widgetOrigin = (process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? '').replace(/\/$/, '');
   const dogfoodAgentKey = process.env.NEXT_PUBLIC_VOOMATE_DOGFOOD_AGENT_KEY;
@@ -39,6 +102,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <body className={`${geist.className} paper-grain`}>
+        <VoomateNavigationBridge />
+        <script
+          type="application/json"
+          data-voomate-ui-manifest
+          dangerouslySetInnerHTML={{ __html: UI_MANIFEST }}
+        />
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>

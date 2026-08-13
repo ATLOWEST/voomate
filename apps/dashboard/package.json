@@ -11,10 +11,13 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.1108.0",
     "@aws-sdk/client-bedrock-runtime": "^3.1101.0",
+    "@cedar-policy/cedar-wasm": "^4.12.0",
     "@gsap/react": "^2.1.2",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.112.0",
+    "@voomate/connect": "*",
     "@voomate/core": "*",
     "@voomate/db": "*",
     "@voomate/i18n": "*",

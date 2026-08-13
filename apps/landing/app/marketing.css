@@ -2644,46 +2644,50 @@ summary:focus-visible {
   --glass-ink-faint: #69605a;
 }
 
-.marketing-main :is(
-  .agent-card,
-  .flow-card,
-  .use-case-accordion,
-  .pricing-card,
-  .principles-grid article,
-  .product-tabs,
-  .integration-explorer,
-  .connection-agent,
-  .product-controls__grid article,
-  .data-paths__grid article,
-  .execution-steps li,
-  .workflow-examples__table,
-  .context-node,
-  .launch-studio,
-  .outcome-carousel
-) :is(p, li, dd, strong) {
+.marketing-main
+  :is(
+    .agent-card,
+    .flow-card,
+    .use-case-accordion,
+    .pricing-card,
+    .principles-grid article,
+    .product-tabs,
+    .integration-explorer,
+    .connection-agent,
+    .product-controls__grid article,
+    .data-paths__grid article,
+    .execution-steps li,
+    .workflow-examples__table,
+    .context-node,
+    .launch-studio,
+    .outcome-carousel
+  )
+  :is(p, li, dd, strong) {
   color: var(--glass-ink);
 }
 
-.marketing-main :is(
-  .product-tabs__tab-copy small,
-  .integration-explorer__tab-copy small,
-  .product-tabs__tab-signal,
-  .launch-studio__tabs small,
-  .product-tabs__detail dt,
-  .integration-explorer__table-head,
-  .pricing-card__topline,
-  .outcome-carousel__controls span
-) {
+.marketing-main
+  :is(
+    .product-tabs__tab-copy small,
+    .integration-explorer__tab-copy small,
+    .product-tabs__tab-signal,
+    .launch-studio__tabs small,
+    .product-tabs__detail dt,
+    .integration-explorer__table-head,
+    .pricing-card__topline,
+    .outcome-carousel__controls span
+  ) {
   color: var(--glass-ink-faint);
 }
 
-.marketing-main :is(
-  .product-tabs__description,
-  .integration-explorer__panel header p,
-  .integration-explorer__row > span,
-  .use-case-panel__content p,
-  .flow-card > p
-) {
+.marketing-main
+  :is(
+    .product-tabs__description,
+    .integration-explorer__panel header p,
+    .integration-explorer__row > span,
+    .use-case-panel__content p,
+    .flow-card > p
+  ) {
   color: var(--glass-ink-soft);
 }
 
@@ -2729,8 +2733,7 @@ summary:focus-visible {
   background:
     radial-gradient(circle at 50% 16%, rgba(255, 255, 255, 0.38), transparent 34%),
     radial-gradient(circle at 82% 58%, rgba(238, 105, 43, 0.38), transparent 42%),
-    linear-gradient(125deg, rgba(255, 232, 216, 0.68), rgba(247, 170, 121, 0.5)),
-    var(--glass-grain);
+    linear-gradient(125deg, rgba(255, 232, 216, 0.68), rgba(247, 170, 121, 0.5)), var(--glass-grain);
   background-blend-mode: normal, normal, normal, soft-light;
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.9),
@@ -2758,8 +2761,7 @@ summary:focus-visible {
   background:
     radial-gradient(circle at 84% 35%, rgba(237, 103, 42, 0.38), transparent 39%),
     radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.4), transparent 33%),
-    linear-gradient(130deg, rgba(255, 232, 216, 0.7), rgba(247, 170, 121, 0.52)),
-    var(--glass-grain);
+    linear-gradient(130deg, rgba(255, 232, 216, 0.7), rgba(247, 170, 121, 0.52)), var(--glass-grain);
   background-blend-mode: normal, normal, normal, soft-light;
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.92),
@@ -3931,8 +3933,7 @@ summary:focus-visible {
   --marketing-line-strong: rgba(255, 255, 255, 0.18);
   border-color: rgba(255, 255, 255, 0.12);
   background:
-    radial-gradient(circle at 88% 20%, rgba(239, 107, 46, 0.18), transparent 36%),
-    #11100f;
+    radial-gradient(circle at 88% 20%, rgba(239, 107, 46, 0.18), transparent 36%), #11100f;
   color: var(--marketing-ink);
 }
 
@@ -3991,7 +3992,9 @@ summary:focus-visible {
   color: var(--marketing-ink-soft);
   text-align: left;
   cursor: pointer;
-  transition: background 220ms ease, color 220ms ease;
+  transition:
+    background 220ms ease,
+    color 220ms ease;
 }
 
 .launch-studio__tabs button:last-child {
@@ -4018,7 +4021,9 @@ summary:focus-visible {
   margin-top: 0.1rem;
   opacity: 0;
   transform: translateX(-0.5rem);
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
 .launch-studio__tabs button[aria-selected='true'] > svg:last-child {
@@ -4109,8 +4114,7 @@ summary:focus-visible {
   border-radius: 1.1rem;
   background:
     linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    rgba(0, 0, 0, 0.26);
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px), rgba(0, 0, 0, 0.26);
   background-size: 28px 28px;
 }
 
@@ -4484,7 +4488,9 @@ summary:focus-visible {
   border-radius: 0.8rem;
   background: rgba(255, 255, 255, 0.04);
   color: #ff9b68;
-  transition: transform 260ms var(--marketing-ease), background 260ms var(--marketing-ease);
+  transition:
+    transform 260ms var(--marketing-ease),
+    background 260ms var(--marketing-ease);
 }
 
 .product-tabs__tab-copy,
@@ -4531,10 +4537,11 @@ summary:focus-visible {
 
 .product-tabs__list button[aria-selected='true'],
 .integration-explorer__tabs button[aria-selected='true'] {
-  background:
-    linear-gradient(90deg, rgba(222, 104, 42, 0.17), rgba(255, 255, 255, 0.035));
+  background: linear-gradient(90deg, rgba(222, 104, 42, 0.17), rgba(255, 255, 255, 0.035));
   color: #fffaf5;
-  box-shadow: inset 3px 0 0 #f27539, inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 3px 0 0 #f27539,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .product-tabs__list button:hover,
@@ -4977,15 +4984,14 @@ body {
 .industry-examples,
 .principles-section,
 .faq-section {
-  background:
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(255, 253, 249, 0.2) 13%,
-      rgba(255, 253, 249, 0.31) 50%,
-      rgba(255, 253, 249, 0.2) 87%,
-      transparent 100%
-    );
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 253, 249, 0.2) 13%,
+    rgba(255, 253, 249, 0.31) 50%,
+    rgba(255, 253, 249, 0.2) 87%,
+    transparent 100%
+  );
 }
 
 .flow-story,
@@ -5027,8 +5033,7 @@ body {
   background-color: var(--glass-surface);
   background-image:
     radial-gradient(circle at 91% 8%, var(--glass-copper), transparent 31%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.44), rgba(255, 244, 235, 0.2)),
-    var(--glass-grain);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.44), rgba(255, 244, 235, 0.2)), var(--glass-grain);
   background-blend-mode: normal, normal, soft-light;
   color: var(--glass-ink);
   box-shadow:
@@ -5040,37 +5045,39 @@ body {
 }
 
 :is(
-  .hero-operation,
-  .agent-card,
-  .flow-card,
-  .use-case-accordion,
-  .pricing-card,
-  .principles-grid article,
-  .product-tabs,
-  .integration-explorer,
-  .launch-studio,
-  .outcome-carousel,
-  .closing-cta,
-  .subpage-cta,
-  .site-footer
-) :is(h2, h3, h4, strong) {
+    .hero-operation,
+    .agent-card,
+    .flow-card,
+    .use-case-accordion,
+    .pricing-card,
+    .principles-grid article,
+    .product-tabs,
+    .integration-explorer,
+    .launch-studio,
+    .outcome-carousel,
+    .closing-cta,
+    .subpage-cta,
+    .site-footer
+  )
+  :is(h2, h3, h4, strong) {
   color: var(--glass-ink);
 }
 
 :is(
-  .hero-operation,
-  .agent-card,
-  .flow-card,
-  .pricing-card,
-  .principles-grid article,
-  .product-tabs,
-  .integration-explorer,
-  .launch-studio,
-  .outcome-carousel,
-  .closing-cta,
-  .subpage-cta,
-  .site-footer
-) :is(p, small, li, dt, span) {
+    .hero-operation,
+    .agent-card,
+    .flow-card,
+    .pricing-card,
+    .principles-grid article,
+    .product-tabs,
+    .integration-explorer,
+    .launch-studio,
+    .outcome-carousel,
+    .closing-cta,
+    .subpage-cta,
+    .site-footer
+  )
+  :is(p, small, li, dt, span) {
   border-color: var(--glass-line);
 }
 
@@ -5214,8 +5221,7 @@ body {
 .integration-explorer__tabs button[aria-selected='true'],
 .launch-studio__tabs button[aria-selected='true'] {
   background:
-    linear-gradient(105deg, rgba(239, 107, 46, 0.13), rgba(255, 255, 255, 0.24)),
-    var(--glass-grain);
+    linear-gradient(105deg, rgba(239, 107, 46, 0.13), rgba(255, 255, 255, 0.24)), var(--glass-grain);
   color: var(--glass-ink);
   box-shadow:
     inset 0 -2px 0 #e86628,

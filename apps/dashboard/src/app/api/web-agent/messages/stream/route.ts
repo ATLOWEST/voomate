@@ -1,5 +1,5 @@
-import { ImageUploadError } from '@/lib/web-agent/images';
 import { flushRunEvents, logRunEvent, type RunContext } from '@/lib/web-agent/log';
+import { publicWebAgentError } from '@/lib/web-agent/public-error';
 import { enforceWidgetRateLimit } from '@/lib/web-agent/rate-limit';
 import {
   bearerToken,
@@ -68,8 +68,10 @@ export async function POST(request: Request): Promise<Response> {
           send({
             type: 'done',
             conversationId: result.conversationId,
+            messageId: result.messageId,
             message: result.message,
             runId: result.context.runId,
+            clientCommands: result.clientCommands,
           });
           await flushRunEvents(result.context);
         } catch (error) {
@@ -79,10 +81,12 @@ export async function POST(request: Request): Promise<Response> {
             }).catch(() => undefined);
             await flushRunEvents(context).catch(() => undefined);
           }
-          const invalidImage = error instanceof ImageUploadError;
+          const publicError = publicWebAgentError(error, input.imageIds.length);
           send({
             type: 'error',
-            error: invalidImage ? error.message : 'The assistant could not complete that request.',
+            error: publicError.message,
+            code: publicError.code,
+            ...(context?.conversationId ? { conversationId: context.conversationId } : {}),
           });
         } finally {
           controller.close();

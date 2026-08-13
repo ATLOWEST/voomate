@@ -47,13 +47,14 @@ npm run dev:web-agent
 This health-checks and starts only the missing services, then keeps the complete dogfood path
 available at:
 
-- Landing page with the real installed widget: `http://localhost:3000`
-- Dashboard and versioned widget assets: `http://localhost:3001`
+- Public landing site with the installed widget: `http://localhost:3000`
+- Authenticated dashboard and versioned widget assets: `http://localhost:3001`
 - Connect/control API: `http://localhost:4000`
 
-The landing page intentionally contains only `embed.js` and a public, domain-restricted agent key.
-The `@voomate/connect` SDK and its secret key belong in a business's server, webhook, or deployment
-job and must never be bundled into the landing page or widget.
+The landing site dogfoods the same public, domain-restricted `embed.js` integration that
+clients install; it is not a second dashboard or a duplicate product implementation. The
+`@voomate/connect` SDK and its secret key belong in a business's server, webhook, or deployment job
+and must never be bundled into the landing site, dashboard, or widget.
 
 ## Where to read next
 

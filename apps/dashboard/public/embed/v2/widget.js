@@ -29,6 +29,7 @@ stylesheet.replaceSync(`
   .message.assistant{align-self:stretch;display:grid;grid-template-columns:21px minmax(0,1fr);gap:10px;padding-right:12px;color:#1a1a1a}.message.assistant::before{content:"";width:20px;height:20px;margin-top:1px;border-radius:50%;background:radial-gradient(circle at 37% 30%,#fff 0 4%,#9eb9ff 17%,#596cff 31%,#111 68%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
   .message.visitor{max-width:82%;align-self:flex-end;padding:10px 14px;border-radius:18px 18px 5px 18px;background:#f0f0f0;color:#111}
   .message-meta{margin-top:5px;color:#858585;font-size:10px;font-weight:560}.message.pending .message-copy{min-height:18px}.message.pending .message-copy::after{content:"";display:inline-block;width:20px;height:5px;margin-top:7px;background:radial-gradient(circle,#8a8a8a 1.5px,transparent 1.8px) 0 0/7px 5px;animation:dots 1s steps(3) infinite}
+  .message-feedback{grid-column:2;display:flex;gap:4px;margin-top:-4px}.feedback-button{width:26px;height:26px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#929292;cursor:pointer;font-size:13px;transition:background .16s ease,color .16s ease,transform .16s ease}.feedback-button:hover{background:#efefef;color:#111;transform:translateY(-1px)}.feedback-button.selected{background:#111;color:#fff}.feedback-button:disabled{cursor:default;opacity:.7}
   .status{min-height:0;padding:0 18px;color:#6d6d6d;font-size:11px;line-height:1.4;transition:padding .2s ease}.status:not(:empty){padding-top:8px}.status[data-tone="error"]{color:#a22626}
   .attachments{display:flex;gap:8px;overflow-x:auto;padding:10px 14px 0;background:#fff}.attachments:empty{display:none}.preview{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:8px;min-width:150px;max-width:185px;padding:5px 29px 5px 5px;border:1px solid var(--line);border-radius:13px;background:#fafafa;animation:message-in .35s cubic-bezier(.16,1,.3,1) both}.preview img{width:38px;height:38px;object-fit:cover;border-radius:9px;filter:saturate(.85)}.preview-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:#535353}.remove{position:absolute;right:4px;top:4px;width:23px;height:23px;display:grid;place-items:center;border:0;border-radius:50%;background:#ececec;color:#333;cursor:pointer;font:500 15px/1 inherit}
   .composer{margin:10px 12px 12px;min-height:62px;display:grid;grid-template-columns:44px minmax(0,1fr) 48px;align-items:center;gap:4px;padding:6px;border:1px solid #dedede;border-radius:25px;background:#f8f8f8;box-shadow:0 6px 20px rgba(0,0,0,.045),inset 0 1px 0 #fff;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}.composer:focus-within{border-color:#bcbcbc;box-shadow:0 8px 26px rgba(0,0,0,.065),0 0 0 3px rgba(0,0,0,.035)}.composer.busy{opacity:.72}
@@ -37,6 +38,7 @@ stylesheet.replaceSync(`
   .voice-stage{position:relative;width:100%;height:0;min-height:0;z-index:1;display:grid;grid-template-rows:minmax(0,1fr) 24px;place-items:center;overflow:hidden;background:transparent;opacity:0;visibility:hidden;pointer-events:none;filter:blur(9px);transform:translate3d(0,34px,0) scale(.72);transform-origin:50% 100%;transition:height .58s cubic-bezier(.16,1,.3,1),opacity .22s ease,visibility 0s linear .5s,filter .36s ease,transform .62s cubic-bezier(.16,1,.3,1)}.voice-stage.active{height:286px;opacity:1;visibility:visible;filter:none;transform:translate3d(0,0,0) scale(1);transition:height .62s cubic-bezier(.16,1,.3,1),opacity .28s ease,visibility 0s,filter .42s ease,transform .68s cubic-bezier(.16,1,.3,1)}
   .voice-label{position:relative;z-index:2;align-self:start;text-align:center}.voice-title{font-size:11px;font-weight:620;letter-spacing:.018em;color:#585858;text-shadow:0 1px 14px rgba(255,255,255,.94)}.sphere-wrap{position:relative;width:276px;height:262px;display:grid;place-items:center;isolation:isolate}.sphere-wrap::before{content:"";position:absolute;inset:10%;z-index:-2;border-radius:50%;background:radial-gradient(circle,rgba(89,105,255,.12),rgba(122,75,255,.055) 38%,rgba(255,102,62,.025) 58%,transparent 72%);filter:blur(calc(12px + var(--audio-level) * 13px));transform:scale(calc(1 + var(--audio-level) * .09));transition:transform .06s linear,filter .06s linear}.sphere-wrap::after{content:"";position:absolute;left:21%;right:21%;bottom:7%;height:12%;z-index:-1;border-radius:50%;background:radial-gradient(ellipse,rgba(13,14,30,.18),rgba(51,57,130,.07) 45%,transparent 73%);filter:blur(11px);transform:scaleX(calc(.92 + var(--audio-level) * .12));transition:transform .06s linear}.voice-canvas{width:100%;height:100%;display:block;filter:drop-shadow(0 17px 25px rgba(25,29,75,.16)) saturate(1.04)}
   .panel.dragging{box-shadow:0 32px 90px rgba(0,0,0,.19),inset 0 0 0 2px #111}.panel.dragging .composer{transform:translateY(-3px)}
+  .navigation-stage{position:absolute;inset:0;z-index:20;display:grid;place-items:center;padding:28px;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility 0s linear .25s}.navigation-stage.active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .2s ease,visibility 0s}.navigation-state{display:grid;justify-items:center;gap:14px;max-width:260px;text-align:center}.navigation-spinner{width:38px;height:38px;border:2px solid #dedede;border-top-color:#111;border-radius:50%;animation:navigation-spin .75s linear infinite}.navigation-title{font-size:15px;font-weight:650}.navigation-detail{color:#717171;font-size:12px;line-height:1.5}.navigation-cancel{margin-top:4px;padding:8px 12px;border:0;background:transparent;color:#595959;font-size:12px;text-decoration:underline;cursor:pointer}
   .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   .minimize:focus-visible,.launcher:focus-visible,.attach:focus-visible,.mic:focus-visible,.remove:focus-visible,input:focus-visible{outline:3px solid rgba(72,100,255,.3);outline-offset:3px}
   [hidden]{display:none!important}
@@ -44,9 +46,10 @@ stylesheet.replaceSync(`
   @keyframes dots{to{background-position:21px 0}}
   @keyframes wave-idle{0%,100%{transform:scaleY(.62)}50%{transform:scaleY(1)}}
   @keyframes stop-breathe{0%,100%{transform:scale(1)}50%{transform:scale(calc(1 + var(--audio-level) * .035))}}
+  @keyframes navigation-spin{to{transform:rotate(360deg)}}
   @media(max-width:520px){:host{right:0;bottom:0}.shell{width:100vw;height:100dvh}.panel{border:0;border-radius:0;transform-origin:100% 100%}.launcher{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}.messages{padding-left:16px;padding-right:16px}.message.visitor{max-width:88%}.composer{margin-bottom:max(10px,env(safe-area-inset-bottom))}}
   @media(max-height:590px) and (min-width:521px){.shell{height:calc(100dvh - 24px)}.voice-stage.active{height:218px}.sphere-wrap{width:206px;height:196px}}
-  @media(prefers-reduced-motion:reduce){.panel,.launcher,.message,.preview,.voice-stage{transition:none;animation:none}.messages{scroll-behavior:auto}.mic,.mic .wave i{animation:none}}
+  @media(prefers-reduced-motion:reduce){.panel,.launcher,.message,.preview,.voice-stage,.navigation-stage{transition:none;animation:none}.messages{scroll-behavior:auto}.mic,.mic .wave i,.navigation-spinner{animation:none}}
 `);
 
 function element(tag, className, text) {
@@ -95,6 +98,217 @@ async function postJson(url, body, token) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || 'The assistant could not be reached.');
   return payload;
+}
+
+function compactText(value, maxLength) {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function readUiManifest() {
+  const node = document.querySelector('script[type="application/json"][data-voomate-ui-manifest]');
+  const source = node?.textContent ?? '';
+  if (!source || source.length > 32_000) return undefined;
+  try {
+    const parsed = JSON.parse(source);
+    if (parsed?.version !== 1 || !Array.isArray(parsed.pages)) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
+function journeyStorageKey(publicKey) {
+  return `voomate:v2:journey:${String(publicKey).slice(0, 80)}`;
+}
+
+function readJourney(publicKey) {
+  try {
+    const parsed = JSON.parse(
+      window.sessionStorage.getItem(journeyStorageKey(publicKey)) ?? 'null',
+    );
+    if (!parsed || parsed.version !== 1) return {};
+    return {
+      conversationId: typeof parsed.conversationId === 'string' ? parsed.conversationId : undefined,
+      continuationToken:
+        typeof parsed.continuationToken === 'string' ? parsed.continuationToken : undefined,
+      isOpen: parsed.isOpen !== false,
+      resumeVoice: parsed.resumeVoice === true,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function writeJourney(publicKey, state) {
+  try {
+    window.sessionStorage.setItem(
+      journeyStorageKey(publicKey),
+      JSON.stringify({
+        version: 1,
+        conversationId: state.conversationId,
+        continuationToken: state.continuationToken,
+        isOpen: state.isOpen,
+        resumeVoice: state.resumeVoice === true,
+      }),
+    );
+  } catch {
+    // Session continuity is best-effort in browsers that disable storage.
+  }
+}
+
+function clearJourney(publicKey) {
+  try {
+    window.sessionStorage.removeItem(journeyStorageKey(publicKey));
+  } catch {
+    // No stored state exists when storage is unavailable.
+  }
+}
+
+function mobilePlatform() {
+  const value =
+    `${navigator.userAgentData?.platform ?? ''} ${navigator.platform ?? ''} ${navigator.userAgent ?? ''}`.toLowerCase();
+  if (/iphone|ipad|ipod|ios/.test(value)) return 'ios';
+  if (/android/.test(value)) return 'android';
+  return 'web';
+}
+
+function collectPageContext() {
+  const manifest = readUiManifest();
+  const description = document.querySelector('meta[name="description"]')?.getAttribute('content');
+  const headings = [
+    ...document.querySelectorAll('main h1, main h2, [role="main"] h1, [role="main"] h2'),
+  ]
+    .map((node) => compactText(node.textContent, 160))
+    .filter(Boolean)
+    .slice(0, 12);
+  const navigation = [];
+  const seen = new Set();
+  const addNavigation = (label, value, pageDescription, aliases, facts, native) => {
+    try {
+      const url = new URL(value, window.location.href);
+      if (url.origin !== window.location.origin || !['http:', 'https:'].includes(url.protocol))
+        return;
+      const normalizedLabel = compactText(label, 120);
+      if (!normalizedLabel || seen.has(url.href) || navigation.length >= 40) return;
+      seen.add(url.href);
+      navigation.push({
+        label: normalizedLabel,
+        url: url.href,
+        ...(pageDescription ? { description: compactText(pageDescription, 600) } : {}),
+        ...(Array.isArray(aliases)
+          ? {
+              aliases: aliases
+                .map((alias) => compactText(alias, 80))
+                .filter(Boolean)
+                .slice(0, 16),
+            }
+          : {}),
+        ...(Array.isArray(facts)
+          ? {
+              facts: facts
+                .map((fact) => compactText(fact, 300))
+                .filter(Boolean)
+                .slice(0, 24),
+            }
+          : {}),
+        ...(native ? { native } : {}),
+      });
+    } catch {
+      // Malformed host links are ignored; the widget must never repair or execute them.
+    }
+  };
+  for (const page of manifest?.pages ?? []) {
+    addNavigation(page.title, page.path, page.description, page.aliases, page.facts, page.native);
+  }
+  for (const anchor of document.querySelectorAll('a[href]')) {
+    if (anchor.closest('voomate-widget')) continue;
+    const anchorUrl = new URL(anchor.href, window.location.href);
+    if (
+      anchorUrl.hash &&
+      anchorUrl.pathname === window.location.pathname &&
+      anchorUrl.search === window.location.search
+    ) {
+      continue;
+    }
+    addNavigation(anchor.getAttribute('aria-label') || anchor.textContent, anchor.href);
+  }
+  const currentPath = `${window.location.pathname}${window.location.search}`;
+  const surface = (manifest?.pages ?? []).find(
+    (page) => page.path === currentPath || page.path === window.location.pathname,
+  );
+  return {
+    url: window.location.href,
+    title: compactText(document.title, 200),
+    description: compactText(description, 800),
+    headings,
+    navigation,
+    ...(surface
+      ? {
+          surface: {
+            id: compactText(surface.id, 64),
+            title: compactText(surface.title, 120),
+            description: compactText(surface.description, 600),
+            ...(Array.isArray(surface.aliases)
+              ? {
+                  aliases: surface.aliases
+                    .map((alias) => compactText(alias, 80))
+                    .filter(Boolean)
+                    .slice(0, 16),
+                }
+              : {}),
+            ...(Array.isArray(surface.facts)
+              ? {
+                  facts: surface.facts
+                    .map((fact) => compactText(fact, 300))
+                    .filter(Boolean)
+                    .slice(0, 24),
+                }
+              : {}),
+          },
+        }
+      : {}),
+    ...(manifest?.businessSummary
+      ? { businessSummary: compactText(manifest.businessSummary, 1_200) }
+      : {}),
+  };
+}
+
+function resolveClientNavigation(commands, pageContext) {
+  if (!Array.isArray(commands)) return undefined;
+  const navigation = commands.find((command) => command?.type === 'navigate');
+  if (!navigation) return undefined;
+  try {
+    const target = new URL(navigation.url);
+    const advertised = pageContext.navigation.find((item) => item.url === target.href);
+    if (target.origin !== window.location.origin || !advertised) return undefined;
+    const intent = ['web', 'open_app', 'install_app'].includes(navigation.intent)
+      ? navigation.intent
+      : 'web';
+    const platform = mobilePlatform();
+    if (intent === 'web' || platform === 'web') {
+      return { command: navigation, destination: target.href, kind: 'web' };
+    }
+    const native = advertised.native?.[platform];
+    if (!native || navigation.native?.[platform]?.url !== native.url) return undefined;
+    if (intent === 'open_app') {
+      return { command: navigation, destination: native.url, fallback: target.href, kind: 'app' };
+    }
+    if (
+      !native.storeUrl ||
+      navigation.native?.[platform]?.storeUrl !== native.storeUrl ||
+      new URL(native.storeUrl).hostname !==
+        (platform === 'ios' ? 'apps.apple.com' : 'play.google.com')
+    ) {
+      return undefined;
+    }
+    return { command: navigation, destination: native.storeUrl, kind: 'store' };
+  } catch {
+    // A response command is still untrusted at the browser boundary.
+    return undefined;
+  }
 }
 
 export async function mountWidget(host, config) {
@@ -169,20 +383,43 @@ export async function mountWidget(host, config) {
   input.autocomplete = 'off';
   input.placeholder = 'Ask anything';
   input.maxLength = 4000;
+  input.disabled = true;
   const mic = element('button', 'mic');
   mic.type = 'button';
   mic.setAttribute('aria-label', 'Start voice conversation');
   mic.setAttribute('aria-pressed', 'false');
+  mic.disabled = true;
   mic.append(waveIcon());
+  attach.disabled = true;
   form.append(attach, fileInput, label, input, mic);
 
-  panel.append(header, messages, voiceStage, status, attachments, form);
+  const navigationStage = element('div', 'navigation-stage');
+  navigationStage.setAttribute('role', 'status');
+  navigationStage.setAttribute('aria-live', 'assertive');
+  const navigationState = element('div', 'navigation-state');
+  const navigationSpinner = element('span', 'navigation-spinner');
+  navigationSpinner.setAttribute('aria-hidden', 'true');
+  const navigationTitle = element('div', 'navigation-title', 'Opening page');
+  const navigationDetail = element(
+    'div',
+    'navigation-detail',
+    'Keeping this conversation active while the destination opens.',
+  );
+  const navigationCancel = element('button', 'navigation-cancel', 'Stay here');
+  navigationCancel.type = 'button';
+  navigationState.append(navigationSpinner, navigationTitle, navigationDetail, navigationCancel);
+  navigationStage.append(navigationState);
+
+  panel.append(header, messages, voiceStage, status, attachments, form, navigationStage);
   shell.append(launcher, panel);
   root.append(shell);
 
   const sphere = createVoiceSphere(voiceCanvas);
+  const storedJourney = readJourney(config.publicKey);
+  let resumeVoiceAfterReload = storedJourney.resumeVoice === true;
   let token;
-  let conversationId;
+  let continuationToken = storedJourney.continuationToken;
+  let conversationId = storedJourney.conversationId;
   let voiceConfig;
   let voiceSession;
   let voiceStarting = false;
@@ -190,9 +427,21 @@ export async function mountWidget(host, config) {
   let voiceUserNode;
   let voiceAssistantNode;
   let selectedFiles = [];
-  let isOpen = false;
+  let isOpen = storedJourney.isOpen !== false;
+  let navigationTimer;
+  let navigationCompletionListener;
+  let navigationShownAt = 0;
   const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
   const maxImageBytes = 5 * 1024 * 1024;
+
+  const persistJourney = (resumeVoice = false) => {
+    writeJourney(config.publicKey, {
+      conversationId,
+      continuationToken,
+      isOpen,
+      resumeVoice,
+    });
+  };
 
   const setOpen = (open) => {
     isOpen = open;
@@ -200,6 +449,7 @@ export async function mountWidget(host, config) {
     launcher.classList.toggle('is-visible', !open);
     panel.setAttribute('aria-hidden', String(!open));
     launcher.setAttribute('aria-expanded', String(open));
+    persistJourney(Boolean(voiceSession || voiceStarting));
     sphere.setActive(open && Boolean(voiceSession || voiceStarting));
     if (open && matchMedia('(pointer:fine)').matches && !voiceSession && !voiceStarting) {
       window.setTimeout(() => input.focus(), 220);
@@ -223,10 +473,123 @@ export async function mountWidget(host, config) {
     messages.scrollTop = messages.scrollHeight;
   };
 
+  const addFeedback = (node, messageId) => {
+    if (!messageId || !conversationId) return;
+    const controls = element('div', 'message-feedback');
+    controls.setAttribute('aria-label', 'Rate this answer');
+    for (const [rating, labelText, glyph] of [
+      ['helpful', 'Helpful', '↑'],
+      ['unhelpful', 'Not helpful', '↓'],
+    ]) {
+      const button = element('button', 'feedback-button', glyph);
+      button.type = 'button';
+      button.setAttribute('aria-label', labelText);
+      button.addEventListener('click', async () => {
+        for (const child of controls.children) child.disabled = true;
+        try {
+          await postJson(
+            `${config.apiOrigin}/api/web-agent/feedback`,
+            { conversationId, messageId, rating },
+            token,
+          );
+          for (const child of controls.children) child.classList.remove('selected');
+          button.classList.add('selected');
+        } catch {
+          for (const child of controls.children) child.disabled = false;
+        }
+      });
+      controls.append(button);
+    }
+    node.append(controls);
+  };
+
   const setStatus = (message = '', tone = 'neutral') => {
     status.textContent = message;
     status.dataset.tone = tone;
   };
+
+  const finishNavigation = (problem, immediate = false) => {
+    if (navigationTimer) window.clearTimeout(navigationTimer);
+    navigationTimer = undefined;
+    if (navigationCompletionListener) {
+      window.removeEventListener('voomate:navigation-complete', navigationCompletionListener);
+      navigationCompletionListener = undefined;
+    }
+    const remaining = immediate ? 0 : Math.max(0, 360 - (Date.now() - navigationShownAt));
+    if (remaining > 0) {
+      navigationShownAt = 0;
+      navigationTimer = window.setTimeout(() => finishNavigation(problem, true), remaining);
+      return;
+    }
+    navigationStage.classList.remove('active');
+    persistJourney(Boolean(voiceSession || voiceStarting));
+    if (problem) setStatus(problem, 'error');
+  };
+
+  const executeClientCommands = (commands, pageContext) => {
+    const resolved = resolveClientNavigation(commands, pageContext);
+    if (!resolved) {
+      if (Array.isArray(commands) && commands.some((command) => command?.type === 'navigate')) {
+        setStatus('That destination could not be verified, so I kept you on this page.', 'error');
+      }
+      return;
+    }
+    const requestId = window.crypto.randomUUID();
+    navigationTitle.textContent =
+      resolved.kind === 'store'
+        ? `Opening the app store for ${resolved.command.label}`
+        : resolved.kind === 'app'
+          ? `Opening ${resolved.command.label} in the app`
+          : `Opening ${resolved.command.label}`;
+    navigationDetail.textContent =
+      resolved.kind === 'web'
+        ? 'Keeping this conversation and voice state active while the page changes.'
+        : 'Handing off securely to your operating system.';
+    navigationStage.classList.add('active');
+    navigationShownAt = Date.now();
+    persistJourney(Boolean(voiceSession || voiceStarting));
+
+    if (resolved.kind === 'web') {
+      const request = new window.CustomEvent('voomate:navigation-request', {
+        cancelable: true,
+        detail: {
+          requestId,
+          url: resolved.destination,
+          label: resolved.command.label,
+          mode: 'push',
+        },
+      });
+      navigationCompletionListener = (event) => {
+        if (event.detail?.requestId !== requestId) return;
+        window.setTimeout(() => {
+          voiceSession?.updatePageContext(window.location.href, collectPageContext());
+        }, 80);
+        finishNavigation(event.detail?.ok === false ? 'The page could not be opened.' : undefined);
+      };
+      window.addEventListener('voomate:navigation-complete', navigationCompletionListener);
+      const browserFallback = window.dispatchEvent(request);
+      navigationTimer = window.setTimeout(
+        () => {
+          if (window.location.href === resolved.destination) finishNavigation();
+          else if (browserFallback) window.location.assign(resolved.destination);
+          else finishNavigation('The application did not complete the page change.');
+        },
+        browserFallback ? 500 : 8_000,
+      );
+      return;
+    }
+
+    navigationTimer = window.setTimeout(() => {
+      window.location.assign(resolved.destination);
+      if (resolved.kind === 'app' && resolved.fallback) {
+        navigationTimer = window.setTimeout(() => {
+          if (document.visibilityState === 'visible') window.location.assign(resolved.fallback);
+        }, 1_500);
+      }
+    }, 450);
+  };
+
+  navigationCancel.addEventListener('click', () => finishNavigation(undefined, true));
 
   const setVoiceState = (state) => {
     sphere.setState(state);
@@ -258,6 +621,7 @@ export async function mountWidget(host, config) {
     setVoiceState('ended');
     presence.textContent = 'Online for chat';
     if (active) await active.disconnect().catch(() => undefined);
+    persistJourney(false);
     if (isOpen && matchMedia('(pointer:fine)').matches) input.focus();
   };
 
@@ -339,6 +703,7 @@ export async function mountWidget(host, config) {
   };
 
   const streamMessage = async (message, imageIds, node) => {
+    const pageContext = collectPageContext();
     const response = await fetch(`${config.apiOrigin}/api/web-agent/messages/stream`, {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -347,6 +712,7 @@ export async function mountWidget(host, config) {
         imageIds,
         conversationId,
         pageUrl: window.location.href,
+        pageContext,
         channel: 'text',
       }),
       credentials: 'omit',
@@ -361,6 +727,8 @@ export async function mountWidget(host, config) {
     const decoder = new TextDecoder();
     let buffer = '';
     let answer = '';
+    let messageId;
+    let clientCommands = [];
     while (true) {
       const { value, done } = await reader.read();
       buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
@@ -369,13 +737,19 @@ export async function mountWidget(host, config) {
       for (const line of lines) {
         if (!line) continue;
         const event = JSON.parse(line);
-        if (event.type === 'start') conversationId = event.conversationId;
+        if (event.type === 'start') {
+          conversationId = event.conversationId;
+          persistJourney(Boolean(voiceSession || voiceStarting));
+        }
         if (event.type === 'delta' && typeof event.text === 'string') {
           answer += event.text;
           setMessageText(node, answer);
         }
         if (event.type === 'done') {
           conversationId = event.conversationId ?? conversationId;
+          messageId = event.messageId ?? messageId;
+          clientCommands = Array.isArray(event.clientCommands) ? event.clientCommands : [];
+          persistJourney(Boolean(voiceSession || voiceStarting));
           if (!answer && typeof event.message === 'string') {
             answer = event.message;
             setMessageText(node, answer);
@@ -386,6 +760,8 @@ export async function mountWidget(host, config) {
       if (done) break;
     }
     if (!answer) throw new Error('The assistant returned an empty response.');
+    addFeedback(node, messageId);
+    executeClientCommands(clientCommands, pageContext);
   };
 
   minimize.addEventListener('click', () => setOpen(false));
@@ -411,16 +787,40 @@ export async function mountWidget(host, config) {
     if (event.dataTransfer?.files) selectImages(event.dataTransfer.files);
   });
 
-  requestAnimationFrame(() => setOpen(true));
+  requestAnimationFrame(() => setOpen(storedJourney.isOpen !== false));
   try {
-    const session = await postJson(`${config.apiOrigin}/api/web-agent/session`, {
-      publicKey: config.publicKey,
-    });
+    let session;
+    try {
+      session = await postJson(`${config.apiOrigin}/api/web-agent/session`, {
+        publicKey: config.publicKey,
+        ...(continuationToken ? { continuationToken } : {}),
+        ...(conversationId ? { conversationId } : {}),
+      });
+    } catch (error) {
+      if (!continuationToken) throw error;
+      clearJourney(config.publicKey);
+      continuationToken = undefined;
+      conversationId = undefined;
+      resumeVoiceAfterReload = false;
+      session = await postJson(`${config.apiOrigin}/api/web-agent/session`, {
+        publicKey: config.publicKey,
+      });
+    }
     token = session.session.token;
+    continuationToken = session.session.continuationToken;
     voiceConfig = session.agent.voice;
     name.textContent = session.agent.displayName;
     presence.textContent = 'Online for chat';
-    addMessage('assistant', session.agent.greeting);
+    if (session.resumedConversation?.conversationId) {
+      conversationId = session.resumedConversation.conversationId;
+      for (const message of session.resumedConversation.messages ?? []) {
+        if (message.role !== 'visitor' && message.role !== 'agent') continue;
+        addMessage(message.role === 'visitor' ? 'visitor' : 'assistant', message.content);
+      }
+    } else {
+      addMessage('assistant', session.agent.greeting);
+    }
+    persistJourney(resumeVoiceAfterReload);
 
     const micAvailable = Boolean(navigator.mediaDevices?.getUserMedia);
     if (!session.agent.voiceEnabled || !voiceConfig || !micAvailable) {
@@ -457,6 +857,7 @@ export async function mountWidget(host, config) {
         sessionToken: token,
         conversationId,
         pageUrl: window.location.href,
+        pageContext: collectPageContext(),
         audioElement: audio,
         onState: setVoiceState,
         onAudioLevel: (source, level) => {
@@ -483,6 +884,10 @@ export async function mountWidget(host, config) {
         onConversationId: (value) => {
           conversationId = value;
           voiceAssistantNode = undefined;
+          persistJourney(true);
+        },
+        onClientCommands: (commands) => {
+          executeClientCommands(commands, collectPageContext());
         },
         onError: (message) => {
           setStatus(message, 'error');
@@ -561,4 +966,13 @@ export async function mountWidget(host, config) {
       if (isOpen && matchMedia('(pointer:fine)').matches) input.focus();
     }
   });
+
+  input.disabled = false;
+  attach.disabled = false;
+  mic.disabled = false;
+
+  if (resumeVoiceAfterReload) {
+    persistJourney(false);
+    window.setTimeout(() => void startVoice(), 0);
+  }
 }

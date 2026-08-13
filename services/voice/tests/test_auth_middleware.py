@@ -15,7 +15,7 @@ def widget_token():
         {
             "agentId": "a",
             "organizationId": "o",
-            "origin": "http://localhost:3001",
+            "origin": "http://localhost:3000",
             "keyFingerprint": "f" * 16,
             "sub": "a",
             "iss": "voomate-web-agent",
@@ -28,7 +28,7 @@ def widget_token():
     )
 
 
-async def invoke(middleware, payload, origin="http://localhost:3001"):
+async def invoke(middleware, payload, origin="http://localhost:3000"):
     sent = []
     delivered = False
 
