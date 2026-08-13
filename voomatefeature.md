@@ -99,20 +99,29 @@ When implementing this architecture:
 An AI agent platform that gives any small/medium business a working "AI employee" — handling customer conversations and real tasks across voice, web chat, and connected business tools. Built bootstrapped, from India, priced for global reach at low cost.
 
 ## Core Model
-Every business account gets exactly **3 fixed AI agents** — not unlimited, not divided by industry:
+Voomate begins with **3 first-party agent types**. They are the launch catalog, not mandatory slots
+or a permanent ceiling. Each business activates only what it needs, may pause or archive any
+instance, and can adopt additional governed agent types as the catalog expands:
 
 1. **Voice Calling Agent** — answers and makes phone calls, books/reschedules, checks orders, escalates to a human when unsure. Inbound + outbound.
 2. **Web Agent** — chat + voice widget on the business's own site. Takes real actions (redirect to a page, add to cart, check order, book a slot), not just Q&A.
-3. **Integration Agent** — connects external tools (Google Calendar, Razorpay, WhatsApp, CRM) as sub-connections inside one agent slot; provides capabilities the other two agents can use.
+3. **Integration Agent** — connects external tools (Google Calendar, Razorpay, WhatsApp, CRM) and
+   provides explicitly scoped capabilities to compatible agents.
 
 ## How They Work Together
-Voice and Web agents can each connect to the Integration Agent (simple click-to-connect on the agent board) to gain real capabilities — e.g. Web Agent + Integration Agent (Calendar) = the widget can actually book a real appointment, not just describe how to.
+Voice and Web agents can each connect to an Integration Agent to gain reviewed capabilities - for
+example, Web Agent plus a Calendar connection can book a real appointment instead of merely
+describing how. "Connect all" creates all compatible reviewed links; it never grants unrestricted
+access.
 
 ## Universal, Not Industry-Locked
-No industry presets or business-type selection. Each agent is configured from one shared tool library (Actions / Communication / Integrations) — the same three agents work for a clinic, restaurant, or shop; the owner just enables the tools relevant to them.
+No industry presets or business-type selection. Every catalog type uses the shared Actions,
+Communication, Integrations, workflow, policy, and evaluation contracts. A clinic, restaurant, or
+shop activates and configures the agents and tools relevant to its real operation.
 
 ## Dashboard Features
-- **Agent Board** — the 3 fixed agent cards, status, activity, connection state
+- **Operating Panel** — agent catalog and instances, lifecycle state, SDK/Edge health, activity,
+  scoped connections, approvals, and usage
 - **Per-agent dashboard** — Overview, Conversations, Configuration, Knowledge Base, Logs, Settings
 - **Conversations** — full transcript view with tool calls shown inline, separate from spoken/typed text
 - **Usage** — minutes/messages used, cost, breakdown by agent

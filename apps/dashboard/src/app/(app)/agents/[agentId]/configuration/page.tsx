@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAgent } from '@/components/agent/shell';
-import { Save, AlertCircle, Trash2, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Trash2, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
+import { useApiAction } from '@/lib/hooks';
 
 export default function ConfigurationPage() {
   const { agent } = useAgent();
@@ -20,19 +22,20 @@ export default function ConfigurationPage() {
   // Toast state
   const [showToast, setShowToast] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
+  const {
+    run: deleteAgent,
+    busy: deleting,
+    error: deleteError,
+  } = useApiAction(async (auth) => {
+    await api.delete(`/v1/agents/${agent.id}`, auth);
+    router.replace('/agents');
+  });
 
   const triggerSave = () => {
     setShowToast(true);
     setTimeout(() => {
       setShowToast(false);
     }, 2000);
-  };
-
-  const handleDelete = () => {
-    if (deleteConfirm === agent.name) {
-      alert('Agent deleted');
-      router.push('/agents');
-    }
   };
 
   return (
@@ -151,6 +154,11 @@ export default function ConfigurationPage() {
               Deleting this agent will permanently remove all its configurations and logs. This
               action cannot be undone.
             </p>
+            {deleteError !== undefined && (
+              <p className="mb-4 text-[13px] font-medium text-red-700 dark:text-red-300">
+                {deleteError}
+              </p>
+            )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <input
                 type="text"
@@ -160,11 +168,11 @@ export default function ConfigurationPage() {
                 className="flex-1 max-w-sm p-2.5 bg-card border border-red-500/30 rounded-lg text-[13px] text-foreground outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
               />
               <button
-                disabled={deleteConfirm !== agent.name}
-                onClick={handleDelete}
+                disabled={deleteConfirm !== agent.name || deleting}
+                onClick={() => void deleteAgent()}
                 className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[13.5px] font-bold transition-colors shadow-sm disabled:opacity-50"
               >
-                <Trash2 className="w-4 h-4" /> Delete Agent
+                <Trash2 className="w-4 h-4" /> {deleting ? 'Deleting...' : 'Delete Agent'}
               </button>
             </div>
           </div>

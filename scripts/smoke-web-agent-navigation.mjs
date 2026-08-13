@@ -135,7 +135,7 @@ async function testDashboard() {
     page,
     host,
     'What is this dashboard about and how do I use it?',
-    /three fixed agents|live operating overview/i,
+    /agent operating system|live operating overview|live Operating Panel/i,
   );
   await expectNavigation(page, host, 'take me to agnets pages', '/agents');
   await expectNavigation(page, host, 'open webagent', '/agents/web');

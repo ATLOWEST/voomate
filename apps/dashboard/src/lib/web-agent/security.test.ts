@@ -72,7 +72,7 @@ describe('widget session security', () => {
     const pageContext = {
       url: 'https://app.example/agents',
       title: 'Agents',
-      description: 'Configure the three fixed agents.',
+      description: 'Choose, connect, and operate the agents this workspace needs.',
       headings: ['Agents'],
       navigation: [{ label: 'Logs', url: 'https://app.example/logs' }],
     };

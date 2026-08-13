@@ -22,7 +22,7 @@ Before inference, a deterministic coordination policy ranks the Integration Agen
 capabilities against the current message and exposes at most eight relevant functions. An unrelated
 turn sees no client-data tools. The plan records capability names and counts, never query values or
 returned client data, in `agent_run_events`. This keeps tool schemas, model latency, and accidental
-data access bounded while preserving the fixed Web Agent ↔ Integration Agent connection.
+data access bounded while preserving explicitly scoped Web Agent to Integration Agent connections.
 
 The widget also sends a bounded passive UI manifest: page title, meta description, visible main
 headings, and same-origin navigation destinations. It never sends form values or a page text dump.

@@ -23,7 +23,7 @@
 - description: Product grounding — explains Voomate directly
   vars:
     message: What is Voomate actually about?
-    knowledge: Voomate is an AI agent platform for small and medium businesses. Every account has three fixed agents — a Voice Calling Agent, a Web Agent for website chat and voice, and an Integration Agent for connected tools. The agents answer customer questions and complete approved real tasks.
+    knowledge: Voomate is an AI agent operating system for small and medium businesses. Its launch catalog includes Voice Calling, Web, and Integration agents. A workspace activates only the agents it needs and can later use additional governed agent types. Agents answer customer questions and complete approved real tasks.
   assert:
     - type: icontains
       value: AI agent
@@ -37,7 +37,7 @@
 - description: Actual regression — guides account and business setup instead of action deflection
   vars:
     message: Hi, can you help me set up our account and connect my business to this as agents?
-    knowledge: Every Voomate account has three fixed agent slots. Configure Agents, add business knowledge, connect tools through the Integration Agent, test realistic requests, and publish the Web Agent.
+    knowledge: A Voomate workspace chooses the agents it needs from the catalog. Configure selected agents, add business knowledge, connect tools and compatible agents with explicit scopes, test realistic requests, and publish customer-facing agents.
   assert:
     - type: not-icontains
       value: not supported
@@ -49,19 +49,19 @@
 - description: Actual regression — opens the existing Web Agent configuration path conceptually
   vars:
     message: Can you please open the Agents page and create a Web Agent for me?
-    knowledge: Voomate accounts already contain exactly three fixed slots — Voice Calling, Web, and Integration. The user configures the existing Web Agent from the Agents page instead of creating a duplicate.
+    knowledge: Voomate's launch catalog includes Voice Calling, Web, and Integration. From Agents, a user can activate a Web Agent or configure an existing instance. Provisioning is a controlled write and must not be claimed complete until the action succeeds.
   assert:
     - type: not-icontains
       value: not supported
     - type: icontains
       value: Agents
     - type: javascript
-      value: /configure|existing|already|open/i.test(output)
+      value: /activate|configure|existing|already|open/i.test(output)
 
 - description: Actual regression — explains the current dashboard from page context
   vars:
     message: What is this dashboard about and how do I use it?
-    knowledge: The Voomate Overview dashboard shows the three fixed agents, recent conversations, integrations, pending approvals, usage, and trace logs. Agents configures behavior; Integrations connects business systems; Logs explains what the orchestrator consulted.
+    knowledge: The Voomate Overview dashboard is a live Operating Panel for agent instances, SDK health, recent conversations, integrations, pending approvals, usage, and trace logs. Agents controls lifecycle and behavior; Integrations connects business systems; Logs explains what the orchestrator consulted.
   assert:
     - type: not-icontains
       value: not supported
@@ -73,7 +73,7 @@
 - description: Founder intent — synthesizes why Voomate exists without reciting source copy
   vars:
     message: Why did the founders build Voomate, and what is the real point of it?
-    knowledge: Voomate exists because small and medium businesses often cannot staff customer support and sales around the clock. Three universal fixed agents act across phone, web, and integrations. The differentiator is real permissioned action, not only answers. Read-only access, public-field filtering, logs, evaluations, and approval gates make trust the foundation.
+    knowledge: Voomate exists because small and medium businesses often cannot staff customer operations around the clock. Its governed launch catalog covers phone, web, and integrations without forcing every business to activate every type, and the catalog can expand. The differentiator is real permissioned action, not only answers. Read-only access, public-field filtering, logs, evaluations, and approval gates make trust the foundation.
   assert:
     - type: not-icontains
       value: not supported

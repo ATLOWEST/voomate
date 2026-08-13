@@ -10,13 +10,18 @@ Use it to judge new ideas, features, dependencies, and architectural changes.
 
 ## 1. The goal
 
-Voomate gives a business one connected AI operating team through three fixed agents:
+Voomate gives a business one connected AI operating team. Its launch catalog contains three
+first-party agent types:
 
 1. **Voice Calling Agent** for inbound and outbound phone conversations.
 2. **Web Agent** for chat and voice inside the customer's website or application.
 3. **Integration Agent** for approved access to business systems and actions.
 
-Together they should understand how the business communicates, how its work moves, which systems
+A business activates only the agents it needs. It may run one, two, or all three launch types,
+pause or archive any instance, and later add new first-party or certified agent types through the
+same control-plane contract. The catalog is extensible; it is not an unbounded swarm.
+
+Active agents should understand how the business communicates, how its work moves, which systems
 hold the truth, and which actions may be performed. They should help complete real work while the
 business keeps control.
 
@@ -48,7 +53,7 @@ Voomate therefore wins by doing five things well:
 
 These boundaries protect the company from expensive detours:
 
-- Not an unlimited collection of customer-created agent personas.
+- Not an unlimited collection of prompt-created personas without identity, policy, or ownership.
 - Not an autonomous multi-agent swarm that debates every request.
 - Not an industry-preset product with separate clinic, restaurant, and shop architectures.
 - Not a copy of the customer's employees or a system that impersonates an individual.
@@ -64,8 +69,8 @@ not independently privileged processes.
 
 ## 4. The core abstraction: Business Operating Profile
 
-Every tenant gets one shared, versioned **Business Operating Profile (BOP)**. The three agents use
-the same profile, filtered by their channel and permissions.
+Every tenant gets one shared, versioned **Business Operating Profile (BOP)**. Each active agent
+instance inherits the approved profile through a purpose, channel, and permission-specific view.
 
 The BOP contains structured facts, not a giant generated prompt:
 
@@ -214,13 +219,105 @@ Voomate should understand a customer's application through explicit contracts:
 Do not make full source-code ingestion a launch dependency. It raises security, support, context,
 and accuracy costs before it proves customer value.
 
-## 7. The shared operating loop
+## 7. Agent control plane and Operating Panel
+
+The dashboard is the **Operating Panel** for the workspace. It is not merely a configuration UI.
+It holds the desired state of every agent and connection, while Voomate Edge reports the observed
+state from customer infrastructure.
+
+### Catalog and instance model
+
+Keep the reusable type separate from the tenant-owned running instance:
+
+- **Agent type:** a versioned catalog definition containing its purpose, supported channels,
+  required capabilities, configuration schema, runtime adapter, safety policy, and evaluation pack.
+- **Agent instance:** a tenant-owned activation of one catalog type with a stable ID, name, BOP
+  view, scopes, connections, lifecycle state, and configuration revision.
+- **Agent connection:** a typed, directional grant that lets one instance request named
+  capabilities or workflow handoffs from another. It never implies unrestricted data sharing.
+- **Execution lease:** a short-lived, signed authorization proving that a specific active instance
+  may receive work with a particular configuration revision.
+
+The launch catalog is Voice Calling, Web, and Integration. No workspace is required to activate
+all three. Plans may limit counts or types, but application code must not assume that every tenant
+has exactly three rows or that a fourth catalog type is impossible.
+
+### Lifecycle contract
+
+```text
+draft -> active <-> paused -> archived
+  |         |          |          |
+configure   serve      deny new   retained for policy-driven recovery/deletion
+and test    work       work
+```
+
+- `draft` instances can be configured and tested in an isolated playground but cannot serve public
+  traffic.
+- `active` instances may receive work only while their server-side execution lease is valid.
+- `paused` instances reject new sessions, events, schedules, and tool work immediately. In-flight
+  irreversible actions follow their recorded cancellation policy rather than being abandoned.
+- `archived` instances have no active triggers, connections, credentials, or leases. The visible
+  Delete command should perform this safe retirement first; physical data deletion follows the
+  tenant's retention and legal policy.
+
+Every transition is tenant-authorized, idempotent, audited, and applied by the server before the UI
+shows success. A client-side state toggle is never an operational control.
+
+### Connections and "connect all"
+
+Connecting agents means granting a declared handoff or capability path. Each connection records:
+
+- source and destination agent instance IDs;
+- direction, purpose, and allowed intent/workflow classes;
+- named data and action capabilities;
+- autonomy, confirmation, and escalation rules;
+- policy and configuration revision;
+- health, last successful use, creator, and audit history.
+
+"Connect all" is a convenience for creating the compatible, reviewed connection set between the
+currently selected agents. It must show the resulting scopes before confirmation. It does not
+merge prompts, inboxes, credentials, or permissions. Removing a connection revokes that route
+without deleting either agent.
+
+### Voomate Edge desired-state protocol
+
+The client SDK or sidecar should use an outbound, authenticated control channel:
+
+```text
+Operating Panel mutation
+  -> authorize and persist desired state + monotonic revision
+  -> revoke old execution lease when access narrows
+  -> Edge heartbeat/poll receives signed delta or snapshot
+  -> Edge validates tenant, audience, expiry, and revision
+  -> Edge applies local triggers, manifests, and capability scopes
+  -> Edge returns acknowledgement and observed state
+  -> dashboard shows converged, pending, degraded, or offline
+```
+
+The Edge fails closed when a lease expires or a revision cannot be verified. It never accepts a
+model-authored control message. Prefer outbound polling, server-sent events, or a managed message
+channel so customers do not need to expose an inbound administrative port.
+
+### What the Operating Panel must show
+
+1. Agent catalog and active/draft/paused/archived instances.
+2. Connection health, Edge heartbeat, SDK version, last applied revision, and capability manifest.
+3. Start, pause, resume, archive, restore, and controlled connection commands.
+4. Workflow runs, approvals, escalations, failures, and correlated traces.
+5. Usage by tenant, agent, channel, workflow, model, connector, and billing period.
+6. Quality, cost, latency, correction, and incident trends.
+7. BOP proposals, configuration history, actor identity, diff, and rollback.
+
+Billing must use server-observed events as the authority. Signed Edge receipts reconcile local
+execution and detect gaps, but the customer-controlled SDK is not trusted as the only meter.
+
+## 8. The shared operating loop
 
 Every channel should use this logical path:
 
 ```text
 1. Receive and authenticate
-2. Resolve tenant, customer, channel, and current workflow state
+2. Resolve tenant, customer, agent instance, active execution lease, and workflow state
 3. Classify intent, risk, freshness, and confidence
 4. Load the smallest relevant BOP and conversation context
 5. Build a deterministic plan
@@ -236,7 +333,7 @@ Every channel should use this logical path:
 The model may propose steps 3, 5, 7, and 11. Deterministic code owns authentication, permissions,
 execution, verification, and auditability.
 
-## 8. Automation levels
+## 9. Automation levels
 
 Every capability has an explicit autonomy level. Autonomy is granted per tenant, capability, and
 risk class, never for the whole agent.
@@ -253,7 +350,7 @@ Promotion requires enough successful evaluated runs, low incident rate, rollback
 owner approval. Money movement, refunds, destructive changes, legal or medical decisions,
 credential changes, and bulk messaging do not silently reach Level 4.
 
-## 9. Workflow model
+## 10. Workflow model
 
 A workflow is a versioned state machine, not prose in a prompt. Each workflow defines:
 
@@ -272,14 +369,15 @@ Use deterministic code for stable workflow structure. Use the model for understa
 language, extracting structured inputs, synthesizing grounded responses, and choosing among a
 small set of authorized workflow branches.
 
-## 10. Reuse strategy
+## 11. Reuse strategy
 
 Do not replace working infrastructure merely because a new agent framework is popular.
 
 ### Keep now
 
 - TypeScript, Next.js/Fastify, Zod, Drizzle, Supabase Postgres, RLS, and pgvector.
-- The three-agent model, Connect SDK, read-only live path, controlled action harness, and Logs.
+- The initial three agent types, Connect SDK, read-only live path, controlled action harness, and
+  Logs.
 - Bedrock Nova, Transcribe, Polly, Pipecat, and the existing promptfoo evaluation suite.
 - Cedar for action policy while it meets the current authorization model.
 
@@ -317,7 +415,7 @@ Do not replace working infrastructure merely because a new agent framework is po
   tool installation, silent online prompt mutation, and raw third-party credentials in model
   context.
 
-## 11. Ninety-day execution plan
+## 12. Ninety-day execution plan
 
 ### Phase 0: Freeze the doctrine and baseline (week 1)
 
@@ -328,17 +426,30 @@ Do not replace working infrastructure merely because a new agent framework is po
 
 **Exit:** every new task names the journey and metric it improves.
 
-### Phase 1: Business Operating Profile v1 (weeks 2-3)
+### Phase 1: Flexible control plane v1 (weeks 2-3)
+
+- Add a versioned agent-type catalog and tenant-owned agent instances.
+- Make activate, pause, resume, archive, and restore server-enforced and idempotent.
+- Add typed connection grants and a reviewed "connect all compatible" operation.
+- Give each instance a desired-state revision and short-lived execution lease.
+- Show Edge heartbeat, observed revision, connection health, and usage identity in the Operating
+  Panel.
+
+**Exit:** a paused or archived agent cannot start a widget session, receive an event, run a
+schedule, or call a capability; the Edge converges to the new revision and the entire transition
+appears in one trace.
+
+### Phase 2: Business Operating Profile v1 (weeks 3-4)
 
 - Add the BOP schema, evidence records, versioning, confidence, and review states.
 - Populate it from current website/SDK sync and UI manifests.
 - Add a merchant-facing discovery report: "what Voomate understands" and "what is uncertain."
-- Use the approved profile in all three channels.
+- Use the approved profile in every active agent, filtered by its purpose and permissions.
 
 **Exit:** two unlike businesses produce different profiles and behavior from the same code, with no
 new permission inferred.
 
-### Phase 2: Communication learning pilot (weeks 4-5)
+### Phase 3: Communication learning pilot (weeks 5-6)
 
 - Connect one provider first: Gmail or WhatsApp, not both.
 - Import a bounded, owner-selected sample with retention and deletion controls.
@@ -349,7 +460,7 @@ new permission inferred.
 **Exit:** owners accept most useful proposals, private-data leakage tests pass, and drafts require
 fewer corrections than the generic baseline.
 
-### Phase 3: One complete workflow (weeks 6-8)
+### Phase 4: One complete workflow (weeks 7-9)
 
 - Pick one high-frequency, low-to-medium-risk workflow such as lead qualification, appointment
   scheduling, or order-status resolution.
@@ -361,7 +472,7 @@ fewer corrections than the generic baseline.
 **Exit:** at least 50 representative runs, at least 90% correct workflow selection, no unauthorized
 writes, complete traces, and a measurable reduction in human handling time.
 
-### Phase 4: Evaluation and controlled autonomy (weeks 9-10)
+### Phase 5: Evaluation and controlled autonomy (weeks 10-11)
 
 - Add OpenTelemetry correlation and optional Langfuse export.
 - Run deterministic evaluators on every eligible trace and sampled AI judges on semantic quality.
@@ -370,7 +481,7 @@ writes, complete traces, and a measurable reduction in human handling time.
 
 **Exit:** release gates compare quality, cost, and safety to the previous version automatically.
 
-### Phase 5: Repeatable connection kit (weeks 11-12)
+### Phase 6: Repeatable connection kit (weeks 11-12)
 
 - Finalize the Edge capability/entity/event manifest format.
 - Provide templates for REST/OpenAPI, Postgres read replicas, and webhooks.
@@ -380,7 +491,7 @@ writes, complete traces, and a measurable reduction in human handling time.
 **Exit:** a developer can add a safe read capability without changing the orchestrator, and a write
 capability cannot ship without permission, idempotency, verification, and audit tests.
 
-## 12. Definition of useful
+## 13. Definition of useful
 
 A feature is not done because the model produced a good demo once. It is useful only when:
 
@@ -395,7 +506,7 @@ A feature is not done because the model produced a good demo once. It is useful 
 - failures degrade safely and produce a useful next step;
 - rollback is possible without deleting the customer's data.
 
-## 13. Founder operating method
+## 14. Founder operating method
 
 The founder should not need to identify every small UI or prompt defect. Work at three levels:
 
@@ -418,11 +529,16 @@ Use this decision filter before starting work:
 
 If those answers are missing, the task is not ready for engineering.
 
-## 14. Immediate next product decision
+## 15. Immediate next product decision
 
-Do not add more agents. Build **Business Operating Profile v1** and one communication-learning
-pilot in Draft mode. This is the missing bridge between the current grounded/action-capable agent
-and the adaptive operating system described here.
+First stabilize the **flexible agent control plane** and **Business Operating Profile v1**. The
+current dashboard already has parts of an agent-instance model, but lifecycle commands, catalog
+identity, desired-state synchronization, connection scopes, and live usage must become real
+server-enforced contracts before adding another production agent type.
+
+This is not a return to a three-agent limit. It is the quality gate that lets the fourth and later
+agent types plug into the same secure system instead of becoming separate one-off products. In
+parallel, run one communication-learning pilot in Draft mode to build the adaptive behavior layer.
 
 The first pilot should answer:
 

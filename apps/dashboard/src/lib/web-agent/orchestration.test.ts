@@ -23,7 +23,7 @@ const pageContext: WebAgentPageContext = {
     {
       label: 'Agents',
       url: 'https://app.voomate.test/agents',
-      description: 'Configure three fixed agents.',
+      description: 'Choose, connect, and operate the agents this workspace needs.',
       aliases: ['agent board', 'AI team'],
     },
     { label: 'Logs', url: 'https://app.voomate.test/logs' },
@@ -103,8 +103,8 @@ describe('web agent orchestration', () => {
         intent: 'web',
       },
     ]);
-    expect(result.responseGuidance).toContain('fixed Web Agent slot');
-    expect(result.directReply).toContain('already includes one Web Agent');
+    expect(result.responseGuidance).toContain('available agent type from the catalog');
+    expect(result.directReply).toContain('Choose Web Agent from the catalog');
     expect(result.sources.map(({ source }) => source)).toContain('page_context');
   });
 

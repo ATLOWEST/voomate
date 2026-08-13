@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { Agent } from '@voomate/core';
 import {
   ArrowRight,
   Bot,
@@ -18,6 +19,16 @@ import {
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
 import { cn } from '@/lib/cn';
+import { useApiQuery } from '@/lib/hooks';
+
+interface UsageSummary {
+  textMessages: number;
+  voiceMinutes: number;
+}
+
+interface ConversationSummary {
+  id: string;
+}
 
 const setupSteps = [
   {
@@ -52,8 +63,9 @@ const setupSteps = [
 
 const nextActions = [
   {
-    title: 'Configure your three-agent team',
-    description: 'Start with Web, Voice Calling, and Integration Agent settings.',
+    title: 'Choose your agent team',
+    description:
+      'Activate only the Web, Voice Calling, Integration, or other available agents you need.',
     href: '/agents',
     action: 'Open agents',
     icon: WandSparkles,
@@ -71,10 +83,22 @@ export default function OverviewPage() {
   const { organization } = useSession();
   const workspace = organization?.name ?? 'your workspace';
   const completed = setupSteps.filter((step) => step.complete).length;
+  const apiEnabled = organization !== undefined;
+  const { data: agentData } = useApiQuery<{ agents: Agent[] }>(apiEnabled ? '/v1/agents' : null);
+  const { data: conversationData } = useApiQuery<{ conversations: ConversationSummary[] }>(
+    apiEnabled ? '/v1/conversations?limit=100' : null,
+  );
+  const { data: usage } = useApiQuery<UsageSummary>(apiEnabled ? '/v1/usage/summary' : null);
+  const agents = agentData?.agents ?? [];
+  const activeAgents = agents.filter(({ status }) => status === 'published').length;
+  const recentConversations = conversationData?.conversations.length ?? 0;
 
   return (
     <main className="dashboard-overview mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
-      <header data-dashboard-motion className="dashboard-overview__header mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <header
+        data-dashboard-motion
+        className="dashboard-overview__header mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"
+      >
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-600">
             Your live operation
@@ -95,13 +119,16 @@ export default function OverviewPage() {
         </Link>
       </header>
 
-      <section data-dashboard-motion className="dashboard-launch ember-wash overflow-hidden rounded-2xl border border-accent-200 shadow-subtle dark:border-accent-900/60">
+      <section
+        data-dashboard-motion
+        className="dashboard-launch ember-wash overflow-hidden rounded-2xl border border-accent-200 shadow-subtle dark:border-accent-900/60"
+      >
         <div className="grid gap-8 px-6 py-7 lg:grid-cols-[1.05fr_1.95fr] lg:px-8 lg:py-8">
           <div>
             <div className="mb-5 inline-flex size-10 items-center justify-center rounded-xl bg-accent-600 text-white shadow-sm">
               <Sparkles className="size-5" />
             </div>
-            <p className="text-sm font-semibold text-foreground">Get the three-agent system live</p>
+            <p className="text-sm font-semibold text-foreground">Get your agent operation live</p>
             <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
               Four visible steps take the platform from an empty workspace to a tested customer
               workflow.
@@ -151,7 +178,10 @@ export default function OverviewPage() {
       </section>
 
       <section className="dashboard-operation-grid mt-8 grid gap-6 xl:grid-cols-[1.55fr_1fr]">
-        <div data-dashboard-motion className="rounded-2xl border border-border bg-card shadow-subtle">
+        <div
+          data-dashboard-motion
+          className="rounded-2xl border border-border bg-card shadow-subtle"
+        >
           <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
             <div>
               <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground">
@@ -162,15 +192,36 @@ export default function OverviewPage() {
               </p>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-1 text-xs font-medium text-ink-600 dark:bg-ink-800 dark:text-ink-300">
-              <CircleAlert className="size-3.5" />
-              Not live yet
+              {activeAgents > 0 ? (
+                <CircleCheck className="size-3.5 text-positive" />
+              ) : (
+                <CircleAlert className="size-3.5" />
+              )}
+              {activeAgents > 0 ? 'Live' : 'Ready to configure'}
             </span>
           </div>
           <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             {[
-              ['Agents live', '0', 'Create an agent to begin', Bot],
-              ['Connected systems', '0', 'Connect a tool or knowledge', PlugZap],
-              ['Customer conversations', '0', 'Publish to start helping', MessageSquare],
+              [
+                'Agents live',
+                String(activeAgents),
+                `${agents.length} configured in this workspace`,
+                Bot,
+              ],
+              [
+                'Messages this month',
+                String(usage?.textMessages ?? 0),
+                `${usage?.voiceMinutes ?? 0} voice minutes`,
+                MessageSquare,
+              ],
+              [
+                'Recent conversations',
+                String(recentConversations),
+                recentConversations === 100
+                  ? 'Showing the latest 100'
+                  : 'Recorded for this workspace',
+                Radio,
+              ],
             ].map(([label, value, detail, Icon]) => {
               const MetricIcon = Icon as typeof Bot;
               return (
@@ -191,7 +242,10 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        <div data-dashboard-motion className="rounded-2xl border border-border bg-card p-6 shadow-subtle">
+        <div
+          data-dashboard-motion
+          className="rounded-2xl border border-border bg-card p-6 shadow-subtle"
+        >
           <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground">
             Continue building
           </h2>
@@ -226,14 +280,19 @@ export default function OverviewPage() {
         </div>
       </section>
 
-      <section data-dashboard-motion className="mt-6 rounded-2xl border border-border bg-card px-6 py-5 shadow-subtle">
+      <section
+        data-dashboard-motion
+        className="mt-6 rounded-2xl border border-border bg-card px-6 py-5 shadow-subtle"
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-200">
               <Globe2 className="size-4" />
             </span>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Three agents, one shared operation</h2>
+              <h2 className="text-sm font-semibold text-foreground">
+                Your agents, one shared operation
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Web and Voice Calling connect through the Integration Agent to approved knowledge,
                 tools, permissions, and logs.

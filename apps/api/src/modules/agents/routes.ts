@@ -185,6 +185,25 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
   );
 
   /**
+   * Pause is a server-side execution control, not a dashboard preference. Widget token issuance
+   * and voice session setup already require `published`, so this transition stops all new public
+   * work as soon as the database update commits. Calling it twice is intentionally idempotent.
+   */
+  app.post('/:id/pause', { preHandler: app.requireTenant(OrgRole.DEVELOPER) }, async (request) => {
+    const tenant = tenantOf(request);
+    const { id } = paramsSchema.parse(request.params);
+
+    const [agent] = await getDb()
+      .update(agents)
+      .set({ status: AgentStatus.PAUSED, updatedAt: new Date() })
+      .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
+      .returning();
+
+    if (agent === undefined) throw notFound('Agent', id);
+    return { agent };
+  });
+
+  /**
    * The voice configuration the agent will actually use, per language.
    *
    * Powers the "here's what your visitors will hear" panel — including the honest

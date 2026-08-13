@@ -25,7 +25,7 @@ def test_voice_turn_forwards_passive_page_context():
     page_context = {
         "url": "https://app.example/agents",
         "title": "Agents",
-        "description": "Configure the three fixed agents.",
+        "description": "Choose, connect, and operate the agents this workspace needs.",
         "headings": ["Agents"],
         "navigation": [],
     }

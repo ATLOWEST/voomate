@@ -35,14 +35,14 @@ const THEME_BOOTSTRAP = `
 const UI_MANIFEST = serializeUiManifest(
   defineUiManifest({
     businessSummary:
-      'Voomate gives small and medium businesses one practical AI team across phone, web, and connected tools. Its fixed Voice Calling, Web, and Integration agents are built to complete approved work, not only answer questions.',
+      'Voomate is an AI agent operating system for small and medium businesses. Its launch catalog includes Voice Calling, Web, and Integration agents, and each workspace activates only the agents it needs to complete approved work.',
     pages: [
       {
         id: 'overview',
         title: 'Overview',
         path: '/',
         description:
-          'A live operating overview of the three fixed agents, recent conversations, connections, approvals, and usage.',
+          'A live Operating Panel for active agents, SDK health, recent conversations, connections, approvals, and usage.',
         aliases: ['dashboard', 'home', 'workspace', 'main dashboard'],
       },
       {
@@ -50,7 +50,7 @@ const UI_MANIFEST = serializeUiManifest(
         title: 'Agents',
         path: '/agents',
         description:
-          'Open and configure the three fixed agent slots: Voice Calling, Web, and Integration. New agent types are not created here.',
+          'Choose from the agent catalog, activate only what the workspace needs, and configure, pause, or connect agent instances.',
         aliases: ['agent board', 'AI team', 'agent pages', 'agents page'],
       },
       {
@@ -66,7 +66,7 @@ const UI_MANIFEST = serializeUiManifest(
         title: 'Voice Calling Agent',
         path: '/agents/voice',
         description:
-          'Configure the fixed Voice Calling Agent for inbound and outbound phone conversations.',
+          'Configure a Voice Calling Agent for inbound and outbound phone conversations.',
         aliases: ['voice agent', 'calling agent', 'phone agent', 'call agent'],
       },
       {
@@ -74,7 +74,7 @@ const UI_MANIFEST = serializeUiManifest(
         title: 'Integration Agent',
         path: '/agents/integration',
         description:
-          'Configure the fixed Integration Agent that supplies approved connections and tools to Voice and Web.',
+          'Configure an Integration Agent that supplies approved connections and tools to compatible agents.',
         aliases: ['integration hub', 'tool agent', 'connected agent'],
       },
       {

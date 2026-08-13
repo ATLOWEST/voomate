@@ -229,8 +229,8 @@ export function planWebAgentTurn(input: {
       /\b(web|agent)\b/i.test(input.message)
     ) {
       responseGuidance +=
-        ' Voomate already provides one fixed Web Agent slot, so guide the user to configure that slot instead of promising a duplicate agent.';
-      directReply = `Opening ${command.label}. Your account already includes one Web Agent as part of Voomate's three fixed agent slots, so configure that existing agent there instead of creating a duplicate.`;
+        ' Guide the user to choose an available agent type from the catalog, activate only what the workspace needs, or configure an existing instance. Do not claim that provisioning completed without a successful write action.';
+      directReply = `Opening ${command.label}. Choose Web Agent from the catalog to activate an instance, or open an existing Web Agent to configure it.`;
     }
   } else if (requestedIntent && !asksForInformation && navigationResolution.kind === 'ambiguous') {
     const labels = [...new Set(navigationResolution.candidates.map(({ label }) => label))].slice(
@@ -270,12 +270,12 @@ export function planWebAgentTurn(input: {
     /\b(account|business|agent)\b/i.test(input.message)
   ) {
     responseGuidance =
-      'Give a concrete onboarding path: configure the three fixed agent slots, add business knowledge, connect tools through Integration, test, then publish. Do not describe this as an unsupported request.';
+      'Give a concrete onboarding path: choose the needed agents from the catalog, add business knowledge, connect tools with explicit scopes, test, then publish. Do not describe this as an unsupported request.';
     directReply = [
       'Yes. Here is the clean setup path:',
-      '1. Open Agents and configure the existing Voice Calling, Web, and Integration agent slots.',
+      '1. Open Agents and activate only the Voice Calling, Web, Integration, or other available agents your business needs.',
       '2. Add your public business knowledge, policies, products, and services.',
-      '3. Use Integrations for read-only live data and add each write action with its own permission and approval rule.',
+      '3. Use Integrations for read-only live data, connect compatible agents with explicit scopes, and give each write action its own permission and approval rule.',
       '4. Test real customer requests, inspect Logs, then publish the Web Agent to your site.',
     ].join('\n');
   } else if (usePageContext && /\b(what|explain|how)\b/i.test(input.message)) {
@@ -296,9 +296,9 @@ export function planWebAgentTurn(input: {
   ) {
     directReply = [
       'Voomate exists to make a capable AI operating team practical for small and medium businesses:',
-      '1. The three fixed agents cover phone, web, and connected tools without enterprise staffing costs.',
+      '1. Its launch catalog covers phone, web, and connected tools without forcing every business to run every agent.',
       '2. They are built to complete permissioned work, not stop at chatbot answers.',
-      '3. One universal agent system adapts through knowledge and tools instead of industry-specific agent types.',
+      '3. One governed agent, workflow, and tool system adapts through evidence instead of industry presets, and can add more agent types over time.',
       '4. Read-only access, scoped write actions, approvals, logs, and evaluations make trust the foundation.',
       '5. The goal is to move customer operations into an AI-native workflow while the business keeps control.',
     ].join('\n');

@@ -13,12 +13,11 @@
  */
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { Agent } from '@voomate/core';
-import { AgentTabs } from '@/components/shell/nav';
 import { api } from '@/lib/api';
 import { messageFor, useApiQuery } from '@/lib/hooks';
 import { useApiAuth, useSession } from '@/lib/session';
 import { useSearchParams } from 'next/navigation';
-import { Bot, Globe, Power } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Callout } from '@/components/ui/callout';
 
@@ -35,12 +34,6 @@ export function useAgent(): AgentContextValue {
   if (value === undefined) throw new Error('useAgent must be used inside the agent layout.');
   return value;
 }
-
-const STATUS_TONE = {
-  draft: 'caution',
-  published: 'positive',
-  paused: 'neutral',
-} as const;
 
 export function AgentShell({ agentId, children }: { agentId: string; children: ReactNode }) {
   const { organization } = useSession();
@@ -116,7 +109,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Settings2,
-  Link as LinkIcon,
   Book,
   FileText,
   Settings,
@@ -252,8 +244,12 @@ function AgentHeader({ agent, onChanged }: { agent: Agent; onChanged: () => void
     setProblem(undefined);
     try {
       const { accessToken, organizationId } = await auth();
-      const newStatus = optimisticStatus === 'paused' ? 'published' : 'paused';
-      // Mock API call for status toggle
+      const resuming = optimisticStatus === 'paused';
+      const newStatus = resuming ? 'published' : 'paused';
+      await api.post(`/v1/agents/${agent.id}/${resuming ? 'publish' : 'pause'}`, undefined, {
+        accessToken,
+        organizationId,
+      });
       setOptimisticStatus(newStatus);
       onChanged();
     } catch (caught) {
@@ -269,8 +265,18 @@ function AgentHeader({ agent, onChanged }: { agent: Agent; onChanged: () => void
       setEditName(agent.name);
       return;
     }
-    // Mock API call for name change
-    onChanged();
+    try {
+      const { accessToken, organizationId } = await auth();
+      await api.patch(
+        `/v1/agents/${agent.id}`,
+        { name: editName.trim() },
+        { accessToken, organizationId },
+      );
+      onChanged();
+    } catch (caught) {
+      setEditName(agent.name);
+      setProblem(messageFor(caught));
+    }
   };
 
   if (isShopify) return null;
@@ -395,11 +401,3 @@ function ShellSkeleton() {
     </div>
   );
 }
-
-const hostOf = (url: string): string => {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
-};
