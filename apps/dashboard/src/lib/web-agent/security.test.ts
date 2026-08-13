@@ -75,6 +75,10 @@ describe('widget session security', () => {
       description: 'Choose, connect, and operate the agents this workspace needs.',
       headings: ['Agents'],
       navigation: [{ label: 'Logs', url: 'https://app.example/logs' }],
+      operatingState: {
+        source: 'host_ui',
+        agentInventory: { total: 1, active: 1, draft: 0, paused: 0 },
+      },
     };
     expect(
       streamMessageRequestSchema.parse({ message: 'Explain this page', pageContext }),
@@ -85,6 +89,18 @@ describe('widget session security', () => {
       streamMessageRequestSchema.parse({
         message: 'Write this',
         pageContext: { ...pageContext, command: { type: 'write' } },
+      }),
+    ).toThrow();
+    expect(() =>
+      streamMessageRequestSchema.parse({
+        message: 'List my agents',
+        pageContext: {
+          ...pageContext,
+          operatingState: {
+            ...pageContext.operatingState,
+            agentIds: ['private-agent-id'],
+          },
+        },
       }),
     ).toThrow();
   });

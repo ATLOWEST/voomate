@@ -59,6 +59,7 @@ export function compactPromptContext(args: {
         businessSummary: args.pageContext.businessSummary
           ? truncate(args.pageContext.businessSummary, 500)
           : undefined,
+        operatingState: args.pageContext.operatingState,
       }
     : undefined;
   const result = { history, knowledge, pageContext };

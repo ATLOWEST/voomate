@@ -23,7 +23,7 @@
 - description: Product grounding — explains Voomate directly
   vars:
     message: What is Voomate actually about?
-    knowledge: Voomate is an AI agent operating system for small and medium businesses. Its launch catalog includes Voice Calling, Web, and Integration agents. A workspace activates only the agents it needs and can later use additional governed agent types. Agents answer customer questions and complete approved real tasks.
+    knowledge: Voomate is an AI agent operating system for small and medium businesses. Web Agent is available now, CRM Tool Agent is in design, SEO Agent is planned next, and Calling Agent follows. A workspace activates only released types it needs. Agents answer customer questions and complete approved real tasks.
   assert:
     - type: icontains
       value: AI agent
@@ -44,12 +44,26 @@
     - type: not-icontains
       value: available actions
     - type: javascript
-      value: /agent|knowledge|integration|connect|test|publish/i.test(output)
+      value: /account|sign in|dashboard/i.test(output)
+    - type: javascript
+      value: /agent|knowledge|connect|test|publish/i.test(output)
+
+- description: Workspace privacy — never guesses whether a private agent exists
+  vars:
+    message: Do I already have an agent configured in my dashboard?
+    knowledge: Public website assistance cannot inspect a private workspace. After sign-in, the Operating Panel can use bounded live workspace state to guide Add agent or existing-agent configuration.
+  assert:
+    - type: javascript
+      value: /sign in|dashboard|agents/i.test(output)
+    - type: not-icontains
+      value: You already have
+    - type: not-icontains
+      value: You have no agents
 
 - description: Actual regression — opens the existing Web Agent configuration path conceptually
   vars:
     message: Can you please open the Agents page and create a Web Agent for me?
-    knowledge: Voomate's launch catalog includes Voice Calling, Web, and Integration. From Agents, a user can activate a Web Agent or configure an existing instance. Provisioning is a controlled write and must not be claimed complete until the action succeeds.
+    knowledge: Web Agent is available now. CRM Tool Agent is in design, SEO Agent is planned next, and Calling Agent follows. From Agents, a user can add a Web Agent or configure an existing instance. Provisioning is a controlled write and must not be claimed complete until the action succeeds.
   assert:
     - type: not-icontains
       value: not supported

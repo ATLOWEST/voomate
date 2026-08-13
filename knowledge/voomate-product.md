@@ -7,20 +7,24 @@ chatbot that only answers generic questions.
 
 ## Agent catalog and workspace choice
 
-Voomate launches with three first-party agent types:
+The current delivery sequence is explicit:
 
-1. The **Voice Calling Agent** handles inbound and outbound phone conversations. With approved
-   connections it can help book or reschedule appointments, check orders, and escalate to a human.
-2. The **Web Agent** is an embeddable chat and voice assistant for a website, web application, or
-   online store. Visitors can type or speak in one continuing conversation. It can answer grounded
-   questions, navigate to verified application surfaces, and request permissioned actions.
-3. The **Integration Agent** gives other agents governed access to connected calendars, payments,
-   messaging, CRM, and client-server capabilities.
+1. The **Web Agent** is available now for grounded chat and voice inside a website or application,
+   verified navigation, live reads, and separately permissioned actions.
+2. The **CRM Tool Agent** is in design for governed customer-record and follow-up workflows.
+3. The **SEO Agent** is planned after the CRM Tool Agent for governed search-visibility and content
+   workflows.
+4. The **Calling Agent** follows the SEO milestone for inbound and outbound phone workflows.
 
-These are the initial catalog, not three mandatory slots and not a permanent ceiling. A workspace
-can activate only the agents it needs, connect compatible agents, pause or archive an instance, and
-later use more first-party or certified agent types. Every instance remains tenant-scoped,
-permissioned, traceable, and subject to plan limits.
+The dashboard may show planned types so owners can understand the roadmap, but only released types
+can be added. It must never pretend that a planned agent was provisioned. This sequence is not a
+permanent ceiling: more first-party or certified agent types can use the same catalog contract.
+A workspace activates only what it needs and can pause or archive an instance. Every instance is
+tenant-scoped, permissioned, traceable, and subject to plan limits.
+
+Connections, tools, calendars, payments, messaging, and client-server capabilities remain a
+governed platform layer shared by compatible agents. Calling that layer an agent in older material
+does not make it an unrestricted credential holder or a mandatory workspace slot.
 
 The architecture is universal rather than industry-specific. A clinic, restaurant, law firm,
 service business, or shop uses the same agent, workflow, and tool contracts. Voomate infers useful
@@ -69,14 +73,19 @@ cannot support an answer, the agent is honest and offers the closest useful next
 
 ## Voomate onboarding path
 
-1. Open Agents, choose from the available catalog, and activate only the agents the business needs.
-2. Add public business knowledge, policies, products, services, and purpose so the shared Business
+1. On the public site, create an account or sign in. Public assistance cannot inspect a private
+   workspace or guess whether an agent already exists.
+2. In the signed-in Operating Panel, open Agents. A bounded workspace-state read determines whether
+   to add the first available agent or configure an existing one.
+3. Choose from the available catalog and activate only the agents the business needs. Planned agent
+   types are visible as planned and cannot be provisioned.
+4. Add public business knowledge, policies, products, services, and purpose so the shared Business
    Operating Profile can be reviewed and approved.
-3. Open Integrations and connect current data through named read-only capabilities. Add writes
+5. Open Integrations and connect current data through named read-only capabilities. Add writes
    separately with the narrow permission and confirmation policy each action requires.
-4. Connect compatible active agents with explicit scopes. "Connect all" means all reviewed,
+6. Connect compatible active agents with explicit scopes. "Connect all" means all reviewed,
    compatible links, not unrestricted permission sharing.
-5. Test realistic customer questions and actions, inspect Logs, then publish the customer-facing
+7. Test realistic customer questions and actions, inspect Logs, then publish the customer-facing
    agents.
-6. Monitor Edge health, conversations, feedback, approvals, quality, cost, and per-agent usage from
+8. Monitor Edge health, conversations, feedback, approvals, quality, cost, and per-agent usage from
    the Operating Panel.

@@ -19,6 +19,11 @@ const pageContext: WebAgentPageContext = {
   title: 'Overview',
   description: 'A live operating overview of Voomate.',
   headings: ['Your AI team'],
+  surface: {
+    id: 'overview',
+    title: 'Overview',
+    description: 'A live operating overview of Voomate.',
+  },
   navigation: [
     {
       label: 'Agents',
@@ -46,6 +51,27 @@ const pageContext: WebAgentPageContext = {
     },
   ],
 };
+
+const landingPageContext: WebAgentPageContext = {
+  ...pageContext,
+  url: 'https://app.voomate.test/',
+  title: 'Voomate',
+  surface: {
+    id: 'home',
+    title: 'Voomate',
+    description: 'The public Voomate product site.',
+  },
+};
+
+function dashboardContext(total: number, active = 0, draft = 0): WebAgentPageContext {
+  return {
+    ...pageContext,
+    operatingState: {
+      source: 'host_ui',
+      agentInventory: { total, active, draft, paused: total - active - draft },
+    },
+  };
+}
 
 describe('web agent orchestration', () => {
   it('exposes only capabilities relevant to the current turn', () => {
@@ -121,15 +147,71 @@ describe('web agent orchestration', () => {
     expect(result.directReply).toContain('Start with Agents');
   });
 
-  it('keeps Voomate onboarding available without a model action', () => {
+  it('guides setup from the public site without claiming private workspace access', () => {
     const result = planWebAgentTurn({
       message: 'Can you help me set up our account and connect my business as agents?',
       availableCapabilities: [],
-      pageContext,
+      pageContext: landingPageContext,
       platformMode: true,
     });
-    expect(result.directReply).toContain('Here is the clean setup path');
+    expect(result.directReply).toContain('Create an account or sign in');
+    expect(result.directReply).toContain('signed-in assistant will check');
     expect(result.directReply).not.toContain('not supported');
+    expect(result.platformJourney).toEqual({
+      kind: 'workspace_setup',
+      stage: 'public_site',
+      accountState: 'unavailable',
+      nextAction: 'sign_in',
+    });
+  });
+
+  it('starts with Add agent when the signed-in workspace is empty', () => {
+    const result = planWebAgentTurn({
+      message: 'How do I set up my business?',
+      availableCapabilities: [],
+      pageContext: dashboardContext(0),
+      platformMode: true,
+    });
+    expect(result.directReply).toContain('no agents yet');
+    expect(result.directReply).toContain('choose Add agent');
+    expect(result.sources.map(({ source }) => source)).toContain('operating_state');
+    expect(result.platformJourney).toMatchObject({
+      accountState: 'empty',
+      nextAction: 'add_agent',
+    });
+  });
+
+  it('continues existing configuration when agents already exist', () => {
+    const result = planWebAgentTurn({
+      message: 'Help me configure my Voomate account',
+      availableCapabilities: [],
+      pageContext: dashboardContext(3, 2, 1),
+      platformMode: true,
+    });
+    expect(result.directReply).toContain('already has 3 agents');
+    expect(result.directReply).toContain('configure the existing Web Agent');
+    expect(result.platformJourney).toMatchObject({
+      accountState: 'configured',
+      nextAction: 'configure_agent',
+    });
+  });
+
+  it('answers agent inventory only from signed-in count state', () => {
+    const publicResult = planWebAgentTurn({
+      message: 'Do I have any agents configured?',
+      availableCapabilities: [],
+      pageContext: landingPageContext,
+      platformMode: true,
+    });
+    expect(publicResult.directReply).toContain('can’t inspect a private workspace');
+
+    const dashboardResult = planWebAgentTurn({
+      message: 'Do I have any agents configured?',
+      availableCapabilities: [],
+      pageContext: dashboardContext(4, 2, 1),
+      platformMode: true,
+    });
+    expect(dashboardResult.directReply).toContain('4 agents: 2 active, 1 draft, and 1 paused');
   });
 
   it('synthesizes the founder purpose as specific operating principles', () => {

@@ -18,6 +18,26 @@ by typed chat. Polly speaks the returned public answer.
 6. Voomate executes returned actions through its permission checks and public-field serializers.
 7. The public answer and immutable operational trace are stored against the same conversation.
 
+## Bounded planning, informed by Khoj
+
+Voomate borrows three useful orchestration ideas from
+[`isaccanedo/khoj`](https://github.com/isaccanedo/khoj) without importing its runtime or turning the
+customer widget into an open-ended research agent:
+
+1. Separate source and output selection from final answer generation. The planner may propose
+   knowledge, page context, live reads, or an approved action, but code validates that proposal
+   against the tenant's enabled allowlist before execution.
+2. Keep multi-step collection bounded. A workflow has a small maximum step count, stops repeated
+   tool-and-query pairs, and falls back deterministically when no eligible source remains.
+3. Budget context deliberately. Use only recent relevant conversation turns and compact grounded
+   evidence instead of resending the full transcript, harness, and retrieval set every time.
+
+Voomate's request path is therefore: classify intent, establish eligible sources, check trusted
+operating state where needed, retrieve or read, execute only separately authorized actions,
+synthesize one customer-facing answer, then apply customer-language and policy verification. The
+planner never grants itself a capability, expands a credential scope, or learns directly into the
+live policy from a successful-looking response.
+
 Before inference, a deterministic coordination policy ranks the Integration Agent's read-only
 capabilities against the current message and exposes at most eight relevant functions. An unrelated
 turn sees no client-data tools. The plan records capability names and counts, never query values or
@@ -29,6 +49,13 @@ headings, and same-origin navigation destinations. It never sends form values or
 Navigation is the only browser command in this contract, and both server and widget require its URL
 to be same-origin and previously advertised by the page. All record changes remain separately
 scoped tools behind the Secure Execution Harness.
+
+On signed-in Operating Panel surfaces, the host may additionally publish count-only agent
+inventory: total, active, draft, and paused. It contains no names, IDs, domains, credentials, or
+configuration. The schema rejects extra fields and inconsistent totals. This allows onboarding to
+choose “Add agent” versus “configure an existing agent” without exposing private workspace records.
+The public site carries no operating state, so its assistant explicitly asks the visitor to sign in
+instead of inferring that an account or agent exists.
 
 ## Browser and native navigation
 

@@ -138,6 +138,7 @@ export async function runWebAgentTurn(args: {
           factDestinations: pageContext.navigation
             .filter(({ facts }) => facts?.length)
             .map(({ label }) => label),
+          agentInventory: pageContext.operatingState?.agentInventory,
         }
       : null,
   });
@@ -221,6 +222,7 @@ export async function runWebAgentTurn(args: {
     sources: orchestration.sources,
     clientCommands: orchestration.clientCommands.map(({ type, label }) => ({ type, label })),
     destinationDecision: orchestration.destinationDecision,
+    platformJourney: orchestration.platformJourney,
     learningMode: 'offline_reviewed_promotion',
     businessProfile,
   });

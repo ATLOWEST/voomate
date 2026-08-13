@@ -45,8 +45,32 @@ export const pageContextSchema = z
       .strict()
       .optional(),
     businessSummary: z.string().trim().min(1).max(1_200).optional(),
+    operatingState: z
+      .object({
+        source: z.literal('host_ui'),
+        agentInventory: z
+          .object({
+            total: z.number().int().min(0).max(10_000),
+            active: z.number().int().min(0).max(10_000),
+            draft: z.number().int().min(0).max(10_000),
+            paused: z.number().int().min(0).max(10_000),
+          })
+          .strict(),
+      })
+      .strict()
+      .optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    const inventory = value.operatingState?.agentInventory;
+    if (inventory && inventory.active + inventory.draft + inventory.paused !== inventory.total) {
+      context.addIssue({
+        code: 'custom',
+        path: ['operatingState', 'agentInventory'],
+        message: 'Agent inventory counts must add up to the total.',
+      });
+    }
+  });
 
 export type WebAgentPageContext = z.infer<typeof pageContextSchema>;
 

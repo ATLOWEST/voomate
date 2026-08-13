@@ -47,6 +47,7 @@
     "smoke:web-agent-voice": "node scripts/smoke-web-agent-voice.mjs",
     "smoke:transcribe-vocabulary": "node scripts/smoke-transcribe-vocabulary.mjs",
     "smoke:web-agent-quality": "node scripts/smoke-web-agent-quality.mjs",
+    "smoke:web-agent-setup": "node scripts/smoke-web-agent-setup.mjs",
     "smoke:web-agent-navigation": "node scripts/smoke-web-agent-navigation.mjs",
     "smoke:connect": "npm run build -w @voomate/connect && npm run build -w @voomate/connect-store-example && node scripts/smoke-connect.mjs",
     "smoke:voice": "node scripts/smoke-voice.mjs",

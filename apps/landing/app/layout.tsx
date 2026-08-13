@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 const UI_MANIFEST = serializeUiManifest(
   defineUiManifest({
     businessSummary:
-      'Voomate helps small and medium businesses become AI-native with three fixed agents that handle customer conversations and approved tasks across phone, web, and connected tools.',
+      'Voomate helps small and medium businesses become AI-native through a governed agent catalog. Web Agent is available now; CRM Tool Agent is in design, SEO Agent is planned next, and Calling Agent follows.',
     pages: [
       {
         id: 'home',
@@ -51,7 +51,8 @@ const UI_MANIFEST = serializeUiManifest(
         id: 'product',
         title: 'Product',
         path: '/product',
-        description: 'How the fixed Voice Calling, Web, and Integration agents work together.',
+        description:
+          'How Voomate coordinates customer-facing agents, governed tools, and approved business workflows.',
         aliases: ['features', 'how it works', 'AI agents', 'platform'],
       },
       {

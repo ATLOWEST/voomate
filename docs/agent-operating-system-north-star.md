@@ -10,16 +10,14 @@ Use it to judge new ideas, features, dependencies, and architectural changes.
 
 ## 1. The goal
 
-Voomate gives a business one connected AI operating team. Its launch catalog contains three
-first-party agent types:
+Voomate gives a business one connected AI operating team. The current delivery sequence is Web
+Agent, CRM Tool Agent, SEO Agent, then Calling Agent. Web Agent is available now; the later types
+remain visibly planned until each runtime, policy, trace, and evaluation pack is complete.
 
-1. **Voice Calling Agent** for inbound and outbound phone conversations.
-2. **Web Agent** for chat and voice inside the customer's website or application.
-3. **Integration Agent** for approved access to business systems and actions.
-
-A business activates only the agents it needs. It may run one, two, or all three launch types,
-pause or archive any instance, and later add new first-party or certified agent types through the
-same control-plane contract. The catalog is extensible; it is not an unbounded swarm.
+A business activates only the released agents it needs, can pause or archive any instance, and may
+later add new first-party or certified types through the same control-plane contract. The catalog
+is extensible; it is not an unbounded swarm. Connected tools are a governed platform capability,
+not an unrestricted credential-sharing shortcut.
 
 Active agents should understand how the business communicates, how its work moves, which systems
 hold the truth, and which actions may be performed. They should help complete real work while the
@@ -238,9 +236,9 @@ Keep the reusable type separate from the tenant-owned running instance:
 - **Execution lease:** a short-lived, signed authorization proving that a specific active instance
   may receive work with a particular configuration revision.
 
-The launch catalog is Voice Calling, Web, and Integration. No workspace is required to activate
-all three. Plans may limit counts or types, but application code must not assume that every tenant
-has exactly three rows or that a fourth catalog type is impossible.
+The current catalog sequence is Web, CRM Tool, SEO, then Calling. No workspace is required to
+activate every released type. Plans may limit counts or types, but application code must not assume
+that every tenant has a fixed number of rows or that later catalog types are impossible.
 
 ### Lifecycle contract
 

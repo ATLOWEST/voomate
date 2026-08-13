@@ -20,6 +20,7 @@ import {
 import { useSession } from '@/lib/session';
 import { cn } from '@/lib/cn';
 import { useApiQuery } from '@/lib/hooks';
+import { VoomateOperatingContext } from '@/components/voomate-operating-context';
 
 interface UsageSummary {
   textMessages: number;
@@ -65,7 +66,7 @@ const nextActions = [
   {
     title: 'Choose your agent team',
     description:
-      'Activate only the Web, Voice Calling, Integration, or other available agents you need.',
+      'Start with Web Agent and see the planned CRM Tool, SEO, and Calling Agent sequence.',
     href: '/agents',
     action: 'Open agents',
     icon: WandSparkles,
@@ -95,6 +96,7 @@ export default function OverviewPage() {
 
   return (
     <main className="dashboard-overview mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
+      <VoomateOperatingContext agents={agentData?.agents} />
       <header
         data-dashboard-motion
         className="dashboard-overview__header mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"

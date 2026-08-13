@@ -35,7 +35,7 @@ const THEME_BOOTSTRAP = `
 const UI_MANIFEST = serializeUiManifest(
   defineUiManifest({
     businessSummary:
-      'Voomate is an AI agent operating system for small and medium businesses. Its launch catalog includes Voice Calling, Web, and Integration agents, and each workspace activates only the agents it needs to complete approved work.',
+      'Voomate is an AI agent operating system for small and medium businesses. Each workspace chooses the governed agents it needs. Web Agent is available now; CRM Tool Agent is in design, SEO Agent is planned next, and Calling Agent follows.',
     pages: [
       {
         id: 'overview',
@@ -52,6 +52,13 @@ const UI_MANIFEST = serializeUiManifest(
         description:
           'Choose from the agent catalog, activate only what the workspace needs, and configure, pause, or connect agent instances.',
         aliases: ['agent board', 'AI team', 'agent pages', 'agents page'],
+        facts: [
+          'Web Agent is available to add now.',
+          'CRM Tool Agent is in design.',
+          'SEO Agent is planned after CRM Tool Agent.',
+          'Calling Agent is planned after SEO Agent.',
+          'Planned agents cannot be provisioned until their runtime and security gates are released.',
+        ],
       },
       {
         id: 'web-agent',

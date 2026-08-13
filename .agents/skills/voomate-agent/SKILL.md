@@ -14,19 +14,19 @@ Voomate is an AI agent operating system for small and medium businesses. A works
 agents it needs from a governed catalog, connects them to approved business systems, and operates
 them from one live control panel.
 
-## Initial agent catalog
+## Current agent catalog sequence
 
-The launch catalog starts with three first-party agent types. They are not a mandatory bundle or a
-permanent product limit:
+The current product sequence is Web Agent, CRM Tool Agent, SEO Agent, then Calling Agent:
 
-1. **Voice Calling Agent** - inbound and outbound phone calls.
-2. **Web Agent** - chat and voice inside the business's website or application.
-3. **Integration Agent** - governed access to calendars, payments, messaging, CRM, and other
-   systems.
+1. **Web Agent** - available now for chat and voice inside a website or application.
+2. **CRM Tool Agent** - in design for governed customer-record and follow-up workflows.
+3. **SEO Agent** - planned after CRM for governed search and content workflows.
+4. **Calling Agent** - planned after SEO for inbound and outbound phone calls.
 
-A workspace may activate one, two, all three, or none while it is being configured. More
-first-party or certified agent types can be added later through the same catalog contract. Do not
-special-case a fourth type into the runtime.
+Planned types may appear in the catalog UI, but must be disabled and labeled honestly until their
+runtime, policy, trace, and evaluation contracts ship. A workspace may activate any released type
+it needs or none while configuring. The catalog is not a permanent four-agent limit. Never
+special-case a new type into execution code outside the shared catalog contract.
 
 ## Hard constraints
 
@@ -55,9 +55,9 @@ special-case a fourth type into the runtime.
 1. Multi-tenancy, RLS, audit identity, and Logs.
 2. Agent catalog, instance lifecycle, desired-state revisions, and usage identity.
 3. Web Agent with one real tool, verified end to end in Logs.
-4. Integration Agent with one real connector and one explicit Web-to-Integration connection.
+4. Shared connection layer with one real connector and one explicit Web-to-tool connection.
 5. Voomate Edge heartbeat, signed configuration sync, execution lease revocation, and receipts.
-6. Voice Calling Agent reusing the same control and workflow contracts.
+6. Release later agent types in the approved sequence, each reusing the same control and workflow contracts.
 7. Flexible connection list/matrix and safe "connect all" for reviewed links.
 8. Guardrails for money-touching actions, evaluations, rate limits, rollback, and incidents.
 9. Add another agent type only through the catalog, lifecycle, SDK, policy, trace, and evaluation

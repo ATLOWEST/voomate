@@ -121,6 +121,39 @@ function readUiManifest() {
   }
 }
 
+function readOperatingState() {
+  const node = document.querySelector(
+    'script[type="application/json"][data-voomate-operating-context]',
+  );
+  const source = node?.textContent ?? '';
+  if (!source || source.length > 2_000) return undefined;
+  try {
+    const parsed = JSON.parse(source);
+    const inventory = parsed?.agentInventory;
+    if (parsed?.version !== 1 || !inventory) return undefined;
+    const counts = ['total', 'active', 'draft', 'paused'].map((key) => inventory[key]);
+    if (
+      counts.some(
+        (value) => !Number.isInteger(value) || value < 0 || value > 10_000,
+      ) ||
+      inventory.active + inventory.draft + inventory.paused !== inventory.total
+    ) {
+      return undefined;
+    }
+    return {
+      source: 'host_ui',
+      agentInventory: {
+        total: inventory.total,
+        active: inventory.active,
+        draft: inventory.draft,
+        paused: inventory.paused,
+      },
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 function journeyStorageKey(publicKey) {
   return `voomate:v2:journey:${String(publicKey).slice(0, 80)}`;
 }
@@ -178,6 +211,7 @@ function mobilePlatform() {
 
 function collectPageContext() {
   const manifest = readUiManifest();
+  const operatingState = readOperatingState();
   const description = document.querySelector('meta[name="description"]')?.getAttribute('content');
   const headings = [
     ...document.querySelectorAll('main h1, main h2, [role="main"] h1, [role="main"] h2'),
@@ -274,6 +308,7 @@ function collectPageContext() {
     ...(manifest?.businessSummary
       ? { businessSummary: compactText(manifest.businessSummary, 1_200) }
       : {}),
+    ...(operatingState ? { operatingState } : {}),
   };
 }
 

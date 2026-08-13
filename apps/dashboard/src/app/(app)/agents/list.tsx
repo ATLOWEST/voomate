@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Agent } from '@voomate/core';
+import { DatabaseZap, Globe2, PhoneCall, Plus, Search } from 'lucide-react';
 import { PageBody, PageHeader } from '@/components/shell/page-header';
 import { Badge, StatusDot } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,12 +16,14 @@ import { Panel } from '@/components/ui/panel';
 import { api } from '@/lib/api';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
+import { VoomateOperatingContext } from '@/components/voomate-operating-context';
 
 export function AgentsList() {
   const { organization } = useSession();
   const { data, error, loading, refetch } = useApiQuery<{ agents: Agent[] }>(
     organization === undefined ? null : '/v1/agents',
   );
+  const [catalogOpen, setCatalogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const agents = data?.agents ?? [];
@@ -29,18 +32,20 @@ export function AgentsList() {
     <>
       <PageHeader
         title="Agents"
-        description="Each agent has its own knowledge base, voice, and embed key. Most merchants need one; run separate agents when you have separate sites or separate audiences."
+        description="Choose only the agents your workspace needs. Each active instance keeps its own configuration, permissions, status, and usage."
         action={
           <Button
             variant="primary"
             disabled={organization === undefined}
-            onClick={() => setCreating(true)}
+            icon={<Plus className="size-4" />}
+            onClick={() => setCatalogOpen(true)}
           >
-            New agent
+            Add agent
           </Button>
         }
       />
       <PageBody>
+        <VoomateOperatingContext agents={data?.agents} />
         {organization === undefined ? (
           <Callout tone="caution" title="No workspace selected">
             Create a workspace from the sidebar before adding an agent.
@@ -66,8 +71,8 @@ export function AgentsList() {
                 title="No agents yet"
                 description="Point an agent at your website, add what it should know, and try it in the playground before it ever talks to a visitor."
                 action={
-                  <Button variant="primary" onClick={() => setCreating(true)}>
-                    Create your first agent
+                  <Button variant="primary" onClick={() => setCatalogOpen(true)}>
+                    Browse agent catalog
                   </Button>
                 }
               />
@@ -97,6 +102,16 @@ export function AgentsList() {
         )}
       </PageBody>
 
+      {catalogOpen && (
+        <AgentCatalogDialog
+          onClose={() => setCatalogOpen(false)}
+          onAddWebAgent={() => {
+            setCatalogOpen(false);
+            setCreating(true);
+          }}
+        />
+      )}
+
       {creating && (
         <CreateAgentDialog
           onClose={() => setCreating(false)}
@@ -107,6 +122,92 @@ export function AgentsList() {
         />
       )}
     </>
+  );
+}
+
+const agentCatalog = [
+  {
+    id: 'web',
+    name: 'Web Agent',
+    description: 'Customer chat and voice for websites and applications.',
+    status: 'Available',
+    icon: Globe2,
+    available: true,
+  },
+  {
+    id: 'crm',
+    name: 'CRM Tool Agent',
+    description: 'Coordinates approved customer records, follow-ups, and CRM workflows.',
+    status: 'In design',
+    icon: DatabaseZap,
+    available: false,
+  },
+  {
+    id: 'seo',
+    name: 'SEO Agent',
+    description: 'Planned after CRM for governed search visibility and content workflows.',
+    status: 'Planned next',
+    icon: Search,
+    available: false,
+  },
+  {
+    id: 'calling',
+    name: 'Calling Agent',
+    description: 'Planned voice calling workflows after the SEO Agent milestone.',
+    status: 'Planned',
+    icon: PhoneCall,
+    available: false,
+  },
+] as const;
+
+function AgentCatalogDialog({
+  onClose,
+  onAddWebAgent,
+}: {
+  onClose: () => void;
+  onAddWebAgent: () => void;
+}) {
+  return (
+    <Dialog
+      title="Add an agent"
+      description="Agent types become available only after their runtime, permissions, logs, and evaluations are production-ready."
+      onClose={onClose}
+      wide
+    >
+      <div className="divide-y divide-border rounded-lg border border-border">
+        {agentCatalog.map((item) => {
+          const Icon = item.icon;
+          return (
+            <div className="flex items-center gap-4 p-4" key={item.id}>
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-200">
+                <Icon className="size-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-foreground">{item.name}</span>
+                  <Badge tone={item.available ? 'positive' : 'neutral'}>{item.status}</Badge>
+                </span>
+                <span className="mt-1 block text-[13px] leading-5 text-muted-foreground">
+                  {item.description}
+                </span>
+              </span>
+              <Button
+                size="sm"
+                variant={item.available ? 'primary' : 'secondary'}
+                disabled={!item.available}
+                onClick={item.available ? onAddWebAgent : undefined}
+                title={item.available ? `Add ${item.name}` : `${item.name} is not available yet`}
+              >
+                {item.available ? 'Add' : 'Planned'}
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 

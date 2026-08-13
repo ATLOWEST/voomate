@@ -40,9 +40,25 @@ const openAppIntent =
   /\bopen\b[\s\S]{0,80}\b(?:in|inside) the (?:mobile )?app\b|\bopen the (?:mobile )?app\b/i;
 const casualConversation =
   /^\s*(?:(?:hi|hello|hey)(?:[,!\s]+(?:how are you|can you hear me))?|good (?:morning|afternoon|evening)|thanks?|thank you|bye|goodbye)[!.?\s]*$/i;
+const platformSetupIntent =
+  /\b(?:set ?up|onboard|connect|configure|start|create)\b[\s\S]{0,100}\b(?:account|business|workspace|agent|voomate)\b|\bhow (?:do|can|to) (?:i|we) (?:get started|set ?up)\b/i;
+const agentInventoryIntent =
+  /\b(?:do (?:i|we) have|is there|are there|how many|check|show)\b[\s\S]{0,80}\bagents?\b|\bagents?\b[\s\S]{0,80}\b(?:active|configured|installed|added|running)\b/i;
+
+export interface PlatformJourneyDecision {
+  kind: 'workspace_setup' | 'agent_inventory';
+  stage: 'public_site' | 'operating_panel' | 'unknown';
+  accountState: 'unavailable' | 'empty' | 'configured';
+  nextAction: 'sign_in' | 'add_agent' | 'configure_agent' | 'open_agents';
+}
 
 export type OrchestrationSource =
-  'conversation' | 'page_context' | 'knowledge' | 'live_read' | 'controlled_action';
+  | 'conversation'
+  | 'page_context'
+  | 'operating_state'
+  | 'knowledge'
+  | 'live_read'
+  | 'controlled_action';
 
 export interface WebAgentOrchestrationPlan {
   route:
@@ -67,8 +83,67 @@ export interface WebAgentOrchestrationPlan {
     reason?: string;
   };
   sources: Array<{ source: OrchestrationSource; reason: string }>;
+  platformJourney?: PlatformJourneyDecision;
   responseGuidance?: string;
   directReply?: string;
+}
+
+const dashboardSurfaceIds = new Set([
+  'overview',
+  'agents',
+  'web-agent',
+  'voice-agent',
+  'integration-agent',
+  'integrations',
+  'conversations',
+  'logs',
+  'feedback',
+  'approvals',
+  'usage',
+  'settings',
+  'web-agent-playground',
+  'web-agent-install',
+]);
+
+function platformJourneyFor(
+  message: string,
+  pageContext: WebAgentPageContext | undefined,
+  platformMode: boolean | undefined,
+): PlatformJourneyDecision | undefined {
+  if (!platformMode) return undefined;
+  const kind = agentInventoryIntent.test(message)
+    ? 'agent_inventory'
+    : platformSetupIntent.test(message)
+      ? 'workspace_setup'
+      : undefined;
+  if (!kind) return undefined;
+
+  const inventory = pageContext?.operatingState?.agentInventory;
+  if (inventory) {
+    return {
+      kind,
+      stage: 'operating_panel',
+      accountState: inventory.total === 0 ? 'empty' : 'configured',
+      nextAction: inventory.total === 0 ? 'add_agent' : 'configure_agent',
+    };
+  }
+
+  const surfaceId = pageContext?.surface?.id;
+  if (surfaceId && !dashboardSurfaceIds.has(surfaceId)) {
+    return {
+      kind,
+      stage: 'public_site',
+      accountState: 'unavailable',
+      nextAction: 'sign_in',
+    };
+  }
+
+  return {
+    kind,
+    stage: surfaceId ? 'operating_panel' : 'unknown',
+    accountState: 'unavailable',
+    nextAction: 'open_agents',
+  };
 }
 
 function tokens(value: string): Set<string> {
@@ -151,6 +226,7 @@ export function planWebAgentTurn(input: {
   pageContext?: WebAgentPageContext;
   platformMode?: boolean;
 }): WebAgentOrchestrationPlan {
+  const platformJourney = platformJourneyFor(input.message, input.pageContext, input.platformMode);
   const messageTokens = tokens(input.message);
   const capabilities = input.availableCapabilities
     .map((capability) => ({ capability, score: relevance(messageTokens, capability) }))
@@ -182,6 +258,7 @@ export function planWebAgentTurn(input: {
     (pageAssistanceIntent.test(input.message) ||
       requestedIntent ||
       informationTarget ||
+      platformJourney ||
       /\b(about|business|company|product)\b/i.test(input.message)),
   );
   const controlledActions: Array<'check_order_status'> = /\b(order|track|delivery)\b/i.test(
@@ -194,6 +271,11 @@ export function planWebAgentTurn(input: {
   ];
   if (usePageContext)
     sources.push({ source: 'page_context', reason: 'request depends on the current client UI' });
+  if (platformJourney && input.pageContext?.operatingState)
+    sources.push({
+      source: 'operating_state',
+      reason: 'request depends on safe workspace agent counts supplied by the signed-in host UI',
+    });
   if (useKnowledge)
     sources.push({
       source: 'knowledge',
@@ -230,7 +312,12 @@ export function planWebAgentTurn(input: {
     ) {
       responseGuidance +=
         ' Guide the user to choose an available agent type from the catalog, activate only what the workspace needs, or configure an existing instance. Do not claim that provisioning completed without a successful write action.';
-      directReply = `Opening ${command.label}. Choose Web Agent from the catalog to activate an instance, or open an existing Web Agent to configure it.`;
+      const inventory = input.pageContext?.operatingState?.agentInventory;
+      directReply = inventory
+        ? inventory.total === 0
+          ? `Opening ${command.label}. This workspace has no agents yet, so choose Add agent, then Web Agent.`
+          : `Opening ${command.label}. This workspace has ${inventory.total} agent${inventory.total === 1 ? '' : 's'}; open one to configure it, or choose Add agent for another Web Agent.`
+        : `Opening ${command.label}. Choose Web Agent from the catalog to add one, or open an existing Web Agent to configure it.`;
     }
   } else if (requestedIntent && !asksForInformation && navigationResolution.kind === 'ambiguous') {
     const labels = [...new Set(navigationResolution.candidates.map(({ label }) => label))].slice(
@@ -264,20 +351,49 @@ export function planWebAgentTurn(input: {
       'Ask the customer directly for the two verified order lookup fields. Do not call the tool until both are present.';
     directReply =
       'Please share the order ID and the email used at checkout, and I’ll check it for you.';
-  } else if (
-    input.platformMode &&
-    /\b(set ?up|connect)\b/i.test(input.message) &&
-    /\b(account|business|agent)\b/i.test(input.message)
-  ) {
+  } else if (platformJourney?.kind === 'agent_inventory') {
+    const inventory = input.pageContext?.operatingState?.agentInventory;
     responseGuidance =
-      'Give a concrete onboarding path: choose the needed agents from the catalog, add business knowledge, connect tools with explicit scopes, test, then publish. Do not describe this as an unsupported request.';
-    directReply = [
-      'Yes. Here is the clean setup path:',
-      '1. Open Agents and activate only the Voice Calling, Web, Integration, or other available agents your business needs.',
-      '2. Add your public business knowledge, policies, products, and services.',
-      '3. Use Integrations for read-only live data, connect compatible agents with explicit scopes, and give each write action its own permission and approval rule.',
-      '4. Test real customer requests, inspect Logs, then publish the Web Agent to your site.',
-    ].join('\n');
+      'Report only the trusted count-only workspace state supplied by the signed-in host UI. Never infer private workspace state from public pages, retrieved knowledge, or conversation text.';
+    directReply = inventory
+      ? inventory.total === 0
+        ? 'This workspace has no agents yet. Open Agents, choose Add agent, then select Web Agent to begin.'
+        : `This workspace has ${inventory.total} agent${inventory.total === 1 ? '' : 's'}: ${inventory.active} active, ${inventory.draft} draft, and ${inventory.paused} paused. Open Agents to configure them or add another available agent.`
+      : platformJourney.stage === 'public_site'
+        ? 'I can’t inspect a private workspace from the public site. Sign in, then open Agents; there I can check the workspace’s live agent count and guide the exact next step.'
+        : 'I can’t verify the workspace’s agent count from this screen yet. Open Agents and I’ll use the signed-in workspace state there instead of guessing.';
+  } else if (platformJourney?.kind === 'workspace_setup') {
+    const inventory = input.pageContext?.operatingState?.agentInventory;
+    responseGuidance =
+      'Give the next setup steps for the verified journey stage. Never imply that an account or agent exists unless trusted signed-in operating state confirms it.';
+    directReply = inventory
+      ? inventory.total === 0
+        ? [
+            'You’re signed in, and this workspace has no agents yet. Start here:',
+            '1. Open Agents and choose Add agent.',
+            '2. Select Web Agent, then add your business knowledge and customer-facing rules.',
+            '3. Connect only the tools it needs; live data stays read-only, while every write action has its own permission and approval policy.',
+            '4. Test it in the playground, review Logs, then publish the widget.',
+          ].join('\n')
+        : [
+            `You’re signed in and this workspace already has ${inventory.total} agent${inventory.total === 1 ? '' : 's'}. Continue here:`,
+            '1. Open Agents and configure the existing Web Agent, or choose Add agent if Web Agent is missing.',
+            '2. Add business knowledge and connect only the required tools.',
+            '3. Test real customer tasks, inspect Logs and approvals, then publish.',
+          ].join('\n')
+      : platformJourney.stage === 'public_site'
+        ? [
+            'Start with your Voomate account:',
+            '1. Create an account or sign in, then open the dashboard.',
+            '2. Open Agents. The signed-in assistant will check whether your workspace already has an agent.',
+            '3. If it is empty, choose Add agent, then Web Agent.',
+            '4. Add knowledge, connect only required tools, test in the playground, review Logs, and publish.',
+          ].join('\n')
+        : [
+            'Open Agents so I can verify the signed-in workspace state instead of guessing.',
+            '1. If no agent exists, choose Add agent, then Web Agent.',
+            '2. If one already exists, open it and continue with knowledge, connections, testing, and publishing.',
+          ].join('\n');
   } else if (usePageContext && /\b(what|explain|how)\b/i.test(input.message)) {
     responseGuidance =
       'Explain the current page directly from its title, description, and visible headings, then give the next useful action. Do not say the page is unsupported.';
@@ -388,6 +504,7 @@ export function planWebAgentTurn(input: {
                       : {}),
                 },
     sources,
+    platformJourney,
     responseGuidance,
     directReply,
   };

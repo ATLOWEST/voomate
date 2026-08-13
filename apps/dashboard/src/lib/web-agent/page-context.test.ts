@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizePageContext, type WebAgentPageContext } from './page-context';
+import { pageContextSchema, sanitizePageContext, type WebAgentPageContext } from './page-context';
 
 describe('Web Agent page context', () => {
   it('keeps only URLs bound to the widget session origin', () => {
@@ -8,6 +8,10 @@ describe('Web Agent page context', () => {
       title: 'Dashboard',
       description: '',
       headings: ['Overview'],
+      operatingState: {
+        source: 'host_ui',
+        agentInventory: { total: 2, active: 1, draft: 1, paused: 0 },
+      },
       navigation: [
         {
           label: 'Agents',
@@ -37,5 +41,20 @@ describe('Web Agent page context', () => {
       },
     ]);
     expect(sanitizePageContext(input, 'https://other.example')).toBeUndefined();
+  });
+
+  it('rejects inconsistent agent inventory counts', () => {
+    const input = {
+      url: 'https://app.example/agents',
+      title: 'Agents',
+      description: '',
+      headings: [],
+      navigation: [],
+      operatingState: {
+        source: 'host_ui',
+        agentInventory: { total: 2, active: 2, draft: 1, paused: 0 },
+      },
+    };
+    expect(() => pageContextSchema.parse(input)).toThrow('Agent inventory counts');
   });
 });
