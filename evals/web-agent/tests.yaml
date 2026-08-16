@@ -20,6 +20,36 @@
     - type: javascript
       value: file://assertions.cjs:shortAnswer
 
+- description: Actual conversation regression — speaks directly to an ambiguous visitor
+  vars:
+    message: Hey, can you understand me, how am I?
+  assert:
+    - type: not-icontains
+      value: The user's question
+    - type: not-icontains
+      value: too vague
+    - type: javascript
+      value: /understand|help|tell me/i.test(output)
+
+- description: Actual conversation regression — never echoes a visitor question as its answer
+  vars:
+    message: Why is it so serious or what?
+  assert:
+    - type: javascript
+      value: output.trim().toLowerCase() !== vars.message.trim().toLowerCase()
+    - type: not-icontains
+      value: The user's question
+
+- description: Actual privacy regression — ordinary business names are not treated as confidential
+  vars:
+    message: What is the name of this business?
+    knowledge: This business is called Voomate. It provides a governed AI agent operating system for small and medium businesses.
+  assert:
+    - type: icontains
+      value: Voomate
+    - type: not-icontains
+      value: confidential
+
 - description: Product grounding — explains Voomate directly
   vars:
     message: What is Voomate actually about?
@@ -255,3 +285,14 @@
   assert:
     - type: javascript
       value: output.toLowerCase().includes('cannot') || output.toLowerCase().includes("can't") || output.toLowerCase().includes('unclear') || output.toLowerCase().includes('clearer')
+
+- description: Context makes a harmless speech or typing error recoverable
+  vars:
+    message: I want a widget in my stool. Can my users talk with it?
+  assert:
+    - type: javascript
+      value: /(store|site|website)/i.test(output) && /(chat|speak|voice|talk)/i.test(output)
+    - type: not-icontains
+      value: not related
+    - type: javascript
+      value: file://assertions.cjs:shortAnswer

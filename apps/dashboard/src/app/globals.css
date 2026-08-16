@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /*
  * Design tokens.
@@ -11,31 +12,38 @@
  * colours used only for state. Enterprise buyers read loud colour as unserious.
  */
 @theme {
+  --color-background: var(--surface-page);
+  --color-card: var(--surface-panel);
+  --color-muted: var(--surface-sunken);
+  --color-border: var(--border-default);
+  --color-foreground: var(--text-primary);
+  --color-muted-foreground: var(--text-secondary);
+
   /* Neutrals — the ramp that carries almost the entire UI. */
-  --color-ink-50: #f8fafc;
-  --color-ink-100: #f1f5f9;
-  --color-ink-200: #e2e8f0;
-  --color-ink-300: #cbd5e1;
-  --color-ink-400: #94a3b8;
-  --color-ink-500: #64748b;
-  --color-ink-600: #475569;
-  --color-ink-700: #334155;
-  --color-ink-800: #1e293b;
-  --color-ink-900: #0f172a;
-  --color-ink-950: #020617;
+  --color-ink-50: #fafafa;
+  --color-ink-100: #f4f4f4;
+  --color-ink-200: #e8e8e8;
+  --color-ink-300: #d4d4d4;
+  --color-ink-400: #a3a3a3;
+  --color-ink-500: #737373;
+  --color-ink-600: #525252;
+  --color-ink-700: #404040;
+  --color-ink-800: #262626;
+  --color-ink-900: #171717;
+  --color-ink-950: #090909;
 
   /* Matte ember — primary actions, active routes, and live operational state. */
-  --color-accent-50: #fff5ee;
-  --color-accent-100: #ffe8d7;
-  --color-accent-200: #ffcbaa;
-  --color-accent-300: #ffa273;
-  --color-accent-400: #f98242;
-  --color-accent-500: #ef6b2e;
-  --color-accent-600: #df551d;
-  --color-accent-700: #b63f14;
-  --color-accent-800: #913517;
-  --color-accent-900: #752f17;
-  --color-accent-950: #40150a;
+  --color-accent-50: #fff7f2;
+  --color-accent-100: #ffeadf;
+  --color-accent-200: #ffd5c1;
+  --color-accent-300: #fbb596;
+  --color-accent-400: #f28a5d;
+  --color-accent-500: #e96f3e;
+  --color-accent-600: #d95828;
+  --color-accent-700: #ad421e;
+  --color-accent-800: #8a371f;
+  --color-accent-900: #70301e;
+  --color-accent-950: #3c160d;
 
   /* Semantic state. */
   --color-positive: #059669;
@@ -45,14 +53,10 @@
   --color-critical: #dc2626;
   --color-critical-soft: #fef2f2;
 
-  /*
-   * A system font stack, not a webfont. next/font/google fetches at build time, which makes
-   * builds depend on the network and adds a render-blocking request for merchants on slow
-   * connections. The native stack is instant and looks native on every platform.
-   */
+  /* Prefer Geist when installed, then fall back to a native interface stack. */
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    Geist, 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji';
   --font-mono:
     ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
@@ -70,13 +74,10 @@
 
 @layer utilities {
   .ember-mark {
-    background: linear-gradient(135deg, var(--color-ember-500), var(--color-ember-700));
-    box-shadow: 0 6px 16px rgb(232 89 12 / 0.24);
+    background: var(--color-accent-500);
   }
   .ember-wash {
-    background:
-      radial-gradient(circle at 85% 0%, rgb(255 203 153 / 0.34), transparent 34%),
-      var(--surface-panel);
+    background: var(--surface-panel);
   }
 }
 
@@ -86,28 +87,32 @@
  */
 @layer base {
   :root {
-    --surface-page: #f3f1ed;
-    --surface-panel: rgba(255, 255, 255, 0.76);
-    --surface-sunken: #ebe7e1;
-    --surface-hover: rgba(28, 24, 20, 0.06);
-    --border-default: rgba(42, 34, 28, 0.12);
-    --border-strong: rgba(42, 34, 28, 0.2);
-    --text-primary: #171411;
-    --text-secondary: #665f58;
-    --text-muted: #928a82;
+    --surface-page: #ffffff;
+    --surface-panel: #ffffff;
+    --surface-navigation: #f7f7f6;
+    --surface-sunken: #f5f5f4;
+    --surface-soft: #fafafa;
+    --surface-hover: #eeeeec;
+    --border-default: rgba(20, 20, 18, 0.075);
+    --border-strong: rgba(20, 20, 18, 0.14);
+    --text-primary: #171716;
+    --text-secondary: #656562;
+    --text-muted: #92928e;
     color-scheme: light;
   }
 
   :root[data-theme='dark'] {
-    --surface-page: #080706;
-    --surface-panel: rgba(17, 16, 14, 0.78);
-    --surface-sunken: #0b0a09;
-    --surface-hover: rgba(255, 255, 255, 0.065);
-    --border-default: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.18);
-    --text-primary: #f7f3ef;
-    --text-secondary: #aaa39d;
-    --text-muted: #716b66;
+    --surface-page: #090909;
+    --surface-panel: #111111;
+    --surface-navigation: #0f0f0f;
+    --surface-sunken: #171717;
+    --surface-soft: #121212;
+    --surface-hover: #202020;
+    --border-default: rgba(255, 255, 255, 0.075);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --text-primary: #f5f5f3;
+    --text-secondary: #aaa9a5;
+    --text-muted: #73726f;
     color-scheme: dark;
   }
 
@@ -116,9 +121,7 @@
   }
 
   body {
-    background:
-      radial-gradient(ellipse 40% 30% at 82% 4%, rgb(239 107 46 / 0.12), transparent 76%),
-      var(--surface-page);
+    background: var(--surface-page);
     color: var(--text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -148,21 +151,13 @@
 }
 
 @layer components {
-  .dashboard-shell {
-    position: relative;
-    background:
-      radial-gradient(ellipse 42% 34% at 88% 3%, rgb(239 107 46 / 0.13), transparent 74%),
-      var(--surface-page);
+  .agent-operations-enter {
+    animation: agent-operations-enter 640ms cubic-bezier(0.32, 0.72, 0, 1) both;
   }
 
-  .dashboard-shell::after {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    content: '';
-    opacity: 0.055;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  .dashboard-shell {
+    position: relative;
+    background: var(--surface-page);
   }
 
   .dashboard-shell > * {
@@ -170,16 +165,8 @@
     z-index: 1;
   }
 
-  .dashboard-sidebar,
-  .dashboard-topbar,
-  .workspace-tabs {
-    background: color-mix(in srgb, var(--surface-panel) 88%, transparent);
-    backdrop-filter: blur(22px) saturate(1.08);
-  }
-
   .dashboard-sidebar {
-    border-right-color: var(--border-default);
-    box-shadow: inset -1px 0 rgb(255 255 255 / 0.025);
+    background: var(--surface-navigation);
   }
 
   .dashboard-main {
@@ -187,109 +174,55 @@
   }
 
   .dashboard-topbar {
-    border-bottom-color: var(--border-default);
-  }
-
-  .workspace-tabs {
-    position: relative;
-    z-index: 40;
-    flex: 0 0 auto;
-    overflow-x: auto;
-    border-bottom: 1px solid var(--border-default);
-    scrollbar-width: none;
-  }
-
-  .workspace-tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .workspace-tabs nav {
-    display: flex;
-    width: max-content;
-    min-width: 100%;
-    gap: 0.25rem;
-    padding: 0.45rem 1rem;
-  }
-
-  .workspace-tabs a {
-    position: relative;
-    display: inline-flex;
-    min-height: 2rem;
-    align-items: center;
-    border-radius: 999px;
-    padding: 0.42rem 0.78rem;
-    color: var(--text-secondary);
-    font-size: 0.73rem;
-    font-weight: 650;
-    text-decoration: none;
-    transition: color 160ms ease, background 160ms ease;
-  }
-
-  .workspace-tabs a:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-
-  .workspace-tabs a[data-active='true'] {
-    background: var(--text-primary);
-    color: var(--surface-page);
+    background: var(--surface-page);
   }
 
   .theme-toggle {
-    border: 1px solid var(--border-default);
-    background: color-mix(in srgb, var(--surface-panel) 76%, transparent);
+    background: transparent;
   }
 
-  .theme-toggle span {
-    font-size: 0.68rem;
-    font-weight: 650;
+  .dashboard-nav-link::before {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 2px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--color-accent-500);
+    content: '';
+    transform: translateY(-50%) scaleY(0);
+    transform-origin: center;
+    transition: transform 500ms cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  .dashboard-overview__header h1 {
-    max-width: 48rem;
-    font-size: clamp(2.2rem, 5vw, 4.8rem);
-    line-height: 0.96;
+  .dashboard-nav-link[data-active='true']::before {
+    transform: translateY(-50%) scaleY(1);
   }
 
-  .dashboard-launch,
-  .dashboard-operation-grid > div,
-  .dashboard-overview > section:last-child {
-    border-color: var(--border-default) !important;
-    background:
-      radial-gradient(circle at 92% 5%, rgb(239 107 46 / 0.14), transparent 31%),
-      color-mix(in srgb, var(--surface-panel) 88%, transparent);
-    box-shadow:
-      inset 0 1px rgb(255 255 255 / 0.055),
-      0 24px 70px rgb(0 0 0 / 0.12);
-    backdrop-filter: blur(18px);
+  .agent-tab[data-active='true'] {
+    position: relative;
   }
 
-  :root[data-theme='light'] .dashboard-launch,
-  :root[data-theme='light'] .dashboard-operation-grid > div,
-  :root[data-theme='light'] .dashboard-overview > section:last-child {
-    box-shadow:
-      inset 0 1px rgb(255 255 255 / 0.8),
-      0 22px 60px rgb(48 37 29 / 0.08);
-  }
-
-  .dashboard-launch ol a {
-    border-color: var(--border-default);
-    background: color-mix(in srgb, var(--surface-panel) 82%, transparent);
-  }
-
-  .dashboard-operation-grid {
-    grid-auto-flow: dense;
+  .agent-tab[data-active='true']::after {
+    position: absolute;
+    right: 8px;
+    bottom: 4px;
+    left: 8px;
+    height: 1px;
+    background: var(--color-accent-400);
+    content: '';
+    opacity: 0.6;
   }
 }
 
-@media (max-width: 680px) {
-  .theme-toggle span {
-    display: none;
+@keyframes agent-operations-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-
-  .theme-toggle {
-    width: 2rem;
-    padding-inline: 0;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

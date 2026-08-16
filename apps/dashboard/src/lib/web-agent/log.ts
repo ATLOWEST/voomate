@@ -1,4 +1,5 @@
 import { agentRunEvents, usageRecords } from '@voomate/db';
+import { usageRateCard } from '@voomate/core';
 import { getWebAgentDb } from './db';
 
 export interface RunContext {
@@ -30,6 +31,11 @@ export function recordRunUsage(
   quantity: number | undefined,
 ): void {
   if (!quantity || quantity <= 0) return;
+  const existing = context.usageBuffer?.find((item) => item.kind === kind);
+  if (existing) {
+    existing.quantity += quantity;
+    return;
+  }
   const usage = { kind, quantity, createdAt: new Date() };
   if (context.usageBuffer) context.usageBuffer.push(usage);
   else context.usageBuffer = [usage];
@@ -88,23 +94,37 @@ export async function flushRunEvents(context: RunContext): Promise<void> {
         ),
     usage.length === 0
       ? Promise.resolve()
-      : db.insert(usageRecords).values(
-          usage.map((item) => ({
-            organizationId: context.organizationId,
-            agentId: context.agentId,
-            conversationId: context.conversationId,
-            kind: item.kind,
-            quantity: item.quantity,
-            periodHour: new Date(
-              Date.UTC(
-                item.createdAt.getUTCFullYear(),
-                item.createdAt.getUTCMonth(),
-                item.createdAt.getUTCDate(),
-                item.createdAt.getUTCHours(),
-              ),
-            ),
-            createdAt: item.createdAt,
-          })),
-        ),
+      : db
+          .insert(usageRecords)
+          .values(
+            usage.map((item) => {
+              const meter = usageRateCard.meters.find(({ kind }) => kind === item.kind);
+              return {
+                organizationId: context.organizationId,
+                agentId: context.agentId,
+                conversationId: context.conversationId,
+                runId: context.runId,
+                kind: item.kind,
+                quantity: item.quantity,
+                estimatedCostMicrosUsd: Math.max(
+                  0,
+                  Math.round(item.quantity * (meter?.providerRateUsd ?? 0) * 1_000_000),
+                ),
+                pricingVersion: usageRateCard.version,
+                periodHour: new Date(
+                  Date.UTC(
+                    item.createdAt.getUTCFullYear(),
+                    item.createdAt.getUTCMonth(),
+                    item.createdAt.getUTCDate(),
+                    item.createdAt.getUTCHours(),
+                  ),
+                ),
+                createdAt: item.createdAt,
+              };
+            }),
+          )
+          .onConflictDoNothing({
+            target: [usageRecords.organizationId, usageRecords.runId, usageRecords.kind],
+          }),
   ]);
 }

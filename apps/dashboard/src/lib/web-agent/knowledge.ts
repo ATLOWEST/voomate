@@ -3,7 +3,7 @@ import type { AgentId, OrganizationId } from '@voomate/core';
 import { and, eq } from 'drizzle-orm';
 import { knowledgeChunks, matchKnowledgeChunks, matchKnowledgeChunksLexically } from '@voomate/db';
 import { getWebAgentDb } from './db';
-import { logRunEvent, type RunContext } from './log';
+import { logRunEvent, recordRunUsage, type RunContext } from './log';
 
 const dimensions = Number(process.env.EMBEDDING_DIMENSIONS ?? 1024);
 const embeddingModelId = process.env.EMBEDDING_MODEL_ID ?? 'amazon.titan-embed-text-v2:0';
@@ -90,6 +90,7 @@ export async function retrieveWebAgentKnowledge(
     agentId: context.agentId as AgentId,
     query: message,
   });
+  recordRunUsage(context, 'knowledge_queries', 1);
   if (lexicalChunks.length > 0) {
     await logRunEvent(
       context,
@@ -123,7 +124,9 @@ export async function retrieveWebAgentKnowledge(
       `Embedding model returned an invalid ${String(parsed.embedding?.length ?? 0)}-dimension vector.`,
     );
   }
+  recordRunUsage(context, 'embedding_input_tokens', parsed.inputTextTokenCount);
 
+  recordRunUsage(context, 'knowledge_queries', 1);
   const chunks = await matchKnowledgeChunks(db, {
     organizationId: context.organizationId as OrganizationId,
     agentId: context.agentId as AgentId,

@@ -79,6 +79,11 @@ const getJwks = (): ReturnType<typeof createRemoteJWKSet> => {
   return jwks;
 };
 
+const tokenClaims = () => ({
+  issuer: new URL('/auth/v1', getSupabaseConfig().SUPABASE_URL).toString().replace(/\/$/, ''),
+  audience: 'authenticated',
+});
+
 /**
  * Verify a Supabase access token.
  *
@@ -100,13 +105,19 @@ const verifyToken = async (token: string): Promise<JWTPayload> => {
     }
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
       algorithms: ['HS256'],
+      ...tokenClaims(),
     });
     return payload;
   }
 
-  const { payload } = await jwtVerify(token, getJwks(), { algorithms: ['ES256', 'RS256'] });
+  const { payload } = await jwtVerify(token, getJwks(), {
+    algorithms: ['ES256', 'RS256'],
+    ...tokenClaims(),
+  });
   return payload;
 };
+
+export const __testing = { verifyToken };
 
 export const authPlugin = fp(async (app: FastifyInstance) => {
   app.decorate('requireAuth', async (request: FastifyRequest): Promise<void> => {

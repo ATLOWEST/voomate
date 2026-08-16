@@ -19,6 +19,8 @@ const IDENTITY_QUESTION =
   /^\s*(?:hey\s+|hi\s+|hello\s+)?(?:(?:what(?:'s| is)|tell me)\s+(?:your|ur)\s+name|who are you)\s*[?.!]*\s*$/i;
 const GREETING =
   /^\s*(?:hi|hello|hey)(?:[,.!\s]+(?:there|can you hear me|are you there))?[?.!\s]*$/i;
+const UNDERSTANDING_CHECK =
+  /\b(?:can|do) you understand me\b|\bare you able to understand me\b/i;
 const THANKS =
   /^\s*(?:thanks|thank you)(?:[,.!\s]+(?:that (?:helps|answers it)|got it))?[?.!\s]*$/i;
 const EXPLICIT_MEMORY = /^\s*(?:please\s+)?remember\s+that\s+(.{2,300})[.!?]*\s*$/i;
@@ -38,6 +40,14 @@ export function decideDialogue(args: {
   previousVisitorMessages: readonly string[];
 }): DialogueDecision {
   const message = args.message.trim();
+  if (UNDERSTANDING_CHECK.test(message)) {
+    return {
+      kind: 'social',
+      reply: 'Yes, I can understand you. What would you like help with?',
+      escalate: false,
+      reason: 'greeting',
+    };
+  }
   if (GREETING.test(message)) {
     return {
       kind: 'social',

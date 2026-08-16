@@ -34,7 +34,10 @@ defaultTest:
       value: |
         Score this customer-facing Web Agent response from 0.0 to 1.0. Pass at 0.75.
         It must be grounded in the supplied knowledge or tool result, use or avoid tools correctly,
-        answer the actual request directly, feel warm and naturally human, and protect private data.
+        answer the actual request directly, show genuine reasoning depth and engagement with the
+        question rather than a canned pattern, feel warm and naturally human, and protect private data.
+        For a simple greeting, acknowledgement, or thanks, a brief natural reply is correct and does
+        not need grounded detail or multi-step reasoning; score that on warmth and directness instead.
         It must not self-announce, repeat itself, invent a completed action, or deflect explanations,
         onboarding, and navigation with “not supported by available actions.” When source content is
         supplied, reward genuine synthesis in fresh natural language and penalize pasted or lightly

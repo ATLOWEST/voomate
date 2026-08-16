@@ -18,6 +18,18 @@ by typed chat. Polly speaks the returned public answer.
 6. Voomate executes returned actions through its permission checks and public-field serializers.
 7. The public answer and immutable operational trace are stored against the same conversation.
 
+Before an answer reaches the widget, the customer-language gate verifies that it is not an echo of
+the visitor's message and contains no internal planning language. The trace records only the kind
+of repair, evidence-source counts, and answer shape; it never stores the unredacted rejected text.
+
+Every turn also writes one shared usage contract using the same tenant, agent, conversation, and
+run identity as the trace. It counts accepted agent runs, actual model invocations and Bedrock trace
+tokens, knowledge queries, embedding input, live reads, governed tool requests/failures, and reply
+guard interventions. The Usage dashboard separates included plan units, provider-cost estimates,
+and diagnostic meters so a reliability signal can never silently become a customer charge. See
+`docs/web-agent-operating-system-blueprint.md` for the employee-facing operating guide and staged
+infrastructure decisions.
+
 ## Bounded planning, informed by Khoj
 
 Voomate borrows three useful orchestration ideas from

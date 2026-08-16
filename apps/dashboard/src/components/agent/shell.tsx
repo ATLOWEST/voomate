@@ -1,29 +1,19 @@
 'use client';
 
-/**
- * The agent detail shell.
- *
- * Fetches the agent once and shares it with every tab through context. The alternative — each
- * tab fetching its own copy — means five requests for one page view and, worse, tabs that
- * disagree about the agent's status after a publish.
- *
- * It is a client component rather than a server one because the organization ID lives in
- * client state (a user can belong to several, and the switcher changes which one is active
- * without a navigation). The server layout above it has already proven the user is signed in.
- */
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Agent } from '@voomate/core';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Book, Bot, FlaskConical, Globe2, LayoutDashboard, Settings } from 'lucide-react';
 import { api } from '@/lib/api';
 import { messageFor, useApiQuery } from '@/lib/hooks';
 import { useApiAuth, useSession } from '@/lib/session';
-import { useSearchParams } from 'next/navigation';
-import { Bot } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Callout } from '@/components/ui/callout';
 
 interface AgentContextValue {
   agent: Agent;
-  /** Re-read the agent after a write, so the header and every tab agree. */
+  isPlaceholder: boolean;
   refresh: () => void;
 }
 
@@ -44,10 +34,21 @@ export function AgentShell({ agentId, children }: { agentId: string; children: R
     loading,
     refetch: refresh,
   } = useApiQuery<{ agent: Agent }>(
-    organization === undefined || isFixedSlot ? null : `/v1/agents/${agentId}`,
+    organization === undefined || isFixedSlot ? null : '/v1/agents/' + agentId,
+  );
+  const {
+    data: webAgentsData,
+    loading: loadingWebAgents,
+    refetch: refreshWebAgents,
+  } = useApiQuery<{ agents: Agent[] }>(
+    organization === undefined || agentId !== 'web' ? null : '/v1/agents',
   );
 
   const value = useMemo<AgentContextValue | undefined>(() => {
+    if (agentId === 'web' && webAgentsData?.agents[0] !== undefined) {
+      return { agent: webAgentsData.agents[0], isPlaceholder: false, refresh: refreshWebAgents };
+    }
+
     if (isFixedSlot) {
       return {
         agent: {
@@ -62,174 +63,135 @@ export function AgentShell({ agentId, children }: { agentId: string; children: R
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           organizationId: organization?.id || '',
-          type: agentId === 'integration' ? 'browser' : 'voice',
+          websiteUrl: '',
+          allowedOrigins: [],
+          embedKey: '',
+          voiceEnabled: agentId !== 'integration',
+          retainAudio: false,
+          transcriptRetentionDays: 30,
         } as unknown as Agent,
+        isPlaceholder: true,
         refresh: () => {},
       };
     }
-    return data === undefined ? undefined : { agent: data.agent, refresh };
-  }, [data, refresh, agentId, isFixedSlot, organization?.id]);
 
-  if (loading && !isFixedSlot) return <ShellSkeleton />;
+    return data === undefined ? undefined : { agent: data.agent, isPlaceholder: false, refresh };
+  }, [agentId, data, isFixedSlot, organization?.id, refresh, refreshWebAgents, webAgentsData]);
+
+  if ((loading && !isFixedSlot) || (agentId === 'web' && loadingWebAgents)) {
+    return <ShellSkeleton />;
+  }
 
   if (value === undefined) {
     return (
-      <>
-        <div className="border-b border-border/50 bg-card px-6 py-8 max-w-[1400px] mx-auto w-full">
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Agent Loading Error</h1>
-        </div>
-        <div className="mx-auto max-w-5xl px-6 py-6">
+      <main className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8">
+        <h1 className="text-xl font-semibold text-foreground">Agent unavailable</h1>
+        <div className="mt-5">
           <Callout tone="critical" title="This agent could not be loaded">
             {error ??
-              'It may have been deleted, or it may belong to a different workspace. Check the workspace switcher in the sidebar.'}
+              'It may have been deleted or belong to another workspace. Check your current workspace.'}
           </Callout>
         </div>
-      </>
+      </main>
     );
   }
 
   return (
     <AgentContext.Provider value={value}>
-      <div className="flex flex-col min-h-screen bg-black/[0.02] dark:bg-white/[0.02]">
-        <AgentHeader agent={value.agent} onChanged={refresh} />
-
-        <div className="flex-1 w-full max-w-[1400px] mx-auto flex flex-col md:flex-row px-4 md:px-6 py-6 md:py-8 gap-8">
-          <AgentSidebar agentId={value.agent.id} />
-
-          <div className="flex-1 min-w-0">{children}</div>
-        </div>
+      <div className="min-h-full bg-background">
+        <AgentHeader
+          agent={value.agent}
+          isPlaceholder={value.isPlaceholder}
+          onChanged={value.refresh}
+        />
+        <div className="mx-auto w-full max-w-[1240px] px-5 pb-12 sm:px-8 lg:px-10">{children}</div>
       </div>
     </AgentContext.Provider>
   );
 }
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  MessageSquare,
-  Settings2,
-  Book,
-  FileText,
-  Settings,
-  Ticket,
-  BarChart2,
-} from 'lucide-react';
-
-function AgentSidebar({ agentId }: { agentId: string }) {
+function AgentNav({ agentId, isPlaceholder }: { agentId: string; isPlaceholder: boolean }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const niche = searchParams.get('niche');
-  const basePath = `/agents/${agentId}`;
-
-  const isShopify = agentId === 'web' && niche === 'shopify';
-
-  const navItems = isShopify
-    ? [
-        {
-          name: 'Dashboard',
-          href: `${basePath}?niche=shopify`,
-          icon: <LayoutDashboard className="w-4 h-4" />,
-        },
-        {
-          name: 'AI Brain',
-          href: `${basePath}/knowledge?niche=shopify`,
-          icon: <Book className="w-4 h-4" />,
-        },
-        {
-          name: 'Conversations',
-          href: `${basePath}/conversations?niche=shopify`,
-          icon: <MessageSquare className="w-4 h-4" />,
-        },
-        {
-          name: 'Support Tickets',
-          href: `${basePath}/tickets?niche=shopify`,
-          icon: <Ticket className="w-4 h-4" />,
-        },
-        {
-          name: 'Insights',
-          href: `${basePath}/insights?niche=shopify`,
-          icon: <BarChart2 className="w-4 h-4" />,
-        },
-        {
-          name: 'Settings',
-          href: `${basePath}/settings?niche=shopify`,
-          icon: <Settings className="w-4 h-4" />,
-        },
-      ]
+  const basePath = '/agents/' + agentId;
+  const items = isPlaceholder
+    ? [{ name: 'Overview', href: basePath, icon: LayoutDashboard }]
     : [
-        { name: 'Overview', href: basePath, icon: <LayoutDashboard className="w-4 h-4" /> },
-        ...(agentId !== 'integration'
-          ? [
-              {
-                name: 'Conversations',
-                href: `${basePath}/conversations`,
-                icon: <MessageSquare className="w-4 h-4" />,
-              },
-            ]
-          : []),
-        {
-          name: 'Configuration',
-          href: `${basePath}/configuration`,
-          icon: <Settings2 className="w-4 h-4" />,
-        },
-        {
-          name: 'Knowledge Base',
-          href: `${basePath}/knowledge`,
-          icon: <Book className="w-4 h-4" />,
-        },
-        { name: 'Logs', href: `${basePath}/logs`, icon: <FileText className="w-4 h-4" /> },
-        { name: 'Settings', href: `${basePath}/settings`, icon: <Settings className="w-4 h-4" /> },
+        { name: 'Overview', href: basePath, icon: LayoutDashboard },
+        { name: 'Knowledge', href: basePath + '/knowledge', icon: Book },
+        { name: 'Test', href: basePath + '/playground', icon: FlaskConical },
+        { name: 'Install', href: basePath + '/install', icon: Globe2 },
+        { name: 'Settings', href: basePath + '/configuration', icon: Settings },
       ];
 
   return (
-    <aside className="w-full md:w-60 shrink-0">
-      <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
-        {navItems.map((item) => {
-          // Note: for shopify tabs, we need to compare ignoring search params, except for the base path
-          const isActive = item.href.includes('?')
-            ? pathname === item.href.split('?')[0]
-            : pathname === item.href || (pathname === basePath && item.name === 'Overview');
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
+    <nav
+      className="agent-tab-rail flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg bg-[var(--surface-soft)] p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      aria-label="Agent sections"
+    >
+      {items.map((item) => {
+        const active = pathname === item.href;
+        const Icon = item.icon;
+        return (
+          <Link
+            href={item.href}
+            key={item.name}
+            aria-current={active ? 'page' : undefined}
+            data-active={active}
+            className={cn(
+              'agent-tab group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-[12.5px] font-medium transition-[background-color,color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:translate-y-px',
+              active
+                ? 'bg-white text-foreground shadow-[0_1px_2px_rgba(20,20,18,0.05),0_5px_14px_rgba(20,20,18,0.05)] dark:bg-white/[0.08] dark:shadow-none'
+                : 'text-muted-foreground hover:-translate-y-0.5 hover:bg-white/70 hover:text-foreground dark:hover:bg-white/[0.045]',
+            )}
+          >
+            <span
               className={cn(
-                'flex items-center gap-3 px-3 py-2 text-[13.5px] font-medium rounded-lg transition-colors whitespace-nowrap',
-                isActive
-                  ? 'bg-black/5 dark:bg-white/5 text-foreground font-bold'
-                  : 'text-muted-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.03] hover:text-foreground',
+                'grid size-6 place-items-center rounded-md transition-[background-color,color,transform] duration-500 group-hover:scale-105',
+                active
+                  ? 'bg-accent-100 text-accent-700 dark:bg-accent-950/55 dark:text-accent-200'
+                  : 'text-muted-foreground',
               )}
             >
-              {item.icon}
-              {item.name}
-            </Link>
-          );
-        })}
-      </nav>
-    </aside>
+              <Icon className="size-3.5" strokeWidth={1.8} />
+            </span>
+            {item.name}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
-function AgentHeader({ agent, onChanged }: { agent: Agent; onChanged: () => void }) {
+function AgentHeader({
+  agent,
+  isPlaceholder,
+  onChanged,
+}: {
+  agent: Agent;
+  isPlaceholder: boolean;
+  onChanged: () => void;
+}) {
   const auth = useApiAuth();
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string>();
-
-  // Local state for inline editing name
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(agent.name);
   const [optimisticStatus, setOptimisticStatus] = useState(agent.status);
 
-  const searchParams = useSearchParams();
-  const isShopify = agent.id === 'web' && searchParams.get('niche') === 'shopify';
+  useEffect(() => {
+    setEditName(agent.name);
+    setOptimisticStatus(agent.status);
+  }, [agent.name, agent.status]);
 
   const publish = async () => {
     setBusy(true);
     setProblem(undefined);
     try {
       const { accessToken, organizationId } = await auth();
-      await api.post(`/v1/agents/${agent.id}/publish`, undefined, { accessToken, organizationId });
+      await api.post('/v1/agents/' + agent.id + '/publish', undefined, {
+        accessToken,
+        organizationId,
+      });
       setOptimisticStatus('published');
       onChanged();
     } catch (caught) {
@@ -245,12 +207,11 @@ function AgentHeader({ agent, onChanged }: { agent: Agent; onChanged: () => void
     try {
       const { accessToken, organizationId } = await auth();
       const resuming = optimisticStatus === 'paused';
-      const newStatus = resuming ? 'published' : 'paused';
-      await api.post(`/v1/agents/${agent.id}/${resuming ? 'publish' : 'pause'}`, undefined, {
+      await api.post('/v1/agents/' + agent.id + '/' + (resuming ? 'publish' : 'pause'), undefined, {
         accessToken,
         organizationId,
       });
-      setOptimisticStatus(newStatus);
+      setOptimisticStatus(resuming ? 'published' : 'paused');
       onChanged();
     } catch (caught) {
       setProblem(messageFor(caught));
@@ -268,7 +229,7 @@ function AgentHeader({ agent, onChanged }: { agent: Agent; onChanged: () => void
     try {
       const { accessToken, organizationId } = await auth();
       await api.patch(
-        `/v1/agents/${agent.id}`,
+        '/v1/agents/' + agent.id,
         { name: editName.trim() },
         { accessToken, organizationId },
       );
@@ -279,125 +240,123 @@ function AgentHeader({ agent, onChanged }: { agent: Agent; onChanged: () => void
     }
   };
 
-  if (isShopify) return null;
+  const statusLabel =
+    optimisticStatus === 'published' ? 'Live' : optimisticStatus === 'paused' ? 'Paused' : 'Draft';
 
   return (
-    <div className="border-b border-border/50 bg-card shrink-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 md:px-6 py-5 max-w-[1400px] mx-auto w-full">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-black dark:bg-white flex items-center justify-center shadow-sm shrink-0">
-            <Bot className="w-5 h-5 text-white dark:text-black" strokeWidth={1.5} />
-          </div>
-
-          <div>
-            <div className="flex items-center gap-3 mb-0.5">
-              {isEditingName ? (
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  onBlur={saveName}
-                  onKeyDown={(e) => e.key === 'Enter' && saveName()}
-                  autoFocus
-                  className="text-lg font-bold tracking-tight text-foreground bg-transparent border-b border-[#FF5722] outline-none focus:ring-0 px-0 py-0 h-[24px] w-full max-w-[200px]"
-                />
-              ) : (
-                <h1
-                  className="text-lg font-bold tracking-tight text-foreground cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => setIsEditingName(true)}
-                  title="Click to edit name"
-                >
-                  {editName}
-                </h1>
-              )}
-
-              <div
-                className={cn(
-                  'px-2 py-0.5 rounded-md border flex items-center justify-center',
-                  optimisticStatus === 'published'
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                    : optimisticStatus === 'paused'
-                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
-                      : 'bg-muted border-border/50 text-muted-foreground',
+    <header className="mx-auto w-full max-w-[1240px] px-5 pb-6 pt-4 sm:px-8 sm:pt-7 lg:px-10">
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--surface-sunken)] text-foreground">
+              <Bot className="size-[18px]" strokeWidth={1.8} />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2.5">
+                {isEditingName ? (
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(event) => setEditName(event.target.value)}
+                    onBlur={() => void saveName()}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') void saveName();
+                      if (event.key === 'Escape') {
+                        setEditName(agent.name);
+                        setIsEditingName(false);
+                      }
+                    }}
+                    autoFocus
+                    className="h-9 max-w-64 rounded-lg bg-[var(--surface-sunken)] px-2.5 text-[17px] font-semibold text-foreground outline-none"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => !isPlaceholder && setIsEditingName(true)}
+                    className="truncate text-left text-[18px] font-semibold text-foreground transition-opacity hover:opacity-70"
+                    title={isPlaceholder ? undefined : 'Rename agent'}
+                  >
+                    {editName}
+                  </button>
                 )}
-              >
-                <span className="text-[10px] font-bold uppercase tracking-wider">
-                  {optimisticStatus === 'published'
-                    ? 'Active'
-                    : optimisticStatus === 'paused'
-                      ? 'Paused'
-                      : 'Draft'}
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10.5px] font-semibold',
+                    optimisticStatus === 'published'
+                      ? 'bg-positive-soft text-positive dark:bg-emerald-950/35'
+                      : optimisticStatus === 'paused'
+                        ? 'bg-caution-soft text-caution dark:bg-amber-950/35'
+                        : 'bg-[var(--surface-sunken)] text-muted-foreground',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'size-1.5 rounded-full',
+                      optimisticStatus === 'published'
+                        ? 'bg-positive'
+                        : optimisticStatus === 'paused'
+                          ? 'bg-caution'
+                          : 'bg-ink-400',
+                    )}
+                  />
+                  {statusLabel}
                 </span>
               </div>
-            </div>
-            <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-              <Link
-                href="/agents"
-                className="hover:text-foreground hover:underline transition-colors"
-              >
-                Agents
-              </Link>
-              <span>/</span>
-              <span className="font-medium text-foreground">{editName}</span>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">Customer-facing agent</p>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {optimisticStatus === 'draft' ? (
+          {isPlaceholder ? (
+            <Link
+              href="/agents"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-foreground px-4 text-[13px] font-semibold text-background transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:opacity-90 active:translate-y-px"
+            >
+              Create Web Agent
+            </Link>
+          ) : optimisticStatus === 'draft' ? (
             <button
+              type="button"
               disabled={busy}
               onClick={() => void publish()}
-              className="flex items-center gap-2 px-4 py-2 bg-[#FF5722] hover:bg-[#E64A19] text-white rounded-lg text-[13px] font-medium transition-colors shadow-sm disabled:opacity-50"
+              className="min-h-10 rounded-lg bg-foreground px-4 text-[13px] font-semibold text-background transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:opacity-90 active:translate-y-px disabled:opacity-45"
             >
-              {busy ? 'Publishing...' : 'Publish Agent'}
+              {busy ? 'Publishing...' : 'Publish'}
             </button>
           ) : (
-            <div className="flex items-center bg-card border border-border/50 rounded-lg p-1 shadow-sm">
-              <button
-                disabled={busy}
-                onClick={togglePause}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 flex items-center gap-2',
-                  optimisticStatus === 'paused'
-                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                    : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5',
-                )}
-              >
-                Paused
-              </button>
-              <button
-                disabled={busy}
-                onClick={togglePause}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 flex items-center gap-2',
-                  optimisticStatus === 'published'
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                    : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5',
-                )}
-              >
-                Active
-              </button>
-            </div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void togglePause()}
+              className="min-h-10 rounded-lg bg-[var(--surface-sunken)] px-4 text-[13px] font-semibold text-foreground transition-[background-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[var(--surface-hover)] active:translate-y-px disabled:opacity-45"
+            >
+              {busy
+                ? 'Updating...'
+                : optimisticStatus === 'paused'
+                  ? 'Resume agent'
+                  : 'Pause agent'}
+            </button>
           )}
         </div>
+
+        <AgentNav agentId={agent.id} isPlaceholder={isPlaceholder} />
       </div>
+
       {problem !== undefined && (
-        <div className="mx-auto max-w-[1400px] w-full px-4 md:px-6 pt-6">
-          <Callout tone="caution" title="Error">
+        <div className="mt-5">
+          <Callout tone="caution" title="The agent could not be updated">
             {problem}
           </Callout>
         </div>
       )}
-    </div>
+    </header>
   );
 }
 
 function ShellSkeleton() {
   return (
-    <div className="border-b border-[var(--border-default)] px-6 pt-6 pb-5">
-      <div className="h-7 w-48 animate-pulse rounded-md bg-[var(--surface-sunken)]" />
-      <div className="mt-2 h-4 w-80 animate-pulse rounded bg-[var(--surface-sunken)]" />
+    <div className="mx-auto w-full max-w-[1240px] px-5 py-7 sm:px-8 lg:px-10">
+      <div className="h-9 w-52 animate-pulse rounded-lg bg-[var(--surface-sunken)]" />
+      <div className="mt-5 h-9 w-80 max-w-full animate-pulse rounded-lg bg-[var(--surface-soft)]" />
     </div>
   );
 }

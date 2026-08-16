@@ -98,21 +98,25 @@ When implementing this architecture:
 ## What It Is
 An AI agent platform that gives any small/medium business a working "AI employee" — handling customer conversations and real tasks across voice, web chat, and connected business tools. Built bootstrapped, from India, priced for global reach at low cost.
 
-## Core Model
-Voomate begins with **3 first-party agent types**. They are the launch catalog, not mandatory slots
-or a permanent ceiling. Each business activates only what it needs, may pause or archive any
-instance, and can adopt additional governed agent types as the catalog expands:
+## Current Agent Catalog
+Voomate is an extensible governed catalog, not three mandatory bots or a permanent four-agent
+limit. A business activates only released agents it needs, may pause or archive any instance, and
+adopts later types through the same lifecycle, policy, SDK, trace, usage, and evaluation contracts:
 
-1. **Voice Calling Agent** — answers and makes phone calls, books/reschedules, checks orders, escalates to a human when unsure. Inbound + outbound.
-2. **Web Agent** — chat + voice widget on the business's own site. Takes real actions (redirect to a page, add to cart, check order, book a slot), not just Q&A.
-3. **Integration Agent** — connects external tools (Google Calendar, Razorpay, WhatsApp, CRM) and
-   provides explicitly scoped capabilities to compatible agents.
+1. **Web Agent — available now.** Chat and voice inside a website or application, with grounded
+   answers, safe navigation, read-only live data, and governed actions.
+2. **CRM Tool Agent — in design.** Customer-record and follow-up workflows, released only after its
+   runtime, permission, trace, and evaluation contracts ship.
+3. **SEO Agent — planned.** Governed search and content workflows, currently visible only as a
+   disabled catalog item.
+4. **Calling Agent — planned after SEO.** Inbound and outbound phone conversations using the shared
+   business context and controlled tools.
 
 ## How They Work Together
-Voice and Web agents can each connect to an Integration Agent to gain reviewed capabilities - for
-example, Web Agent plus a Calendar connection can book a real appointment instead of merely
-describing how. "Connect all" creates all compatible reviewed links; it never grants unrestricted
-access.
+Connections are a shared governed platform layer. An active agent receives only reviewed,
+tenant-scoped capabilities from explicit connections. For example, a Web Agent plus a Calendar
+connection may request a real appointment workflow instead of merely describing it. "Connect all"
+creates compatible reviewed links; it never grants every permission to every agent.
 
 ## Universal, Not Industry-Locked
 No industry presets or business-type selection. Every catalog type uses the shared Actions,

@@ -2,6 +2,7 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createReadOnlyHandler,
+  __testing,
   describeReadOnlyEndpoint,
   invokeReadOnlyCapability,
   openConnectionSecret,
@@ -43,6 +44,27 @@ function handler() {
 afterEach(() => vi.restoreAllMocks());
 
 describe('read-only Connect protocol', () => {
+  it('rejects private, carrier-NAT, reserved, and IPv4-mapped endpoint addresses', () => {
+    for (const address of [
+      '10.0.0.1',
+      '100.64.0.1',
+      '127.0.0.1',
+      '169.254.169.254',
+      '172.20.0.1',
+      '192.168.1.1',
+      '198.18.0.1',
+      '::1',
+      'fc00::1',
+      'fe80::1',
+      '::ffff:127.0.0.1',
+      '::ffff:7f00:1',
+    ]) {
+      expect(__testing.isPrivateAddress(address), address).toBe(true);
+    }
+    expect(__testing.isPrivateAddress('8.8.8.8')).toBe(false);
+    expect(__testing.isPrivateAddress('2606:4700:4700::1111')).toBe(false);
+  });
+
   it('discovers capabilities and returns only explicitly public fields', async () => {
     const fetchImpl: typeof fetch = async (input, init) => handler()(new Request(input, init));
     const common = {

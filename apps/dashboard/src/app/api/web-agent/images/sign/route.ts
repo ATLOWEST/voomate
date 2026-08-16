@@ -65,6 +65,7 @@ export async function POST(request: Request): Promise<Response> {
             eq(conversations.id, input.conversationId),
             eq(conversations.organizationId, claims.organizationId),
             eq(conversations.agentId, claims.agentId),
+            eq(conversations.visitorId, fingerprint),
           ),
         )
         .limit(1);

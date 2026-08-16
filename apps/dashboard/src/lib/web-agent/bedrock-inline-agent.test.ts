@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatPublicOrderFallback } from './bedrock-inline-agent';
+import { formatPublicOrderFallback, modelUsageFromTrace } from './bedrock-inline-agent';
 import { checkOrderInputSchema } from './check-order-status';
 
 describe('Bedrock Inline Agent deterministic tool fallback', () => {
@@ -26,5 +26,19 @@ describe('Bedrock Inline Agent deterministic tool fallback', () => {
     expect(
       checkOrderInputSchema.safeParse({ orderId: 'A-100', email: 'customer@example.com' }).success,
     ).toBe(true);
+  });
+
+  it('reads exact token usage from Bedrock orchestration traces', () => {
+    expect(
+      modelUsageFromTrace({
+        trace: {
+          orchestrationTrace: {
+            modelInvocationOutput: {
+              metadata: { usage: { inputTokens: 420, outputTokens: 73 } },
+            },
+          },
+        },
+      }),
+    ).toEqual({ modelInvocations: 1, inputTokens: 420, outputTokens: 73 });
   });
 });

@@ -39,9 +39,10 @@ export const buildServer = async (): Promise<FastifyInstance> => {
         censor: '[redacted]',
       },
     },
-    // Trust the proxy in front of us (ALB/CloudFront) so client IPs are accurate. Rate
-    // limiting keys on IP, so getting this wrong makes limits either useless or global.
-    trustProxy: true,
+    // Trust only explicitly configured proxy networks. `true` lets a directly connected caller
+    // spoof X-Forwarded-For and rotate around every IP-based rate limit.
+    trustProxy:
+      serverConfig.API_TRUST_PROXY_CIDRS.length > 0 ? serverConfig.API_TRUST_PROXY_CIDRS : false,
     // Voice sessions send small control payloads; large bodies indicate abuse.
     bodyLimit: 1_048_576,
   });

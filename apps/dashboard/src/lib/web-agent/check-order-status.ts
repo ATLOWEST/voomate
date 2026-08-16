@@ -2,7 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { agentActiveTools, toolAuditLogs, webAgentOrders } from '@voomate/db';
 import { z } from 'zod';
 import { getWebAgentDb } from './db';
-import { logRunEvent, type RunContext } from './log';
+import { logRunEvent, recordRunUsage, type RunContext } from './log';
 
 export const checkOrderInputSchema = z.object({
   orderId: z.string().trim().min(3).max(80),
@@ -43,6 +43,7 @@ export async function checkOrderStatus(
   const db = getWebAgentDb();
   const parsed = checkOrderInputSchema.safeParse(untrustedInput);
   if (!parsed.success) {
+    recordRunUsage(context, 'tool_failures', 1);
     await logRunEvent(context, 'tool_input_validation', 'denied', {
       tool: 'check_order_status',
       reason: 'invalid_input',
@@ -66,6 +67,7 @@ export async function checkOrderStatus(
     )
     .limit(1);
   if (permission?.status !== 'active') {
+    recordRunUsage(context, 'tool_failures', 1);
     await logRunEvent(context, 'tool_permission_check', 'denied', {
       tool: 'check_order_status',
     });

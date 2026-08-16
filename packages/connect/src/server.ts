@@ -80,7 +80,12 @@ export function sealConnectionSecret(secret: string, base64Key: string): string 
   const cipher = createCipheriv('aes-256-gcm', key, iv);
   cipher.setAAD(Buffer.from('voomate:read-connection:v1'));
   const ciphertext = Buffer.concat([cipher.update(secret, 'utf8'), cipher.final()]);
-  return ['v1', iv.toString('base64url'), cipher.getAuthTag().toString('base64url'), ciphertext.toString('base64url')].join('.');
+  return [
+    'v1',
+    iv.toString('base64url'),
+    cipher.getAuthTag().toString('base64url'),
+    ciphertext.toString('base64url'),
+  ].join('.');
 }
 
 export function openConnectionSecret(sealed: string, base64Key: string): string {
@@ -145,7 +150,9 @@ function setAt(target: Record<string, unknown>, path: string[], value: unknown):
 }
 
 function isSafeFieldPath(path: string): boolean {
-  return FIELD_PATH.test(path) && path.split('.').every((segment) => !UNSAFE_OBJECT_KEYS.has(segment));
+  return (
+    FIELD_PATH.test(path) && path.split('.').every((segment) => !UNSAFE_OBJECT_KEYS.has(segment))
+  );
 }
 
 export function projectPublicFields(
@@ -297,7 +304,10 @@ export function createReadOnlyHandler(options: ReadOnlyHandlerOptions) {
       if (request.headers.get('x-voomate-protocol') !== PROTOCOL_VERSION) {
         throw new Error('Unsupported protocol.');
       }
-      if (!/^\d{13}$/.test(timestamp) || Math.abs(Date.now() - Number(timestamp)) > MAX_CLOCK_SKEW_MS) {
+      if (
+        !/^\d{13}$/.test(timestamp) ||
+        Math.abs(Date.now() - Number(timestamp)) > MAX_CLOCK_SKEW_MS
+      ) {
         throw new Error('Expired request.');
       }
       if (!/^[A-Za-z0-9_-]{20,100}$/.test(nonce)) throw new Error('Invalid nonce.');
@@ -315,7 +325,11 @@ export function createReadOnlyHandler(options: ReadOnlyHandlerOptions) {
       const parsed = JSON.parse(body) as ProtocolBody;
       if (parsed.connectionId !== options.connectionId) throw new Error('Wrong connection.');
       if (parsed.operation === 'describe') {
-        await options.onAudit?.({ capability: 'describe', status: 'success', latencyMs: Date.now() - startedAt });
+        await options.onAudit?.({
+          capability: 'describe',
+          status: 'success',
+          latencyMs: Date.now() - startedAt,
+        });
         return signedResponse(options.secret, timestamp, nonce, {
           ok: true,
           protocolVersion: PROTOCOL_VERSION,
@@ -341,37 +355,68 @@ export function createReadOnlyHandler(options: ReadOnlyHandlerOptions) {
       if (utf8Bytes(JSON.stringify(responseBody)) > MAX_RESPONSE_BYTES) {
         throw new Error('Filtered response is too large.');
       }
-      await options.onAudit?.({ capability: capabilityName, status: 'success', latencyMs: Date.now() - startedAt });
+      await options.onAudit?.({
+        capability: capabilityName,
+        status: 'success',
+        latencyMs: Date.now() - startedAt,
+      });
       return signedResponse(options.secret, timestamp, nonce, responseBody);
     } catch {
-      await options.onAudit?.({ capability: capabilityName, status: 'denied', latencyMs: Date.now() - startedAt });
+      await options.onAudit?.({
+        capability: capabilityName,
+        status: 'denied',
+        latencyMs: Date.now() - startedAt,
+      });
       // Do not disclose whether the signature, connection, capability, or validation failed.
-      return signedResponse(options.secret, timestamp, nonce, { ok: false, error: 'Request denied.' }, 401);
+      return signedResponse(
+        options.secret,
+        timestamp,
+        nonce,
+        { ok: false, error: 'Request denied.' },
+        401,
+      );
     }
   };
 }
 
 function isPrivateAddress(address: string): boolean {
-  if (address === '::1' || address === '0.0.0.0' || address === '::') return true;
-  if (address.startsWith('10.') || address.startsWith('127.') || address.startsWith('169.254.')) return true;
-  if (address.startsWith('192.168.')) return true;
-  const [first, second] = address.split('.').map(Number);
-  if (first === 172 && second !== undefined && second >= 16 && second <= 31) return true;
-  const normalized = address.toLowerCase();
-  return (
-    normalized.startsWith('fc') ||
-    normalized.startsWith('fd') ||
-    normalized.startsWith('fe8') ||
-    normalized.startsWith('fe9') ||
-    normalized.startsWith('fea') ||
-    normalized.startsWith('feb')
-  );
+  const normalized = address.toLowerCase().replace(/^\[|\]$/g, '');
+  const version = isIP(normalized);
+
+  if (version === 4) {
+    const [first = 0, second = 0] = normalized.split('.').map(Number);
+    if (first === 0 || first === 10 || first === 127) return true;
+    if (first === 100 && second >= 64 && second <= 127) return true;
+    if (first === 169 && second === 254) return true;
+    if (first === 172 && second >= 16 && second <= 31) return true;
+    if (first === 192 && (second === 0 || second === 168)) return true;
+    if (first === 198 && (second === 18 || second === 19)) return true;
+    return first >= 224;
+  }
+
+  if (version === 6) {
+    if (normalized === '::' || normalized === '::1') return true;
+    if (/^(fc|fd|fe[89ab]|ff)/.test(normalized)) return true;
+
+    const dottedMapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(normalized);
+    if (dottedMapped?.[1]) return isPrivateAddress(dottedMapped[1]);
+    const hexMapped = /^::ffff:([a-f0-9]{1,4}):([a-f0-9]{1,4})$/.exec(normalized);
+    if (hexMapped?.[1] && hexMapped[2]) {
+      const high = Number.parseInt(hexMapped[1], 16);
+      const low = Number.parseInt(hexMapped[2], 16);
+      return isPrivateAddress(`${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`);
+    }
+    return false;
+  }
+
+  return true;
 }
 
 async function assertSafeEndpoint(value: string, allowLoopback: boolean): Promise<URL> {
   const url = new URL(value);
   if (url.username || url.password || url.hash) throw new Error('Unsafe endpoint.');
-  const loopbackHost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '::1';
+  const loopbackHost =
+    url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '::1';
   if (url.protocol !== 'https:' && !(allowLoopback && loopbackHost && url.protocol === 'http:')) {
     throw new Error('Endpoint must use HTTPS.');
   }
@@ -387,7 +432,8 @@ async function assertSafeEndpoint(value: string, allowLoopback: boolean): Promis
 
 async function limitedText(response: Response): Promise<string> {
   const declared = Number(response.headers.get('content-length'));
-  if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) throw new Error('Response too large.');
+  if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES)
+    throw new Error('Response too large.');
   if (!response.body) return '';
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -420,7 +466,10 @@ async function invokeProtocol(
   const nonce = randomBytes(24).toString('base64url');
   const body = JSON.stringify(bodyValue);
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.min(Math.max(options.timeoutMs ?? 5_000, 500), 10_000));
+  const timeout = setTimeout(
+    () => controller.abort(),
+    Math.min(Math.max(options.timeoutMs ?? 5_000, 500), 10_000),
+  );
   try {
     const response = await (options.fetchImpl ?? fetch)(url, {
       method: 'POST',
@@ -446,11 +495,19 @@ async function invokeProtocol(
       responseBody,
     );
     if (!constantTimeEqual(provided, expected)) throw new Error('Invalid response signature.');
-    if (!/^\d{13}$/.test(responseTimestamp) || Math.abs(Date.now() - Number(responseTimestamp)) > MAX_CLOCK_SKEW_MS) {
+    if (
+      !/^\d{13}$/.test(responseTimestamp) ||
+      Math.abs(Date.now() - Number(responseTimestamp)) > MAX_CLOCK_SKEW_MS
+    ) {
       throw new Error('Expired response.');
     }
-    const parsed = JSON.parse(responseBody) as { ok?: boolean; data?: unknown; capabilities?: unknown };
-    if (!response.ok || parsed.ok !== true) throw new Error('Read-only endpoint denied the request.');
+    const parsed = JSON.parse(responseBody) as {
+      ok?: boolean;
+      data?: unknown;
+      capabilities?: unknown;
+    };
+    if (!response.ok || parsed.ok !== true)
+      throw new Error('Read-only endpoint denied the request.');
     return parsed;
   } finally {
     clearTimeout(timeout);
@@ -479,10 +536,12 @@ export async function invokeReadOnlyCapability(
     capability: options.capability,
     input: options.input ?? {},
   })) as { data?: unknown };
-  if (!result.data || typeof result.data !== 'object') throw new Error('Invalid filtered response.');
+  if (!result.data || typeof result.data !== 'object')
+    throw new Error('Invalid filtered response.');
   const data = result.data as Record<string, unknown> | Array<Record<string, unknown>>;
   const first = Array.isArray(data) ? data[0] : data;
   return { data, outputFields: first ? Object.keys(first) : [] };
 }
 
 export const readOnlyProtocolVersion = PROTOCOL_VERSION;
+export const __testing = { isPrivateAddress };

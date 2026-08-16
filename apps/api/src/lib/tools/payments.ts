@@ -3,6 +3,7 @@ import { type VoomateToolContext } from './registry.js';
 
 export const generatePaymentLinkTool = {
   name: 'generate_payment_link',
+  implementation: 'placeholder' as const,
   description:
     'Generates a secure Razorpay payment link or UPI link to collect a deposit or payment from a customer.',
   provider: 'razorpay' as const,
@@ -45,6 +46,7 @@ export const generatePaymentLinkTool = {
 
 export const checkPaymentStatusTool = {
   name: 'check_payment_status',
+  implementation: 'placeholder' as const,
   description:
     'Checks if a previously generated Razorpay payment link has been paid by the customer.',
   provider: 'razorpay' as const,

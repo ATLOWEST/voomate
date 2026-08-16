@@ -3,6 +3,7 @@ import { type VoomateToolContext } from './registry.js';
 
 export const checkAvailabilityTool = {
   name: 'check_availability',
+  implementation: 'placeholder' as const,
   description: 'Checks the Google Calendar to find available time slots for a given date.',
   provider: 'calendly' as const,
   schema: z.object({
@@ -33,6 +34,7 @@ export const checkAvailabilityTool = {
 
 export const bookAppointmentTool = {
   name: 'book_appointment',
+  implementation: 'placeholder' as const,
   description: 'Books an appointment on the Google Calendar.',
   provider: 'calendly' as const,
   schema: z.object({

@@ -3,6 +3,7 @@ import { type VoomateToolContext } from './registry.js';
 
 export const createStripePaymentLinkTool = {
   name: 'create_stripe_payment_link',
+  implementation: 'placeholder' as const,
   description:
     'Generates a secure Stripe payment link to collect a payment in USD or global currencies.',
   provider: 'stripe' as const,
@@ -39,6 +40,7 @@ export const createStripePaymentLinkTool = {
 
 export const checkStripePaymentStatusTool = {
   name: 'check_stripe_payment_status',
+  implementation: 'placeholder' as const,
   description: 'Checks if a previously generated Stripe payment session has been paid.',
   provider: 'stripe' as const,
   schema: z.object({

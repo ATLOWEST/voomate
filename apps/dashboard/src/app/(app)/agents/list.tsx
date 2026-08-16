@@ -12,7 +12,6 @@ import { Callout } from '@/components/ui/callout';
 import { Dialog, DialogActions } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field, TextInput } from '@/components/ui/field';
-import { Panel } from '@/components/ui/panel';
 import { api } from '@/lib/api';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
@@ -31,8 +30,8 @@ export function AgentsList() {
   return (
     <>
       <PageHeader
-        title="Agents"
-        description="Choose only the agents your workspace needs. Each active instance keeps its own configuration, permissions, status, and usage."
+        title="Your agents"
+        description="Choose what your business needs, then manage each agent from one place."
         action={
           <Button
             variant="primary"
@@ -63,7 +62,7 @@ export function AgentsList() {
             {error}
           </Callout>
         ) : (
-          <Panel>
+          <section>
             {loading ? (
               <ListSkeleton />
             ) : agents.length === 0 ? (
@@ -77,12 +76,12 @@ export function AgentsList() {
                 }
               />
             ) : (
-              <ul className="divide-y divide-[var(--border-default)]">
+              <ul className="grid gap-3 md:grid-cols-2">
                 {agents.map((agent) => (
                   <li key={agent.id}>
                     <Link
                       href={`/agents/${agent.id}`}
-                      className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-[var(--surface-hover)]"
+                      className="flex min-h-24 items-center gap-4 rounded-lg bg-[var(--surface-soft)] px-5 py-4 transition-[background-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[var(--surface-sunken)] active:translate-y-px"
                     >
                       <StatusDot tone={agent.status === 'published' ? 'positive' : 'caution'} />
                       <div className="min-w-0 flex-1">
@@ -98,7 +97,7 @@ export function AgentsList() {
                 ))}
               </ul>
             )}
-          </Panel>
+          </section>
         )}
       </PageBody>
 
@@ -174,11 +173,14 @@ function AgentCatalogDialog({
       onClose={onClose}
       wide
     >
-      <div className="divide-y divide-border rounded-lg border border-border">
+      <div className="space-y-2">
         {agentCatalog.map((item) => {
           const Icon = item.icon;
           return (
-            <div className="flex items-center gap-4 p-4" key={item.id}>
+            <div
+              className="flex items-center gap-4 rounded-lg bg-[var(--surface-sunken)] p-4"
+              key={item.id}
+            >
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-200">
                 <Icon className="size-4" />
               </span>
@@ -289,9 +291,12 @@ const normaliseUrl = (value: string): string => {
 
 function ListSkeleton() {
   return (
-    <ul className="divide-y divide-[var(--border-default)]">
+    <ul className="grid gap-3 md:grid-cols-2">
       {[0, 1, 2].map((row) => (
-        <li key={row} className="flex items-center gap-4 px-6 py-4">
+        <li
+          key={row}
+          className="flex min-h-24 items-center gap-4 rounded-lg bg-[var(--surface-soft)] px-5 py-4"
+        >
           <div className="size-1.5 rounded-full bg-[var(--surface-sunken)]" />
           <div className="flex-1 space-y-2">
             <div className="h-3.5 w-40 animate-pulse rounded bg-[var(--surface-sunken)]" />

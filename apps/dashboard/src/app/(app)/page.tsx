@@ -1,26 +1,23 @@
 'use client';
 
+import type { Agent, KnowledgeSource } from '@voomate/core';
 import Link from 'next/link';
-import type { Agent } from '@voomate/core';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
+  BookOpen,
   Bot,
   Check,
+  ChevronLeft,
   ChevronRight,
-  CircleAlert,
-  CircleCheck,
-  FileText,
-  Globe2,
-  MessageSquare,
-  PlugZap,
+  Circle,
+  Plug,
   Radio,
-  Sparkles,
-  WandSparkles,
 } from 'lucide-react';
+import { VoomateOperatingContext } from '@/components/voomate-operating-context';
+import { useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { cn } from '@/lib/cn';
-import { useApiQuery } from '@/lib/hooks';
-import { VoomateOperatingContext } from '@/components/voomate-operating-context';
 
 interface UsageSummary {
   textMessages: number;
@@ -31,284 +28,420 @@ interface ConversationSummary {
   id: string;
 }
 
-const setupSteps = [
-  {
-    title: 'Configure the Web Agent',
-    description: 'Set its business identity, tone, and customer scope.',
-    href: '/agents',
-    icon: Bot,
-    complete: false,
-  },
-  {
-    title: 'Connect knowledge',
-    description: 'Add your website, documents, or FAQs.',
-    href: '/agents',
-    icon: FileText,
-    complete: false,
-  },
-  {
-    title: 'Connect your tools',
-    description: 'Let your agent safely use the apps you already rely on.',
-    href: '/integrations',
-    icon: PlugZap,
-    complete: false,
-  },
-  {
-    title: 'Test and publish',
-    description: 'Try a real conversation before visitors see it.',
-    href: '/agents',
-    icon: Radio,
-    complete: false,
-  },
-];
+interface ReadConnection {
+  id: string;
+  status: 'pending' | 'active' | 'error' | 'revoked';
+}
 
-const nextActions = [
-  {
-    title: 'Choose your agent team',
-    description:
-      'Start with Web Agent and see the planned CRM Tool, SEO, and Calling Agent sequence.',
-    href: '/agents',
-    action: 'Open agents',
-    icon: WandSparkles,
-  },
-  {
-    title: 'Connect a business system',
-    description: 'Bring in the live data and actions your agent needs.',
-    href: '/integrations',
-    action: 'Browse connections',
-    icon: PlugZap,
-  },
-];
+type SetupStep = {
+  title: string;
+  detail: string;
+  href: string;
+  complete: boolean;
+  optional?: boolean;
+  icon: typeof Bot;
+};
 
 export default function OverviewPage() {
   const { organization } = useSession();
-  const workspace = organization?.name ?? 'your workspace';
-  const completed = setupSteps.filter((step) => step.complete).length;
+  const [greeting, setGreeting] = useState('Welcome back');
+  const [today, setToday] = useState('Today');
+  const agentRailRef = useRef<HTMLDivElement>(null);
   const apiEnabled = organization !== undefined;
-  const { data: agentData } = useApiQuery<{ agents: Agent[] }>(apiEnabled ? '/v1/agents' : null);
-  const { data: conversationData } = useApiQuery<{ conversations: ConversationSummary[] }>(
+  const workspace = organization?.name ?? 'your workspace';
+
+  useEffect(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    setGreeting(hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening');
+    setToday(
+      new Intl.DateTimeFormat(undefined, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'short',
+      }).format(now),
+    );
+  }, []);
+
+  const agentsQuery = useApiQuery<{ agents: Agent[] }>(apiEnabled ? '/v1/agents' : null);
+  const conversationsQuery = useApiQuery<{ conversations: ConversationSummary[] }>(
     apiEnabled ? '/v1/conversations?limit=100' : null,
   );
-  const { data: usage } = useApiQuery<UsageSummary>(apiEnabled ? '/v1/usage/summary' : null);
-  const agents = agentData?.agents ?? [];
-  const activeAgents = agents.filter(({ status }) => status === 'published').length;
-  const recentConversations = conversationData?.conversations.length ?? 0;
+  const usageQuery = useApiQuery<UsageSummary>(apiEnabled ? '/v1/usage/summary' : null);
+  const connectionsQuery = useApiQuery<{ connections: ReadConnection[] }>(
+    apiEnabled ? '/v1/connect/read-connections' : null,
+  );
+
+  const agents = agentsQuery.data?.agents ?? [];
+  const primaryAgent = agents[0];
+  const agentPath = primaryAgent ? '/agents/' + primaryAgent.id : '/agents';
+  const knowledgeQuery = useApiQuery<{ sources: KnowledgeSource[] }>(
+    primaryAgent ? '/v1/agents/' + primaryAgent.id + '/knowledge' : null,
+  );
+
+  const conversations = conversationsQuery.data?.conversations ?? [];
+  const sources = knowledgeQuery.data?.sources ?? [];
+  const activeAgents = agents.filter((agent) => agent.status === 'published').length;
+  const activeConnections = (connectionsQuery.data?.connections ?? []).filter(
+    (connection) => connection.status === 'active',
+  ).length;
+  const readyKnowledge = sources.some((source) => source.status === 'ready');
+  const loading =
+    agentsQuery.loading ||
+    conversationsQuery.loading ||
+    usageQuery.loading ||
+    connectionsQuery.loading;
+
+  const setupSteps: SetupStep[] = [
+    {
+      title: 'Create your Web Agent',
+      detail: 'Name it and add your business website.',
+      href: '/agents',
+      complete: primaryAgent !== undefined,
+      icon: Bot,
+    },
+    {
+      title: 'Teach it about your business',
+      detail: 'Add your website, documents, or approved answers.',
+      href: primaryAgent ? agentPath + '/knowledge' : '/agents',
+      complete: readyKnowledge,
+      icon: BookOpen,
+    },
+    {
+      title: 'Connect live information',
+      detail: 'Optional for orders, availability, accounts, and other current data.',
+      href: '/integrations',
+      complete: activeConnections > 0,
+      optional: true,
+      icon: Plug,
+    },
+    {
+      title: 'Test and publish',
+      detail: 'Try a customer question before adding the agent to your site.',
+      href: primaryAgent ? agentPath + '/playground' : '/agents',
+      complete: primaryAgent?.status === 'published',
+      icon: Radio,
+    },
+  ];
+
+  const completed = setupSteps.filter((step) => step.complete).length;
+  const nextStep =
+    setupSteps.find((step) => !step.complete && !step.optional) ??
+    setupSteps.find((step) => !step.complete);
+
+  const moveAgentRail = (direction: -1 | 1) => {
+    agentRailRef.current?.scrollBy({ left: direction * 360, behavior: 'smooth' });
+  };
 
   return (
-    <main className="dashboard-overview mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
-      <VoomateOperatingContext agents={agentData?.agents} />
+    <main className="dashboard-overview mx-auto w-full max-w-[1280px] overflow-x-hidden px-5 pb-14 pt-5 sm:px-8 sm:pt-8 lg:px-10">
+      <VoomateOperatingContext agents={agentsQuery.data?.agents} />
+
       <header
         data-dashboard-motion
-        className="dashboard-overview__header mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"
+        className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"
       >
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-600">
-            Your live operation
-          </p>
-          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">
-            Welcome to {workspace}.
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-[15px]">
-            Plug in the widget, connect approved business truth, and publish one tested workflow.
+        <div className="max-w-5xl">
+          <p className="text-[12px] font-medium text-muted-foreground">{today}</p>
+          <h2 className="mt-2 text-3xl font-semibold leading-[1.12] text-foreground sm:text-[2.35rem]">
+            {greeting}, {workspace}.
+          </h2>
+          <p className="mt-3 max-w-2xl text-[14px] leading-6 text-muted-foreground">
+            Your customer operation is here. Start with the next useful step or open an agent that
+            is already working.
           </p>
         </div>
         <Link
           href="/agents"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-accent-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-700 focus-visible:outline-none"
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-[13px] font-semibold text-background transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:opacity-90 active:translate-y-px"
         >
-          <Sparkles className="size-4" />
-          Configure agents
+          Manage agents
+          <ArrowRight className="size-4" />
         </Link>
       </header>
 
-      <section
-        data-dashboard-motion
-        className="dashboard-launch ember-wash overflow-hidden rounded-2xl border border-accent-200 shadow-subtle dark:border-accent-900/60"
-      >
-        <div className="grid gap-8 px-6 py-7 lg:grid-cols-[1.05fr_1.95fr] lg:px-8 lg:py-8">
-          <div>
-            <div className="mb-5 inline-flex size-10 items-center justify-center rounded-xl bg-accent-600 text-white shadow-sm">
-              <Sparkles className="size-5" />
+      <LiveRail
+        loading={loading}
+        items={[
+          { label: 'Agents live', value: String(activeAgents) },
+          { label: 'Connections ready', value: String(activeConnections) },
+          { label: 'Recent conversations', value: String(conversations.length) },
+          { label: 'Messages this month', value: String(usageQuery.data?.textMessages ?? 0) },
+          { label: 'Knowledge', value: readyKnowledge ? 'Ready' : 'Needs attention' },
+        ]}
+      />
+
+      <section className="mt-6 grid grid-flow-dense grid-cols-1 gap-5 xl:grid-cols-12">
+        <div
+          data-dashboard-stack
+          className="rounded-lg bg-[var(--surface-sunken)] p-5 sm:p-7 xl:col-span-8"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[14px] font-semibold text-foreground">Your next steps</p>
+              <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+                Finish setup once, then let Voomate keep the operation in sync.
+              </p>
             </div>
-            <p className="text-sm font-semibold text-foreground">Get your agent operation live</p>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-              Four visible steps take the platform from an empty workspace to a tested customer
-              workflow.
-            </p>
-            <div className="mt-6 flex items-center gap-3 text-sm text-muted-foreground">
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-accent-100 dark:bg-accent-950">
-                <div className="h-full w-0 rounded-full bg-accent-600" />
-              </div>
-              <span className="shrink-0 font-medium text-foreground">{completed} of 4</span>
-            </div>
+            <span className="text-[12px] font-semibold tabular-nums text-muted-foreground">
+              {completed} of {setupSteps.length}
+            </span>
           </div>
 
-          <ol className="grid gap-2 sm:grid-cols-2">
-            {setupSteps.map((step, index) => {
+          <div className="mt-5 h-1 overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/[0.09]">
+            <div
+              className="h-full rounded-full bg-accent-400 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
+              style={{
+                transform: 'scaleX(' + completed / setupSteps.length + ')',
+                transformOrigin: 'left',
+              }}
+            />
+          </div>
+
+          <ol className="mt-5 space-y-1.5">
+            {setupSteps.map((step) => {
+              const isNext = nextStep?.title === step.title;
               const Icon = step.icon;
               return (
                 <li key={step.title}>
                   <Link
                     href={step.href}
-                    className="group flex min-h-[104px] items-start gap-3 rounded-xl border border-transparent bg-white/70 p-4 transition hover:border-accent-200 hover:bg-white hover:shadow-subtle dark:bg-ink-900/70 dark:hover:border-accent-800"
+                    className={cn(
+                      'group flex min-h-[68px] items-center gap-3 rounded-lg px-3 py-3 transition-[background-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:translate-y-px sm:px-4',
+                      isNext
+                        ? 'bg-accent-50 dark:bg-accent-950/30'
+                        : 'hover:bg-white dark:hover:bg-white/[0.05]',
+                    )}
                   >
                     <span
                       className={cn(
-                        'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
+                        'grid size-8 shrink-0 place-items-center rounded-lg',
                         step.complete
-                          ? 'bg-positive text-white'
-                          : 'bg-accent-100 text-accent-700 dark:bg-accent-900/60 dark:text-accent-200',
+                          ? 'bg-positive-soft text-positive dark:bg-emerald-950/35'
+                          : isNext
+                            ? 'bg-accent-100 text-accent-700 dark:bg-accent-900/40 dark:text-accent-200'
+                            : 'bg-white text-muted-foreground dark:bg-white/[0.06]',
                       )}
                     >
-                      {step.complete ? <Check className="size-4" /> : index + 1}
+                      {step.complete ? <Check className="size-4" /> : <Icon className="size-4" />}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center justify-between gap-3 text-sm font-semibold text-foreground">
+                      <span className="flex flex-wrap items-center gap-2 text-[13.5px] font-semibold text-foreground">
                         {step.title}
-                        <Icon className="size-4 text-muted-foreground transition group-hover:text-accent-600" />
+                        {step.optional && (
+                          <span className="text-[11px] font-medium text-muted-foreground">
+                            Optional
+                          </span>
+                        )}
                       </span>
-                      <span className="mt-1 block text-[13px] leading-5 text-muted-foreground">
-                        {step.description}
+                      <span className="mt-0.5 block text-[12.5px] leading-5 text-muted-foreground">
+                        {step.detail}
                       </span>
                     </span>
+                    <ArrowRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-[opacity,transform] duration-300 group-hover:translate-x-0.5 group-hover:opacity-100" />
                   </Link>
                 </li>
               );
             })}
           </ol>
         </div>
-      </section>
 
-      <section className="dashboard-operation-grid mt-8 grid gap-6 xl:grid-cols-[1.55fr_1fr]">
-        <div
-          data-dashboard-motion
-          className="rounded-2xl border border-border bg-card shadow-subtle"
+        <aside
+          data-dashboard-stack
+          className="rounded-lg bg-[var(--surface-soft)] p-5 sm:p-7 xl:col-span-4"
         >
-          <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
-            <div>
-              <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground">
-                Your AI operation
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Live information appears here once you publish an agent.
-              </p>
-            </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-1 text-xs font-medium text-ink-600 dark:bg-ink-800 dark:text-ink-300">
-              {activeAgents > 0 ? (
-                <CircleCheck className="size-3.5 text-positive" />
-              ) : (
-                <CircleAlert className="size-3.5" />
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[14px] font-semibold text-foreground">Workspace pulse</p>
+            <span
+              className={cn(
+                'flex items-center gap-1.5 text-[11px] font-medium',
+                loading || activeAgents === 0 ? 'text-muted-foreground' : 'text-positive',
               )}
-              {activeAgents > 0 ? 'Live' : 'Ready to configure'}
+            >
+              <span className="relative flex size-2">
+                {!loading && activeAgents > 0 && (
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-positive opacity-35" />
+                )}
+                <span
+                  className={cn(
+                    'relative inline-flex size-2 rounded-full',
+                    loading || activeAgents === 0 ? 'bg-ink-400' : 'bg-positive',
+                  )}
+                />
+              </span>
+              {loading ? 'Checking' : activeAgents > 0 ? 'Live' : 'Quiet'}
             </span>
           </div>
-          <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-            {[
-              [
-                'Agents live',
-                String(activeAgents),
-                `${agents.length} configured in this workspace`,
-                Bot,
-              ],
-              [
-                'Messages this month',
-                String(usage?.textMessages ?? 0),
-                `${usage?.voiceMinutes ?? 0} voice minutes`,
-                MessageSquare,
-              ],
-              [
-                'Recent conversations',
-                String(recentConversations),
-                recentConversations === 100
-                  ? 'Showing the latest 100'
-                  : 'Recorded for this workspace',
-                Radio,
-              ],
-            ].map(([label, value, detail, Icon]) => {
-              const MetricIcon = Icon as typeof Bot;
-              return (
-                <div className="p-5" key={label as string}>
-                  <MetricIcon className="mb-5 size-4 text-muted-foreground" />
-                  <p className="text-3xl font-semibold tracking-[-0.04em] text-foreground">
-                    {value as string}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-foreground">{label as string}</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{detail as string}</p>
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-3 border-t border-border bg-ink-50/70 px-6 py-4 text-sm text-muted-foreground dark:bg-ink-950/30">
-            <CircleCheck className="size-4 shrink-0 text-positive" />
-            Your workspace is secure and ready to configure.
-          </div>
-        </div>
+          <dl className="mt-7 space-y-7">
+            <Metric
+              label="Agents live"
+              value={loading ? '—' : String(activeAgents)}
+              detail={String(agents.length) + ' created'}
+            />
+            <Metric
+              label="Recent conversations"
+              value={loading ? '—' : String(conversations.length)}
+              detail={conversations.length === 100 ? 'Latest 100 shown' : 'In this workspace'}
+            />
+            <Metric
+              label="Messages this month"
+              value={loading ? '—' : String(usageQuery.data?.textMessages ?? 0)}
+              detail={String(usageQuery.data?.voiceMinutes ?? 0) + ' voice minutes'}
+            />
+          </dl>
+          <Link
+            href="/usage"
+            className="mt-7 inline-flex min-h-9 items-center gap-2 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+          >
+            View usage <ArrowRight className="size-3.5" />
+          </Link>
+        </aside>
 
-        <div
-          data-dashboard-motion
-          className="rounded-2xl border border-border bg-card p-6 shadow-subtle"
-        >
-          <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground">
-            Continue building
-          </h2>
-          <div className="mt-4 divide-y divide-border">
-            {nextActions.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  className="group flex gap-3 py-4 first:pt-0 last:pb-0"
-                  href={item.href}
-                  key={item.title}
-                >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-200">
-                    <Icon className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-foreground">
-                      {item.title}
-                    </span>
-                    <span className="mt-1 block text-[13px] leading-5 text-muted-foreground">
-                      {item.description}
-                    </span>
-                    <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-accent-600">
-                      {item.action}{' '}
-                      <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
-                    </span>
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section
-        data-dashboard-motion
-        className="mt-6 rounded-2xl border border-border bg-card px-6 py-5 shadow-subtle"
-      >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-200">
-              <Globe2 className="size-4" />
-            </span>
+        <div data-dashboard-stack className="min-w-0 xl:col-span-12">
+          <div className="flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-sm font-semibold text-foreground">
-                Your agents, one shared operation
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Web and Voice Calling connect through the Integration Agent to approved knowledge,
-                tools, permissions, and logs.
-              </p>
+              <h2 className="text-[16px] font-semibold text-foreground">Your agents</h2>
+              <p className="mt-1 text-[13px] text-muted-foreground">Pick up where you left off.</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {agents.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => moveAgentRail(-1)}
+                    aria-label="Previous agents"
+                    title="Previous agents"
+                    className="grid size-9 place-items-center rounded-lg bg-[var(--surface-soft)] text-muted-foreground transition-[background-color,color,transform] duration-300 hover:bg-[var(--surface-sunken)] hover:text-foreground active:translate-y-px"
+                  >
+                    <ChevronLeft className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveAgentRail(1)}
+                    aria-label="Next agents"
+                    title="Next agents"
+                    className="grid size-9 place-items-center rounded-lg bg-[var(--surface-soft)] text-muted-foreground transition-[background-color,color,transform] duration-300 hover:bg-[var(--surface-sunken)] hover:text-foreground active:translate-y-px"
+                  >
+                    <ChevronRight className="size-4" />
+                  </button>
+                </>
+              )}
+              <Link
+                href="/agents"
+                className="ml-1 inline-flex min-h-9 items-center gap-1.5 px-2 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+              >
+                View all <ArrowRight className="size-3.5" />
+              </Link>
             </div>
           </div>
-          <Link
-            href="/agents"
-            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-accent-600 hover:text-accent-700"
-          >
-            Explore agents <ChevronRight className="size-4" />
-          </Link>
+
+          {agents.length === 0 ? (
+            <div className="mt-4 flex min-h-44 flex-col items-start justify-center rounded-lg bg-[var(--surface-sunken)] px-6 py-8 sm:px-8">
+              <span className="grid size-10 place-items-center rounded-lg bg-accent-50 text-accent-700 dark:bg-accent-950/30 dark:text-accent-200">
+                <Bot className="size-5" />
+              </span>
+              <h3 className="mt-4 text-[15px] font-semibold text-foreground">
+                Create your first agent
+              </h3>
+              <p className="mt-1 max-w-md text-[13px] leading-5 text-muted-foreground">
+                Start with the Web Agent. Teach, test, and publish it from one place.
+              </p>
+              <Link
+                href="/agents"
+                className="mt-5 inline-flex min-h-9 items-center gap-2 rounded-lg bg-foreground px-3.5 text-[12.5px] font-semibold text-background transition-[opacity,transform] duration-300 hover:opacity-90 active:translate-y-px"
+              >
+                Choose an agent <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          ) : (
+            <div
+              ref={agentRailRef}
+              className="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {agents.map((agent) => (
+                <AgentRow agent={agent} key={agent.id} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>
+  );
+}
+
+function LiveRail({
+  items,
+  loading,
+}: {
+  items: Array<{ label: string; value: string }>;
+  loading: boolean;
+}) {
+  return (
+    <div
+      data-dashboard-motion
+      className="dashboard-live-rail mt-7 overflow-hidden rounded-lg bg-[var(--surface-soft)] py-2.5"
+      aria-label="Live workspace status"
+    >
+      <div className="dashboard-live-track flex w-max items-center">
+        {[false, true].map((duplicate) => (
+          <div
+            key={String(duplicate)}
+            aria-hidden={duplicate || undefined}
+            className="flex shrink-0 items-center"
+          >
+            {items.map((item) => (
+              <div key={item.label} className="flex items-center gap-2 px-5 text-[11.5px]">
+                <span className="size-1.5 rounded-full bg-accent-400" />
+                <span className="text-muted-foreground">{item.label}</span>
+                <span className="font-semibold tabular-nums text-foreground">
+                  {loading ? '—' : item.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className="flex items-end justify-between gap-4">
+      <dt>
+        <p className="text-[13px] font-medium text-foreground">{label}</p>
+        <p className="mt-0.5 text-[11.5px] text-muted-foreground">{detail}</p>
+      </dt>
+      <dd className="text-2xl font-semibold tabular-nums text-foreground">{value}</dd>
+    </div>
+  );
+}
+
+function AgentRow({ agent }: { agent: Agent }) {
+  const live = agent.status === 'published';
+  return (
+    <Link
+      href={'/agents/' + agent.id}
+      className="group flex min-h-28 w-[min(22rem,86vw)] shrink-0 snap-start items-center gap-4 rounded-lg bg-[var(--surface-soft)] px-4 py-4 transition-[background-color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[var(--surface-sunken)] hover:shadow-[0_10px_30px_rgba(20,20,18,0.06)] active:translate-y-px sm:px-5"
+    >
+      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-foreground dark:bg-white/[0.07]">
+        <Bot className="size-[18px]" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[14px] font-semibold text-foreground">
+          {agent.name}
+        </span>
+        <span className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          {live ? (
+            <span className="size-1.5 rounded-full bg-positive" />
+          ) : (
+            <Circle className="size-2.5" />
+          )}
+          {live ? 'Live' : agent.status === 'paused' ? 'Paused' : 'Not published'}
+          {agent.voiceEnabled && ' · Chat and voice'}
+        </span>
+      </span>
+      <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5" />
+    </Link>
   );
 }

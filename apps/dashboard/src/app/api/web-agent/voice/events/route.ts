@@ -1,9 +1,13 @@
+import { and, eq } from 'drizzle-orm';
+import { conversations } from '@voomate/db';
+import { getWebAgentDb } from '@/lib/web-agent/db';
 import { flushRunEvents, logRunEvent, type RunContext } from '@/lib/web-agent/log';
 import { enforceWidgetRateLimit } from '@/lib/web-agent/rate-limit';
 import {
   bearerToken,
   corsHeaders,
   normalizeOrigin,
+  sessionFingerprint,
   verifyWidgetSession,
   voiceEventRequestSchema,
 } from '@/lib/web-agent/security';
@@ -24,6 +28,21 @@ export async function POST(request: Request): Promise<Response> {
     const claims = await verifyWidgetSession(token, origin);
     await enforceWidgetRateLimit(`${claims.keyFingerprint}:${origin}:voice-events`);
     const input = voiceEventRequestSchema.parse(await request.json());
+    if (input.conversationId) {
+      const [conversation] = await getWebAgentDb()
+        .select({ id: conversations.id })
+        .from(conversations)
+        .where(
+          and(
+            eq(conversations.id, input.conversationId),
+            eq(conversations.organizationId, claims.organizationId),
+            eq(conversations.agentId, claims.agentId),
+            eq(conversations.visitorId, sessionFingerprint(claims.visitorSessionId)),
+          ),
+        )
+        .limit(1);
+      if (!conversation) throw new Error('Conversation does not belong to this session.');
+    }
     const context: RunContext = {
       organizationId: claims.organizationId,
       agentId: claims.agentId,

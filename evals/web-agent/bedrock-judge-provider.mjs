@@ -17,7 +17,7 @@ export default class BedrockJudgeProvider {
   async callApi(prompt) {
     const gradingPrompt = typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
     let lastError;
-    for (const delay of [0, 1_200, 3_000]) {
+    for (const delay of [0, 2_500, 6_000, 12_000]) {
       if (delay) await sleep(delay);
       try {
         const response = await this.client.send(

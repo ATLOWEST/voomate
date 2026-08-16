@@ -121,7 +121,6 @@ Examples:
 | Security | protection, vigilance, boundary | shield, eye, seal, protected core |
 | Gaming / betting | chance, reward, tension, speed | dice, gem, card, signal, trophy |
 | Voice AI | sound, rhythm, command, flow | waveform, mic, orb, speech path |
-| Compliance | trust, order, rules, protection | seal, dog, badge, document, shield |
 | Drone / robotics | flight, control, vision, mission | wing, owl, crosshair, path, zone |
 | Luxury / editorial | taste, material, ritual, restraint | monogram, seal, paper, emboss, mark |
 | Productivity | focus, momentum, clarity | path, check, block, calendar, light |

@@ -10,12 +10,12 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, action, below }: PageHeaderProps) {
   return (
-    <div className="border-b border-border/50 bg-card/30">
-      <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-5 max-w-7xl mx-auto">
+    <div className="bg-background">
+      <div className="mx-auto flex max-w-[1280px] flex-col gap-5 px-5 pb-4 pt-5 sm:flex-row sm:items-end sm:justify-between sm:px-8 sm:pt-8 lg:px-10">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
+          <h1 className="text-3xl font-semibold leading-tight text-foreground">{title}</h1>
           {description !== undefined && (
-            <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 max-w-xl text-[13.5px] leading-6 text-muted-foreground">
               {description}
             </p>
           )}
@@ -28,5 +28,5 @@ export function PageHeader({ title, description, action, below }: PageHeaderProp
 }
 
 export function PageBody({ children }: { children: ReactNode }) {
-  return <div className="mx-auto max-w-7xl px-6 py-8">{children}</div>;
+  return <div className="mx-auto max-w-[1280px] px-5 pb-14 pt-5 sm:px-8 lg:px-10">{children}</div>;
 }

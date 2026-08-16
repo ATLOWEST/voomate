@@ -8,7 +8,7 @@ import {
 import { readOnlyConnections, readOnlyConnectionSecrets, readOnlyInvocations } from '@voomate/db';
 import { and, eq } from 'drizzle-orm';
 import { getWebAgentDb } from './db';
-import { logRunEvent, type RunContext } from './log';
+import { logRunEvent, recordRunUsage, type RunContext } from './log';
 import { authorizeLiveRead } from './live-read-policy';
 
 export interface LiveReadCapability extends ReadCapabilityManifest {
@@ -103,6 +103,7 @@ export async function executeLiveRead(
     });
     if (!authorization.allowed) throw new LiveReadPolicyDeniedError(authorization.reason);
     const secret = openConnectionSecret(connection.ciphertext, encryptionKey());
+    recordRunUsage(context, 'live_read_calls', 1);
     const result = await invokeReadOnlyCapability({
       endpoint: connection.endpointUrl,
       connectionId: capability.connectionId,
@@ -150,6 +151,7 @@ export async function executeLiveRead(
     return result.data;
   } catch (error) {
     const denied = error instanceof LiveReadPolicyDeniedError;
+    recordRunUsage(context, 'tool_failures', 1);
     await db.insert(readOnlyInvocations).values({
       organizationId: context.organizationId,
       agentId: context.agentId,

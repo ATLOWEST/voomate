@@ -15,6 +15,7 @@ import {
   BedrockRuntimeClient,
   ConverseStreamCommand,
   ConverseCommand,
+  type ContentBlock,
   type Message,
 } from '@aws-sdk/client-bedrock-runtime';
 import {
@@ -29,11 +30,12 @@ import {
   type KnowledgeDocumentId,
   type TurnGrounding,
 } from '@voomate/core';
-import { matchKnowledgeChunks, type Database } from '@voomate/db';
+import { agentActiveTools, matchKnowledgeChunks, type Database } from '@voomate/db';
 import type { AgentId, OrganizationId } from '@voomate/core';
+import { and, eq } from 'drizzle-orm';
 import { getAwsConfig } from '../config.js';
 import { embedText } from './embeddings.js';
-import { getAllTools, buildToolConfig } from './tools/registry.js';
+import { getAllTools, buildToolConfig, toBedrockDocument } from './tools/registry.js';
 import { executeToolHarness } from './execution-harness.js';
 
 let client: BedrockRuntimeClient | undefined;
@@ -160,7 +162,6 @@ export const answer = async (
   if (!request.history || request.history.length === 0) {
     const cachedStr = await redis?.get<string>(cacheKey);
     if (cachedStr) {
-      console.log(`[Agent] Serving cached response for org ${request.organizationId}`);
       const cached = typeof cachedStr === 'string' ? JSON.parse(cachedStr) : cachedStr;
       // Simulate streaming
       onDelta?.({ delta: cached.text });
@@ -185,7 +186,6 @@ export const answer = async (
         db: request.db,
         organizationId: request.organizationId,
         agentId: request.agentId,
-        conversationId: request.history?.length ? 'active-conversation' : undefined,
         toolName: 'escalate_to_human',
         toolInput: {
           reason: 'User repeated the exact same question 3 times in a row.',
@@ -247,21 +247,38 @@ CRITICAL DIRECTIVES:
 
   const system = baseSystem + '\n' + strictGuardrails;
 
-  let messages = toMessages(request.history, buildUserTurn(request.question, block));
+  const messages = toMessages(request.history, buildUserTurn(request.question, block));
   let text = '';
   let firstTokenMs = 0;
 
   const allTools = getAllTools();
 
-  const activeIntegrations = await request.db.query.organizationIntegrations.findMany({
-    where: (t, { eq, and }) =>
-      and(eq(t.organizationId, request.organizationId), eq(t.status, 'active')),
-  });
+  const [activeIntegrations, activeToolRows] = await Promise.all([
+    request.db.query.organizationIntegrations.findMany({
+      where: (t, { eq, and }) =>
+        and(eq(t.organizationId, request.organizationId), eq(t.status, 'active')),
+    }),
+    request.db
+      .select({ toolName: agentActiveTools.toolName })
+      .from(agentActiveTools)
+      .where(
+        and(
+          eq(agentActiveTools.organizationId, request.organizationId),
+          eq(agentActiveTools.agentId, request.agentId),
+          eq(agentActiveTools.status, 'active'),
+        ),
+      ),
+  ]);
 
   const activeProviders = new Set(activeIntegrations.map((i) => i.provider));
+  const activeToolNames = new Set(activeToolRows.map(({ toolName }) => toolName));
 
-  // Only inject tools that have no provider dependency (e.g. core tools)
-  const tools = allTools.filter((t) => !t.provider || activeProviders.has(t.provider));
+  const tools = allTools.filter(
+    (tool) =>
+      tool.implementation !== 'placeholder' &&
+      (tool.builtin === true || activeToolNames.has(tool.name)) &&
+      (!tool.provider || activeProviders.has(tool.provider)),
+  );
   const toolConfig = buildToolConfig(tools);
 
   // --------------------------------------------------------------------------------
@@ -296,8 +313,6 @@ CRITICAL DIRECTIVES:
     targetModelId = 'amazon.nova-pro-v1:0';
   }
 
-  console.log(`[Agent] Routing query to: ${targetModelId}`);
-
   try {
     // ReAct loop: keep talking to Nova Pro until it gives us a text response.
     let iterationCount = 0;
@@ -310,11 +325,10 @@ CRITICAL DIRECTIVES:
         );
 
         // Auto-Escalate when stuck in a tool loop
-        await executeToolHarness({
+        const escalation = await executeToolHarness({
           db: request.db,
           organizationId: request.organizationId,
           agentId: request.agentId,
-          conversationId: request.history?.length ? 'active-conversation' : undefined,
           toolName: 'escalate_to_human',
           toolInput: {
             reason: 'System detected an infinite tool loop (Agent Stuck).',
@@ -323,7 +337,9 @@ CRITICAL DIRECTIVES:
         });
 
         const loopHandoffText =
-          '\n\nI apologize, but I am having trouble completing this request right now. I have paused the automated system and escalated this to a human agent.';
+          escalation.status === 'success'
+            ? '\n\nI am having trouble completing this request, so I paused this conversation for the support team to review.'
+            : '\n\nI could not complete this request or create a handoff. Please contact the support team directly; no action was completed.';
         text += loopHandoffText;
         onDelta?.({ delta: loopHandoffText });
         break;
@@ -339,15 +355,11 @@ CRITICAL DIRECTIVES:
           maxTokens: request.channel === 'voice' ? 300 : 800,
         },
       });
-      console.log('--- EXACT BEDROCK INPUT START ---');
-      console.log(JSON.stringify({ system, messages }, null, 2));
-      console.log('--- EXACT BEDROCK INPUT END ---');
-
       const response = await getClient().send(command, { abortSignal: request.signal });
       if (response.stream === undefined) throw internal('Bedrock returned no stream.');
 
       let stopReason: string | undefined;
-      let toolUseBlocks: { toolUseId: string; name: string; input: string }[] = [];
+      const toolUseBlocks: { toolUseId: string; name: string; input: string }[] = [];
       let currentToolUseIdx = -1;
 
       // Ensure we record the assistant's turn in the history
@@ -408,13 +420,12 @@ CRITICAL DIRECTIVES:
         messages.push(assistantMessage);
 
         // Execute all requested tools via the Secure Execution Harness
-        const toolResultBlocks: any[] = [];
+        const toolResultBlocks: ContentBlock[] = [];
         for (const tu of toolUseBlocks) {
           const result = await executeToolHarness({
             db: request.db,
             organizationId: request.organizationId,
             agentId: request.agentId,
-            conversationId: request.history?.length ? 'active-conversation' : undefined,
             toolName: tu.name,
             toolInput: JSON.parse(tu.input || '{}'),
           });
@@ -422,7 +433,13 @@ CRITICAL DIRECTIVES:
           toolResultBlocks.push({
             toolResult: {
               toolUseId: tu.toolUseId,
-              content: [{ json: result.result || { error: result.error } }],
+              content: [
+                {
+                  json: toBedrockDocument(
+                    result.result ?? { error: result.error ?? 'Tool execution failed.' },
+                  ),
+                },
+              ],
               status: result.status === 'success' ? 'success' : 'error',
             },
           });

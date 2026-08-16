@@ -1,6 +1,11 @@
+import pytest
 from pipecat.frames.frames import TranscriptionFrame
 
-from bot import production_vad_params
+from bot import (
+    generative_polly_settings,
+    production_vad_params,
+    required_transcribe_vocabulary_name,
+)
 from voomate_voice.telemetry import should_accept_transcript, transcript_confidence
 
 
@@ -25,6 +30,21 @@ def test_production_vad_is_conservative():
     assert params.confidence >= 0.8
     assert params.min_volume >= 0.7
     assert params.stop_secs >= 0.6
+
+
+def test_voice_requires_generative_polly_and_a_custom_vocabulary(monkeypatch):
+    monkeypatch.setenv("POLLY_ENGINE", "generative")
+    monkeypatch.setenv("TRANSCRIBE_VOCABULARY_NAME", "voomate-web-agent-en-us")
+    assert generative_polly_settings().engine == "generative"
+    assert required_transcribe_vocabulary_name() == "voomate-web-agent-en-us"
+
+    monkeypatch.delenv("TRANSCRIBE_VOCABULARY_NAME")
+    with pytest.raises(RuntimeError, match="TRANSCRIBE_VOCABULARY_NAME"):
+        required_transcribe_vocabulary_name()
+
+    monkeypatch.setenv("POLLY_ENGINE", "neural")
+    with pytest.raises(RuntimeError, match="POLLY_ENGINE=generative"):
+        generative_polly_settings()
 
 
 def test_transcript_confidence_averages_pronunciation_items():

@@ -7,7 +7,7 @@ import { attachImagesToMessage, consumeImagesForMessage } from './images';
 import { logRunEvent, recordRunUsage, type RunContext } from './log';
 import { retrieveWebAgentKnowledge } from './knowledge';
 import { runBedrockInlineAgentTurn } from './bedrock-inline-agent';
-import { createCustomerFacingStream, sanitizeCustomerFacingReply } from './customer-language';
+import { createCustomerFacingStream, validateCustomerFacingReply } from './customer-language';
 import { sessionFingerprint, type WidgetClaims } from './security';
 import { decideDialogue } from './dialogue-manager';
 import { listLiveReadCapabilities } from './live-data';
@@ -125,6 +125,7 @@ export async function runWebAgentTurn(args: {
     eventBuffer: [],
     usageBuffer: [],
   };
+  recordRunUsage(context, 'agent_runs', 1);
   await args.onStarted?.(context);
   await logRunEvent(context, 'message_received', 'success', {
     channel: input.channel,
@@ -236,9 +237,18 @@ export async function runWebAgentTurn(args: {
 
   let reply: string;
   const structuredResults: unknown[] = [];
-  const customerStream = createCustomerFacingStream(args.onTextDelta);
+  const responseGuardInterventions = new Set<string>();
+  const validateReply = (candidate: string): string => {
+    const checked = validateCustomerFacingReply(candidate, input.message);
+    if (checked.reason) responseGuardInterventions.add(checked.reason);
+    return checked.reply;
+  };
+  const customerStream = createCustomerFacingStream(args.onTextDelta, {
+    visitorMessage: input.message,
+    onCorrection: (reason) => responseGuardInterventions.add(reason),
+  });
   if (decision.kind === 'agent' && orchestration.directReply) {
-    reply = sanitizeCustomerFacingReply(orchestration.directReply);
+    reply = validateReply(orchestration.directReply);
     await customerStream.push(reply);
     await customerStream.flush();
     await logRunEvent(context, 'platform_assistance_policy', 'success', {
@@ -262,10 +272,10 @@ export async function runWebAgentTurn(args: {
       onTextDelta: (text) => customerStream.push(text),
       onStructuredResult: (value) => structuredResults.push(value),
     });
-    reply = sanitizeCustomerFacingReply(reply);
+    reply = validateReply(reply);
     await customerStream.flush();
   } else {
-    reply = sanitizeCustomerFacingReply(decision.reply);
+    reply = validateReply(decision.reply);
   }
   if (decision.kind !== 'agent') {
     await customerStream.push(reply);
@@ -305,6 +315,20 @@ export async function runWebAgentTurn(args: {
       reason: decision.reason,
     });
   }
+  await logRunEvent(context, 'customer_response_quality', 'success', {
+    publicLanguageVerified: true,
+    guardInterventions: [...responseGuardInterventions],
+    responseShape: /\n(?:[-*]|\d+\.)\s/.test(reply)
+      ? 'structured'
+      : reply.split(/\s+/).length <= 45
+        ? 'concise'
+        : 'detailed',
+    sourceCount: orchestration.sources.length,
+    knowledgeSourceCount: knowledge.length,
+    liveCapabilityCount: orchestration.capabilities.length,
+    structuredResultCount: structuredResults.length,
+  });
+  recordRunUsage(context, 'response_guard_interventions', responseGuardInterventions.size);
   await logRunEvent(context, 'response_returned', 'success', { channel: input.channel });
   await logRunEvent(
     context,

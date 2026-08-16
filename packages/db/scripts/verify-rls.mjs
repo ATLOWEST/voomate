@@ -37,6 +37,48 @@ const check = (name, passed, detail) => {
   console.log(`  ${passed ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`);
 };
 
+// Do not rely on a handwritten table list here. Every public table that carries an
+// organization_id is tenant-scoped by definition, and PostgreSQL's own catalog is the source
+// of truth. This makes adding a table without a policy an immediate verification failure.
+const rlsInventory = await sql`
+  select
+    c.relname as table_name,
+    c.relrowsecurity as rls_enabled,
+    c.relforcerowsecurity as rls_forced,
+    count(p.policyname)::int as policy_count
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  left join pg_policies p
+    on p.schemaname = n.nspname and p.tablename = c.relname
+  where n.nspname = 'public'
+    and c.relkind = 'r'
+    and (
+      c.relname in ('users', 'organizations')
+      or exists (
+        select 1
+        from information_schema.columns i
+        where i.table_schema = 'public'
+          and i.table_name = c.relname
+          and i.column_name = 'organization_id'
+      )
+    )
+  group by c.relname, c.relrowsecurity, c.relforcerowsecurity
+  order by c.relname
+`;
+
+for (const table of rlsInventory) {
+  check(
+    `${table.table_name}: RLS is enabled and forced`,
+    table.rls_enabled && table.rls_forced,
+    `enabled=${table.rls_enabled}, forced=${table.rls_forced}`,
+  );
+  check(
+    `${table.table_name}: has an explicit policy`,
+    table.policy_count > 0,
+    `${table.policy_count} policy/policies`,
+  );
+}
+
 const orgA = randomUUID();
 const orgB = randomUUID();
 const userA = randomUUID();
@@ -74,6 +116,21 @@ try {
                 ${agentDefaults.language}, ${JSON.stringify({ displayName: 'Bella', tone: 'friendly' })},
                 ${agentDefaults.appearance}, ${`emk_b_${agentB.slice(0, 8)}`})`;
 
+    await tx`insert into public.agent_active_tools
+               (organization_id, agent_id, tool_name, status)
+             values (${orgA}, ${agentA}, 'tenant_a_tool', 'active'),
+                    (${orgB}, ${agentB}, 'tenant_b_tool', 'active')`;
+
+    await tx`insert into public.organization_integrations
+               (organization_id, provider, credentials, status)
+             values (${orgA}, 'tenant-a-provider', ${JSON.stringify({ token: 'a-secret' })}, 'active'),
+                    (${orgB}, 'tenant-b-provider', ${JSON.stringify({ token: 'b-secret' })}, 'active')`;
+
+    await tx`insert into public.tool_audit_logs
+               (organization_id, agent_id, tool_name, status, inputs, latency_ms)
+             values (${orgA}, ${agentA}, 'tenant_a_tool', 'gated', '{}', 1),
+                    (${orgB}, ${agentB}, 'tenant_b_tool', 'gated', '{}', 1)`;
+
     // Become tenant A, as the dashboard's Supabase client does: the `authenticated` role plus
     // a JWT whose `sub` is the user. auth.uid() reads that claim, and every policy hangs off it.
     const becomeUserA = async () => {
@@ -108,6 +165,27 @@ try {
 
     const users = await tx`select id from public.users`;
     check('users: sees own row only', users.length === 1 && users[0].id === userA);
+
+    const activeTools = await tx`select organization_id from public.agent_active_tools`;
+    check(
+      'agent_active_tools: sees own tenant only',
+      activeTools.length === 1 && activeTools[0].organization_id === orgA,
+      `saw ${activeTools.length} row(s)`,
+    );
+
+    const integrationCredentials = await tx`select organization_id from public.organization_integrations`;
+    check(
+      'organization_integrations: credentials are not directly readable',
+      integrationCredentials.length === 0,
+      `saw ${integrationCredentials.length} row(s)`,
+    );
+
+    const toolReceipts = await tx`select organization_id from public.tool_audit_logs`;
+    check(
+      'tool_audit_logs: admin sees own tenant only',
+      toolReceipts.length === 1 && toolReceipts[0].organization_id === orgA,
+      `saw ${toolReceipts.length} row(s)`,
+    );
 
     // Writing into another tenant is the more damaging direction — it is how one merchant
     // would poison another's knowledge base.

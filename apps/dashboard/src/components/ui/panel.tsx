@@ -8,12 +8,7 @@ interface PanelProps {
 
 export function Panel({ children, className }: PanelProps) {
   return (
-    <section
-      className={cn(
-        'bg-card border border-border/50 rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] dark:shadow-[0_2px_12px_rgba(255,255,255,0.03)] transition-shadow duration-300 hover:shadow-lg overflow-hidden',
-        className,
-      )}
-    >
+    <section className={cn('overflow-hidden rounded-lg bg-[var(--surface-soft)]', className)}>
       {children}
     </section>
   );
@@ -27,7 +22,7 @@ interface PanelHeaderProps {
 
 export function PanelHeader({ title, description, action }: PanelHeaderProps) {
   return (
-    <header className="flex items-start justify-between gap-4 border-b border-border/50 px-6 py-5 bg-muted/10">
+    <header className="flex items-start justify-between gap-4 px-6 pb-2 pt-6">
       <div className="min-w-0">
         <h2 className="text-[16px] font-semibold tracking-tight text-foreground">{title}</h2>
         {description !== undefined && (
@@ -45,12 +40,7 @@ export function PanelBody({ children, className }: PanelProps) {
 
 export function PanelFooter({ children, className }: PanelProps) {
   return (
-    <footer
-      className={cn(
-        'flex items-center justify-end gap-3 border-t border-border/50 px-6 py-4 bg-muted/10',
-        className,
-      )}
-    >
+    <footer className={cn('flex items-center justify-end gap-3 px-6 pb-5 pt-3', className)}>
       {children}
     </footer>
   );

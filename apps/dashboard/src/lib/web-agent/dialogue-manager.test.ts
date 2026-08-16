@@ -16,6 +16,15 @@ describe('dialogue manager', () => {
     });
   });
 
+  it('answers an understanding check directly instead of classifying it as vague', () => {
+    expect(
+      decideDialogue({ ...context, message: 'Hey, can you understand me, how am I?' }),
+    ).toMatchObject({
+      kind: 'social',
+      reply: 'Yes, I can understand you. What would you like help with?',
+    });
+  });
+
   it('answers a name question once without a stock closing', () => {
     expect(decideDialogue({ ...context, message: 'what is your name' })).toEqual({
       kind: 'identity',

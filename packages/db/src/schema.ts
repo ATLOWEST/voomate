@@ -113,6 +113,13 @@ export const usageKindEnum = pgEnum('usage_kind', [
   'image_upload_bytes',
   'embedding_input_tokens',
   'tts_characters',
+  'agent_runs',
+  'model_invocations',
+  'knowledge_queries',
+  'live_read_calls',
+  'tool_calls',
+  'tool_failures',
+  'response_guard_interventions',
 ]);
 
 // --- Shared column helpers ------------------------------------------------------------------
@@ -359,7 +366,10 @@ export const organizationIntegrations = pgTable(
       .references(() => organizations.id, { onDelete: 'cascade' }),
     /** e.g. "shopify", "calendly", "hubspot" */
     provider: text('provider').notNull(),
-    /** Encrypted payload containing API keys, access tokens, etc. */
+    /**
+     * Legacy provider payload. Real provider tools stay disabled until this contains only an
+     * encrypted envelope or secret-manager reference; plaintext credentials are not permitted.
+     */
     credentials: jsonb('credentials').notNull(),
     status: integrationStatusEnum('status').notNull().default('active'),
     ...timestamps,
@@ -446,8 +456,14 @@ export const readOnlyInvocations = pgTable(
     capability: text('capability').notNull(),
     status: toolAuditStatusEnum('status').notNull(),
     inputHash: text('input_hash').notNull(),
-    inputFields: text('input_fields').array().notNull().default(sql`ARRAY[]::text[]`),
-    outputFields: text('output_fields').array().notNull().default(sql`ARRAY[]::text[]`),
+    inputFields: text('input_fields')
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
+    outputFields: text('output_fields')
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
     latencyMs: integer('latency_ms').notNull(),
     errorCode: text('error_code'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -948,8 +964,13 @@ export const usageRecords = pgTable(
     conversationId: uuid('conversation_id').references(() => conversations.id, {
       onDelete: 'set null',
     }),
+    /** Present for agent-runtime meters so usage can be reconciled to one exact trace. */
+    runId: uuid('run_id'),
     kind: usageKindEnum('kind').notNull(),
     quantity: real('quantity').notNull(),
+    /** Provider estimate captured when the event was written; one USD equals 1,000,000 micros. */
+    estimatedCostMicrosUsd: integer('estimated_cost_micros_usd').notNull().default(0),
+    pricingVersion: text('pricing_version').notNull().default('unpriced'),
     /** Truncated to the hour for aggregation; the raw event time is `createdAt`. */
     periodHour: timestamp('period_hour', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -957,6 +978,7 @@ export const usageRecords = pgTable(
   (table) => [
     index('usage_records_org_period_idx').on(table.organizationId, table.periodHour),
     index('usage_records_agent_idx').on(table.agentId),
+    uniqueIndex('usage_records_run_kind_idx').on(table.organizationId, table.runId, table.kind),
   ],
 );
 
@@ -1080,6 +1102,7 @@ export const TENANT_SCOPED_TABLES = [
   'knowledge_sources',
   'knowledge_documents',
   'knowledge_chunks',
+  'knowledge_gaps',
   'conversations',
   'messages',
   'message_feedback',
@@ -1088,7 +1111,9 @@ export const TENANT_SCOPED_TABLES = [
   'usage_records',
   'audit_logs',
   'organization_members',
+  'agent_connections',
   'agent_active_tools',
+  'approval_requests',
   'tool_audit_logs',
   'agent_run_events',
   'web_agent_orders',

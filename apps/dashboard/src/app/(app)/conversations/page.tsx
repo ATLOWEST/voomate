@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, MessageSquareText, Mic, RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useApiAuth } from '@/lib/session';
 
@@ -23,6 +24,8 @@ type TranscriptMessage = {
 
 export default function GlobalConversationsPage() {
   const auth = useApiAuth();
+  const searchParams = useSearchParams();
+  const agentId = searchParams.get('agentId');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string>();
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
@@ -34,9 +37,10 @@ export default function GlobalConversationsPage() {
     setError(undefined);
     try {
       const credentials = await auth();
-      const result = await api.get<{ conversations: Conversation[] }>('/v1/conversations', {
-        ...credentials,
-      });
+      const path = agentId
+        ? `/v1/conversations?agentId=${encodeURIComponent(agentId)}`
+        : '/v1/conversations';
+      const result = await api.get<{ conversations: Conversation[] }>(path, { ...credentials });
       setConversations(result.conversations);
       setSelectedId((current) =>
         current && result.conversations.some((item) => item.id === current)
@@ -48,7 +52,7 @@ export default function GlobalConversationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [auth]);
+  }, [agentId, auth]);
 
   useEffect(() => {
     void loadConversations();
@@ -80,35 +84,29 @@ export default function GlobalConversationsPage() {
   }, [auth, selectedId]);
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
+    <main className="mx-auto w-full max-w-[1280px] px-5 pb-14 pt-5 sm:px-8 sm:pt-8 lg:px-10">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-600">
-            Shared customer history
-          </p>
-          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">
-            Conversations
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-[15px]">
-            Chat and website voice use this same transcript. Escalated conversations stay visible
-            here for human review.
+          <h1 className="text-3xl font-semibold text-foreground">Customer inbox</h1>
+          <p className="mt-2 max-w-xl text-[13.5px] leading-6 text-muted-foreground">
+            Review chat and voice conversations, including anything that needs a person.
           </p>
         </div>
         <button
           type="button"
           onClick={() => void loadConversations()}
-          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium hover:bg-ink-100"
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[var(--surface-sunken)] px-3 text-sm font-medium transition-colors hover:bg-[var(--surface-hover)]"
         >
           <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </button>
       </header>
 
       {error ? (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-6 rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
           {error}
         </div>
       ) : conversations.length === 0 && !loading ? (
-        <section className="mt-8 grid min-h-[360px] place-items-center rounded-2xl border border-dashed border-border bg-card px-6 text-center shadow-subtle">
+        <section className="mt-8 grid min-h-[360px] place-items-center rounded-lg bg-[var(--surface-sunken)] px-6 text-center">
           <div>
             <MessageSquareText className="mx-auto size-7 text-accent-600" />
             <h2 className="mt-4 text-lg font-semibold">No conversations yet</h2>
@@ -118,18 +116,18 @@ export default function GlobalConversationsPage() {
           </div>
         </section>
       ) : (
-        <section className="mt-8 grid min-h-[620px] overflow-hidden rounded-2xl border border-border bg-card shadow-subtle lg:grid-cols-[360px_1fr]">
-          <aside className="border-b border-border lg:border-r lg:border-b-0">
-            <div className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <section className="mt-8 grid min-h-[620px] gap-4 lg:grid-cols-[340px_1fr]">
+          <aside className="overflow-hidden rounded-lg bg-[var(--surface-soft)] p-2">
+            <div className="px-3 py-2 text-[12px] font-semibold text-muted-foreground">
               Recent · {conversations.length}
             </div>
-            <div className="max-h-[620px] overflow-y-auto">
+            <div className="max-h-[570px] space-y-1 overflow-y-auto">
               {conversations.map((conversation) => (
                 <button
                   key={conversation.id}
                   type="button"
                   onClick={() => setSelectedId(conversation.id)}
-                  className={`w-full border-b border-border px-4 py-4 text-left transition-colors ${
+                  className={`w-full rounded-lg px-3 py-4 text-left transition-colors ${
                     selectedId === conversation.id
                       ? 'bg-accent-50 dark:bg-accent-950/30'
                       : 'hover:bg-ink-50 dark:hover:bg-ink-900'
@@ -162,17 +160,17 @@ export default function GlobalConversationsPage() {
             </div>
           </aside>
 
-          <div className="flex min-w-0 flex-col">
-            <div className="border-b border-border px-5 py-3 text-sm font-medium">Transcript</div>
+          <div className="flex min-w-0 flex-col overflow-hidden rounded-lg bg-[var(--surface-soft)]">
+            <div className="px-5 py-4 text-sm font-medium">Transcript</div>
             <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-7">
               {messages.map((message) => (
                 <article
                   key={message.id}
-                  className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-6 ${
+                  className={`max-w-[78%] rounded-lg px-4 py-3 text-sm leading-6 ${
                     message.role === 'visitor'
                       ? 'ml-auto bg-foreground text-background'
                       : message.role === 'agent'
-                        ? 'border border-border bg-background text-foreground'
+                        ? 'bg-white text-foreground dark:bg-white/[0.07]'
                         : 'bg-ink-100 text-muted-foreground dark:bg-ink-900'
                   }`}
                 >

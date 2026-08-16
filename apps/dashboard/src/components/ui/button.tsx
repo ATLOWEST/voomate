@@ -5,11 +5,10 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    'bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 shadow-md',
-  secondary: 'bg-card text-foreground border border-border/50 hover:bg-muted/50 shadow-sm',
-  ghost: 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-  danger: 'bg-red-500 text-white hover:bg-red-600 shadow-md',
+  primary: 'bg-foreground text-background hover:opacity-90',
+  secondary: 'bg-[var(--surface-sunken)] text-foreground hover:bg-[var(--surface-hover)]',
+  ghost: 'text-muted-foreground hover:bg-[var(--surface-sunken)] hover:text-foreground',
+  danger: 'bg-red-600 text-white hover:bg-red-700',
 };
 
 const SIZES: Record<Size, string> = {
@@ -45,7 +44,7 @@ export function Button({
       aria-busy={loading}
       className={cn(
         'inline-flex items-center justify-center font-medium whitespace-nowrap',
-        'transition-[background-color,box-shadow,color] duration-150',
+        'transition-[background-color,color,opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:translate-y-px',
         'disabled:cursor-not-allowed disabled:opacity-60',
         VARIANTS[variant],
         SIZES[size],

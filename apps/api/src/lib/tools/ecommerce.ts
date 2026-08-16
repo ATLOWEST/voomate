@@ -4,6 +4,7 @@ import { registerTool } from './registry.js';
 export const registerEcommerceTools = () => {
   registerTool({
     name: 'check_order_status',
+    implementation: 'placeholder',
     description: 'Check the current shipping status of an e-commerce order using the order ID.',
     provider: 'shopify',
     schema: z.object({
@@ -31,6 +32,7 @@ export const registerEcommerceTools = () => {
 
   registerTool({
     name: 'search_products',
+    implementation: 'placeholder',
     description:
       'Search the store catalogue for products matching a query (e.g. category, color, price).',
     provider: 'shopify',

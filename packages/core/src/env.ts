@@ -32,6 +32,15 @@ export const serverEnvSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(4000),
   API_HOST: z.string().default('0.0.0.0'),
   API_CORS_ORIGINS: csv.default('http://localhost:3000,http://localhost:3001'),
+  API_TRUST_PROXY_CIDRS: z
+    .string()
+    .default('')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

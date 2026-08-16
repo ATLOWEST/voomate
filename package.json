@@ -38,7 +38,7 @@
     "smoke": "node scripts/smoke.mjs",
     "demo:web-agent": "node scripts/setup-web-agent-demo.mjs",
     "dogfood:knowledge": "npm run build -w @voomate/connect && node scripts/sync-voomate-dogfood-knowledge.mjs",
-    "eval:web-agent": "LOG_LEVEL=warn PROMPTFOO_DISABLE_TELEMETRY=1 promptfoo eval -c evals/web-agent/promptfooconfig.yaml --env-file .env --no-cache --max-concurrency 1 --delay 1200 --output evals/web-agent/results/latest.json --output evals/web-agent/results/latest.html",
+    "eval:web-agent": "LOG_LEVEL=warn PROMPTFOO_DISABLE_TELEMETRY=1 promptfoo eval -c evals/web-agent/promptfooconfig.yaml --env-file .env --no-cache --max-concurrency 1 --delay 3000 --output evals/web-agent/results/latest.json --output evals/web-agent/results/latest.html",
     "eval:web-agent:conversations": "node scripts/evaluate-web-agent-conversations.mjs",
     "eval:web-agent:baseline": "LOG_LEVEL=warn PROMPTFOO_DISABLE_TELEMETRY=1 WEB_AGENT_HARNESS_FILE=../../apps/dashboard/harness/web-agent.v1.0.0.md promptfoo eval -c evals/web-agent/promptfooconfig.yaml --env-file .env --no-cache --max-concurrency 1 --delay 1200 --output evals/web-agent/results/baseline.json",
     "eval:web-agent:watch": "node scripts/watch-web-agent-evals.mjs",

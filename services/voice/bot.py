@@ -64,6 +64,16 @@ def generative_polly_settings() -> AWSPollyTTSService.Settings:
     )
 
 
+def required_transcribe_vocabulary_name() -> str:
+    """Require the vocabulary contract instead of silently running generic recognition."""
+    vocabulary_name = os.getenv("TRANSCRIBE_VOCABULARY_NAME", "").strip()
+    if not vocabulary_name:
+        raise RuntimeError(
+            "Voomate voice requires TRANSCRIBE_VOCABULARY_NAME; generic Transcribe is disabled"
+        )
+    return vocabulary_name
+
+
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     body = runner_args.body or {}
     logger.info("Starting authenticated voice session {}", redact_session_body(body))
@@ -77,7 +87,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     stt = VocabularyTranscribeSTTService(
         region=os.getenv("TRANSCRIBE_REGION", os.getenv("AWS_REGION", "us-east-1")),
         language=os.getenv("VOICE_LANGUAGE", "en-US"),
-        vocabulary_name=os.getenv("TRANSCRIBE_VOCABULARY_NAME"),
+        vocabulary_name=required_transcribe_vocabulary_name(),
     )
     tts = StreamingGenerativePollyTTSService(
         region=os.getenv("POLLY_REGION", "us-east-1"),

@@ -18,7 +18,8 @@ Three redundant layers (detail in [architecture.md](architecture.md)):
 
 - **RLS on every tenant table** — the backstop. A missing `WHERE` clause cannot leak data.
 - **Application `TenantContext`** — required by every repository call.
-- **Per-tenant AWS resources** — separate Bedrock Knowledge Base, isolated S3 prefixes.
+- **Tenant-scoped storage and execution** — every shared database query carries organization and
+  agent scope; private object keys are tenant-derived and backend-only.
 
 The API uses the Supabase **service role**, which bypasses RLS by design. That makes layer 2
 load-bearing, not decorative. Two rules follow, and they are absolute:
@@ -95,6 +96,8 @@ markets.
 
 - `.env` is gitignored; `.env.example` documents the contract with no live values.
 - Deployed environments use IAM task roles and Secrets Manager, not static keys.
+- Credential-bearing provider tools stay disabled until their credentials use an encrypted envelope
+  or a secret-manager reference. A JSON column labelled "credentials" is not encryption by itself.
 - The env validator refuses to boot on a missing or malformed required secret — fail loudly
   at startup rather than mysteriously at 3am.
 - `NEXT_PUBLIC_*` is compiled into the browser bundle. Anything there is public. The naming
@@ -107,13 +110,23 @@ markets.
 - `helmet` security headers; CORS restricted to known origins, never `*`.
 - Structured logging with secret redaction — tokens and keys must never reach logs.
 - Audit log for tenant-significant actions (member changes, key rotation, agent publish).
+- JWT verification pins signature algorithm, issuer, and audience.
+- Reverse-proxy headers are trusted only from CIDRs listed in `API_TRUST_PROXY_CIDRS`.
+- WhatsApp webhook bodies require `WHATSAPP_WEBHOOK_SECRET` HMAC verification before parsing.
+- The tool harness records authorization intent before execution and a receipt afterward.
 
 ## Pre-launch checklist
 
-- [ ] RLS policies verified with a cross-tenant read attempt per table
+- [x] RLS enabled/forced/policy coverage verified for every tenant table; sensitive tables also have
+      explicit cross-tenant behavior probes
 - [ ] Service role key confirmed absent from all client bundles
 - [ ] Prompt injection suite run against a deliberately poisoned crawl fixture
 - [ ] Widget confirmed non-functional from an unregistered origin
 - [ ] Rate limits load-tested at the tenant boundary
 - [ ] Voice retention defaults confirmed off; deletion verified to purge derived data
-- [ ] Dependency audit clean; secrets scan across full git history
+- [x] Production dependency audit clean; current voice lock audit clean
+- [x] High-confidence secret-pattern scan clean across full git history
+- [ ] Development-only `promptfoo` and `drizzle-kit` transitive advisories resolved upstream
+- [ ] Provider credentials moved to KMS envelope encryption or secret-manager references
+- [ ] Network egress policy closes the DNS-rebinding window on live-data fetches
+- [ ] Webhook provider event IDs are persisted for replay rejection

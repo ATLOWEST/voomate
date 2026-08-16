@@ -3,6 +3,7 @@ import { type VoomateToolContext } from './registry.js';
 
 export const createHubspotLeadTool = {
   name: 'create_hubspot_lead',
+  implementation: 'placeholder' as const,
   description: 'Creates a new contact/lead in HubSpot CRM.',
   provider: 'hubspot' as const,
   schema: z.object({

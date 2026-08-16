@@ -62,8 +62,9 @@ for (const file of files) {
   process.stdout.write(`  ${file} ... `);
   try {
     // `sql.unsafe` because this is a whole file of DDL, not a parameterised query. The input
-    // is a checked-in file, not user input.
-    await sql.unsafe(body);
+    // is a checked-in file, not user input. Each file is atomic: in particular, a typo after
+    // the RLS policy reset must roll the reset back rather than leave every policy dropped.
+    await sql.begin((transaction) => transaction.unsafe(body));
     console.log('ok');
   } catch (error) {
     console.log('FAILED');
