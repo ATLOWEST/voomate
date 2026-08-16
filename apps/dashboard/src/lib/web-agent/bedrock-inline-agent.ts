@@ -5,6 +5,7 @@ import {
   type InlineSessionState,
   type InvocationInputMember,
   type InvocationResultMember,
+  type InlineAgentTracePart,
   type InvokeInlineAgentCommandOutput,
 } from '@aws-sdk/client-bedrock-agent-runtime';
 import {
@@ -14,7 +15,7 @@ import {
 } from './check-order-status';
 import { loadWebAgentHarness } from './harness';
 import type { NovaImage } from './images';
-import { logRunEvent, type RunContext } from './log';
+import { logRunEvent, recordRunUsage, type RunContext } from './log';
 import { executeLiveRead, type LiveReadCapability } from './live-data';
 import type { WebAgentPageContext } from './page-context';
 import { compactPromptContext } from './prompt-optimizer';
@@ -164,14 +165,21 @@ async function collect(args: {
   text: string;
   invocationId?: string;
   invocationInputs?: InvocationInputMember[];
+  modelInvocations: number;
+  inputTokens: number;
+  outputTokens: number;
 }> {
   const text: string[] = [];
   let invocationId: string | undefined;
   let invocationInputs: InvocationInputMember[] | undefined;
+  let modelInvocations = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
   for await (const event of args.response.completion ?? []) {
     const value = event as {
       chunk?: { bytes?: Uint8Array };
       returnControl?: { invocationId?: string; invocationInputs?: InvocationInputMember[] };
+      trace?: InlineAgentTracePart;
     };
     if (value.chunk?.bytes) {
       const delta = new TextDecoder().decode(value.chunk.bytes);
@@ -182,8 +190,55 @@ async function collect(args: {
       invocationId = value.returnControl.invocationId;
       invocationInputs = value.returnControl.invocationInputs;
     }
+    const usage = modelUsageFromTrace(value.trace);
+    modelInvocations += usage.modelInvocations;
+    inputTokens += usage.inputTokens;
+    outputTokens += usage.outputTokens;
   }
-  return { text: text.join('').trim(), invocationId, invocationInputs };
+  return {
+    text: text.join('').trim(),
+    invocationId,
+    invocationInputs,
+    modelInvocations,
+    inputTokens,
+    outputTokens,
+  };
+}
+
+/** Bedrock exposes exact token counts inside model-invocation trace events. */
+export function modelUsageFromTrace(tracePart: InlineAgentTracePart | undefined): {
+  modelInvocations: number;
+  inputTokens: number;
+  outputTokens: number;
+} {
+  const trace = tracePart?.trace;
+  if (!trace || typeof trace !== 'object') {
+    return { modelInvocations: 0, inputTokens: 0, outputTokens: 0 };
+  }
+  const stages = [
+    'orchestrationTrace' in trace ? trace.orchestrationTrace : undefined,
+    'preProcessingTrace' in trace ? trace.preProcessingTrace : undefined,
+    'postProcessingTrace' in trace ? trace.postProcessingTrace : undefined,
+    'routingClassifierTrace' in trace ? trace.routingClassifierTrace : undefined,
+  ];
+  for (const stage of stages) {
+    if (!stage || typeof stage !== 'object' || !('modelInvocationOutput' in stage)) continue;
+    const output = stage.modelInvocationOutput as {
+      metadata?: { usage?: { inputTokens?: number; outputTokens?: number } };
+    };
+    return {
+      modelInvocations: 1,
+      inputTokens: output.metadata?.usage?.inputTokens ?? 0,
+      outputTokens: output.metadata?.usage?.outputTokens ?? 0,
+    };
+  }
+  return { modelInvocations: 0, inputTokens: 0, outputTokens: 0 };
+}
+
+function recordCollectedUsage(context: RunContext, result: Awaited<ReturnType<typeof collect>>) {
+  recordRunUsage(context, 'model_invocations', Math.max(1, result.modelInvocations));
+  recordRunUsage(context, 'llm_input_tokens', result.inputTokens);
+  recordRunUsage(context, 'llm_output_tokens', result.outputTokens);
 }
 
 export async function runBedrockInlineAgentTurn(
@@ -295,6 +350,7 @@ export async function runBedrockInlineAgentTurn(
     inlineSessionState: sessionState,
   });
   const collected = await collect({ response: first, onTextDelta: emit });
+  recordCollectedUsage(context, collected);
   if (!collected.invocationInputs?.length) {
     await logRunEvent(
       context,
@@ -303,7 +359,11 @@ export async function runBedrockInlineAgentTurn(
       { model, harnessVersion: harness.version, toolCalls: 0 },
       Date.now() - startedAt,
     );
-    return collected.text || 'I couldn’t produce a response.';
+    const finalReply =
+      collected.text || 'I’m having trouble answering that right now. Please try again.';
+    return finalReply.trim().toLowerCase() === (message || '').trim().toLowerCase()
+      ? "I didn't quite catch that. Could you clarify what you mean?"
+      : finalReply;
   }
 
   const results: InvocationResultMember[] = [];
@@ -316,6 +376,7 @@ export async function runBedrockInlineAgentTurn(
       throw new Error('Bedrock Agent requested an action that is not enabled.');
     }
     invokedTools.push(functionCall.function);
+    recordRunUsage(context, 'tool_calls', 1);
     let response: Record<string, unknown> | Array<Record<string, unknown>>;
     if (functionCall.function === 'check_order_status') {
       const supplied = parameters(invocation);
@@ -331,6 +392,7 @@ export async function runBedrockInlineAgentTurn(
         deterministicFallbacks.push(
           'Please share the order ID and the email used at checkout, and I’ll check it for you.',
         );
+        recordRunUsage(context, 'tool_failures', 1);
         await logRunEvent(context, 'tool_input_validation', 'denied', {
           tool: 'check_order_status',
           reason: 'missing_or_invalid_input',
@@ -379,6 +441,7 @@ export async function runBedrockInlineAgentTurn(
         ? await bedrockAgent().send(new InvokeInlineAgentCommand(completionInput))
         : await invokeWithBackoff(completionInput);
     completed = await collect({ response: second, onTextDelta: emit });
+    recordCollectedUsage(context, completed);
   } catch (error) {
     if (isThrottle(error) && deterministicFallbacks.length === results.length) {
       const fallback = deterministicFallbacks.join('\n');
@@ -405,5 +468,9 @@ export async function runBedrockInlineAgentTurn(
     { model, harnessVersion: harness.version, toolCalls: results.length, returnControl: true },
     Date.now() - startedAt,
   );
-  return completed.text || 'I couldn’t complete that request.';
+  const finalReply =
+    completed.text || 'I’m having trouble completing that right now. Please try again.';
+  return finalReply.trim().toLowerCase() === (message || '').trim().toLowerCase()
+    ? "I didn't quite catch that. Could you clarify what you mean?"
+    : finalReply;
 }

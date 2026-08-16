@@ -8,14 +8,40 @@ const INTERNAL_PATTERNS = [
   /\btenant id\b/gi,
   /\binternal (?:reasoning|notes?|workflow)\b/gi,
   /\bdatabase quer(?:y|ies)\b/gi,
+  /\bthe user(?:'s)? (?:question|request|input)\b/gi,
+  /\bthe user(?:'s)?\b/gi,
 ];
+
+const CLARIFYING_REPLY =
+  'I want to make sure I help with the right thing. Could you tell me a little more about what you’re looking for?';
+
+function normalized(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function isQuestionEcho(reply: string, visitorMessage?: string): boolean {
+  const response = normalized(reply);
+  const input = normalized(visitorMessage ?? '');
+  return input.length > 0 && response === input;
+}
 
 export function internalLanguageViolations(text: string): string[] {
   return INTERNAL_PATTERNS.flatMap((pattern) => text.match(pattern) ?? []);
 }
 
 export function sanitizeCustomerFacingReply(text: string): string {
-  return text
+  const sanitized = text
+    .replace(
+      /\bthe (?:user(?:'s)?|visitor(?:'s)?) (?:question|request|input) is too vague[^.!?]*[.!?]?/gi,
+      CLARIFYING_REPLY,
+    )
+    .replace(
+      /\b(?:this|the (?:user(?:'s)?|visitor(?:'s)?) (?:question|request|input)) (?:requires?|needs?) more (?:specific )?(?:information|details)[^.!?]*[.!?]?/gi,
+      CLARIFYING_REPLY,
+    )
     .replace(
       /\bi need to (?:find|fetch|query|look up) (?:the )?user(?:'s)? details\b/gi,
       'I’ll check that for you',
@@ -30,11 +56,53 @@ export function sanitizeCustomerFacingReply(text: string): string {
     )
     .replace(/\b(?:using|through) (?:a )?tool call\b/gi, 'for you')
     .replace(/\baccording to (?:my|the) system prompt\b/gi, 'Based on the information available')
-    .replace(/\s{2,}/g, ' ')
+    .replace(/\bthe user(?:'s)? (?:question|request|input)\b/gi, 'your question')
+    .replace(/\bthe user(?:'s)?\b/gi, 'you')
+    // Collapse spacing inside prose without destroying indented blocks, lists, or paragraphs.
+    .replace(/([^\t \n])[\t ]{2,}/g, '$1 ')
     .trim();
+
+  // A partial model output is allowed to be imperfect, but system vocabulary must never
+  // cross the public boundary. A useful clarification is safer than trying to repair prose
+  // whose meaning came from an internal planning message.
+  return internalLanguageViolations(sanitized).length > 0 ? CLARIFYING_REPLY : sanitized;
 }
 
-export function createCustomerFacingStream(emit?: (text: string) => void | Promise<void>): {
+export function validateCustomerFacingReply(
+  reply: string,
+  visitorMessage?: string,
+): {
+  reply: string;
+  corrected: boolean;
+  reason?: 'empty' | 'echo' | 'internal_language' | 'rewritten';
+} {
+  const sanitized = sanitizeCustomerFacingReply(reply);
+  if (!sanitized) return { reply: CLARIFYING_REPLY, corrected: true, reason: 'empty' };
+  if (isQuestionEcho(sanitized, visitorMessage)) {
+    return { reply: CLARIFYING_REPLY, corrected: true, reason: 'echo' };
+  }
+  if (internalLanguageViolations(sanitized).length > 0) {
+    return { reply: CLARIFYING_REPLY, corrected: true, reason: 'internal_language' };
+  }
+  // Trimming stream-boundary whitespace is transport cleanup, not a quality intervention.
+  return sanitized === reply.trim()
+    ? { reply: sanitized, corrected: false }
+    : {
+        reply: sanitized,
+        corrected: true,
+        reason: internalLanguageViolations(reply).length > 0 ? 'internal_language' : 'rewritten',
+      };
+}
+
+export function createCustomerFacingStream(
+  emit?: (text: string) => void | Promise<void>,
+  options?: {
+    visitorMessage?: string;
+    onCorrection?: (
+      reason: NonNullable<ReturnType<typeof validateCustomerFacingReply>['reason']>,
+    ) => void;
+  },
+): {
   push(text: string): Promise<void>;
   flush(): Promise<void>;
 } {
@@ -49,12 +117,19 @@ export function createCustomerFacingStream(emit?: (text: string) => void | Promi
         buffer.lastIndexOf('\n'),
       );
       if (boundary < 0) return;
-      const ready = sanitizeCustomerFacingReply(buffer.slice(0, boundary + 1));
+      const checked = validateCustomerFacingReply(
+        buffer.slice(0, boundary + 1),
+        options?.visitorMessage,
+      );
+      if (checked.reason) options?.onCorrection?.(checked.reason);
+      const ready = checked.reply;
       buffer = buffer.slice(boundary + 1);
       if (ready) await emit?.(`${ready} `);
     },
     async flush() {
-      const ready = sanitizeCustomerFacingReply(buffer);
+      const checked = validateCustomerFacingReply(buffer, options?.visitorMessage);
+      if (checked.reason) options?.onCorrection?.(checked.reason);
+      const ready = checked.reply;
       buffer = '';
       if (ready) await emit?.(ready);
     },

@@ -189,7 +189,9 @@ class VoomateAgentBridge(FrameProcessor):
                         )
                     elif event.get("type") == "error":
                         raise RuntimeError(str(event.get("error", "Agent request failed")))
-        except (httpx.HTTPError, json.JSONDecodeError, RuntimeError):
+        except (httpx.HTTPError, json.JSONDecodeError, RuntimeError) as e:
+            from loguru import logger
+            logger.error(f"Voice bridge error: {e}")
             # Customer-safe spoken error; details stay server-side and credentials are never logged.
             await self.push_frame(
                 LLMTextFrame("I’m having trouble answering right now. Please continue by chat.")
