@@ -137,19 +137,19 @@ export function PricingGrid() {
             <div className="pricing-col__header-slot">
               <h3 className="pricing-col__name">Custom</h3>
             </div>
-            <p className="pricing-col__desc">Tailored for your organization & custom volume</p>
+            <p className="pricing-col__desc">Tailored for your organization & high volume needs.</p>
 
-            <div className="pricing-col__price pricing-col__price--custom">
-              <span className="pricing-col__amount pricing-col__amount--custom">Custom</span>
-              <span className="pricing-col__period">volume pricing</span>
-            </div>
+            {/* Invisible price spacer to preserve horizontal alignment without duplicate text */}
+            <div className="pricing-col__price pricing-col__price--spacer" aria-hidden="true" />
 
             <div className="pricing-col__cta-slot">
               {!formOpen ? (
                 <button
                   type="button"
+                  id="talk-to-team-btn"
                   onClick={() => setFormOpen(true)}
                   className="pricing-col__cta pricing-col__cta--solid"
+                  style={{ position: 'relative', zIndex: 10, cursor: 'pointer' }}
                 >
                   Talk to the team <ArrowRight size={14} />
                 </button>
