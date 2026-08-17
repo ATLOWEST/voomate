@@ -13,18 +13,12 @@ export default async function SignInPage() {
   return (
     <main className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center gap-2.5">
-          <div className="bg-accent-600 flex size-8 items-center justify-center rounded-lg">
-            <svg viewBox="0 0 20 20" fill="none" className="size-4.5 text-white" aria-hidden="true">
-              <path
-                d="M10 3.5v13M6 6.5v7M14 6.5v7M2.5 9v2M17.5 9v2"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-          <span className="text-lg font-semibold tracking-[-0.02em]">Voomate</span>
+        <div className="mb-8 flex items-center justify-center">
+          <img
+            src="/voomate-logo.png"
+            alt="Voomate"
+            className="h-10 w-auto dark:invert"
+          />
         </div>
 
         <h1 className="text-xl font-semibold tracking-[-0.02em]">Sign in</h1>

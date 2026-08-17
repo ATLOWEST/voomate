@@ -12,6 +12,7 @@ import {
   CircleGauge,
   Inbox,
   MessageSquareText,
+  MoreHorizontal,
   Plus,
   Settings2,
   ShieldCheck,
@@ -48,7 +49,7 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || (href !== '/' && pathname.startsWith(href + '/'));
 }
 
-function WorkspaceSwitcher() {
+function WorkspaceSwitcher({ isCollapsed }: { isCollapsed?: boolean }) {
   const { organizations, organization, selectOrganization } = useSession();
   const [open, setOpen] = useState(false);
   const name = organization?.name ?? 'Choose a workspace';
@@ -60,12 +61,12 @@ function WorkspaceSwitcher() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="group flex min-h-[58px] w-full items-center gap-3 rounded-lg bg-white px-2.5 text-left shadow-[0_1px_0_rgba(20,20,18,0.04),0_8px_24px_rgba(20,20,18,0.04)] transition-[background-color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-[0_1px_0_rgba(20,20,18,0.04),0_12px_30px_rgba(20,20,18,0.07)] dark:bg-white/[0.06] dark:shadow-none"
+        className={cn("group flex min-h-[58px] w-full items-center gap-3 rounded-lg bg-white px-2.5 text-left shadow-[0_1px_0_rgba(20,20,18,0.04),0_8px_24px_rgba(20,20,18,0.04)] transition-[background-color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-[0_1px_0_rgba(20,20,18,0.04),0_12px_30px_rgba(20,20,18,0.07)] dark:bg-white/[0.06] dark:shadow-none", isCollapsed && "justify-center px-0 gap-0 shadow-none bg-transparent")}
       >
         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-100 text-[13px] font-bold text-accent-800 dark:bg-accent-950/50 dark:text-accent-200">
           {name.charAt(0).toUpperCase()}
         </span>
-        <span className="min-w-0 flex-1">
+        <span className={cn("min-w-0 flex-1", isCollapsed && "hidden")}>
           <span className="block truncate text-[13.5px] font-semibold text-foreground">{name}</span>
           <span className="mt-0.5 block text-[11px] capitalize text-muted-foreground">{plan}</span>
         </span>
@@ -73,6 +74,7 @@ function WorkspaceSwitcher() {
           className={cn(
             'size-4 shrink-0 text-muted-foreground transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
             open && 'rotate-180',
+            isCollapsed && 'hidden'
           )}
         />
       </button>
@@ -124,10 +126,12 @@ function NavLink({
   item,
   pathname,
   onNavigate,
+  isCollapsed,
 }: {
   item: NavItem;
   pathname: string;
   onNavigate?: () => void;
+  isCollapsed?: boolean;
 }) {
   const active = isActivePath(pathname, item.href);
 
@@ -142,7 +146,9 @@ function NavLink({
         active
           ? 'bg-white text-foreground shadow-[0_1px_0_rgba(20,20,18,0.035),0_7px_18px_rgba(20,20,18,0.04)] dark:bg-white/[0.075] dark:shadow-none'
           : 'text-muted-foreground hover:translate-x-0.5 hover:bg-white/75 hover:text-foreground dark:hover:bg-white/[0.05]',
+        isCollapsed && "justify-center px-0 hover:translate-x-0"
       )}
+      title={isCollapsed ? item.title : undefined}
     >
       <span
         className={cn(
@@ -152,9 +158,9 @@ function NavLink({
             : 'text-muted-foreground group-hover:bg-[var(--surface-sunken)] group-hover:text-foreground',
         )}
       >
-        <item.icon className="size-[16px]" strokeWidth={1.8} />
+        <item.icon className="size-4 shrink-0" strokeWidth={2.2} />
       </span>
-      <span>{item.title}</span>
+      <span className={cn("truncate", isCollapsed && "hidden")}>{item.title}</span>
       {active && <span className="ml-auto size-1.5 rounded-full bg-accent-500" />}
     </Link>
   );
@@ -165,20 +171,22 @@ function NavigationGroup({
   items,
   pathname,
   onNavigate,
+  isCollapsed,
 }: {
   label?: string;
   items: NavItem[];
   pathname: string;
   onNavigate?: () => void;
+  isCollapsed?: boolean;
 }) {
   return (
     <div>
-      {label && (
+      {label && !isCollapsed && (
         <p className="mb-1.5 px-2.5 text-[11px] font-medium text-muted-foreground">{label}</p>
       )}
       <div className="space-y-1">
         {items.map((item) => (
-          <NavLink item={item} pathname={pathname} onNavigate={onNavigate} key={item.href} />
+          <NavLink item={item} pathname={pathname} onNavigate={onNavigate} key={item.href} isCollapsed={isCollapsed} />
         ))}
       </div>
     </div>
@@ -187,9 +195,11 @@ function NavigationGroup({
 
 export function SidebarNav({
   className,
+  isCollapsed,
   onNavigate,
 }: {
   className?: string;
+  isCollapsed?: boolean;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -202,28 +212,36 @@ export function SidebarNav({
         className,
       )}
     >
-      <Link href="/" onClick={onNavigate} className="mb-5 flex items-center gap-3 px-2.5 py-1">
-        <span className="ember-mark flex size-8 items-center justify-center rounded-lg text-white">
-          <Waypoints className="size-[17px]" strokeWidth={2.1} />
-        </span>
-        <span className="text-[17px] font-semibold text-foreground">Voomate</span>
+      <Link href="/" onClick={onNavigate} className={cn("mb-5 flex items-center gap-2.5 py-1", isCollapsed ? "justify-center" : "justify-start px-2")}>
+        <img
+          src="/voomate-logo.png"
+          alt="Voomate"
+          className="h-8 w-auto dark:invert"
+        />
+        <img
+          src="/voomate-text-logo.png"
+          alt="Voomate"
+          className={cn("h-6 w-auto dark:invert", isCollapsed && "hidden")}
+        />
       </Link>
 
-      <WorkspaceSwitcher />
+      <WorkspaceSwitcher isCollapsed={isCollapsed} />
 
-      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto" aria-label="Main navigation">
-        <NavigationGroup items={primaryItems} pathname={pathname} onNavigate={onNavigate} />
+      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" aria-label="Main navigation">
+        <NavigationGroup items={primaryItems} pathname={pathname} onNavigate={onNavigate} isCollapsed={isCollapsed} />
         <NavigationGroup
           label="Your business"
           items={workspaceItems}
           pathname={pathname}
           onNavigate={onNavigate}
+          isCollapsed={isCollapsed}
         />
 
         <details className="group/more" open={secondaryActive || undefined}>
-          <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between rounded-lg px-2.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-white/75 hover:text-foreground dark:hover:bg-white/[0.05] [&::-webkit-details-marker]:hidden">
-            <span>More</span>
-            <ChevronDown className="size-3.5 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-open/more:rotate-180" />
+          <summary className={cn("flex min-h-10 cursor-pointer list-none items-center justify-between rounded-lg px-2.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-white/75 hover:text-foreground dark:hover:bg-white/[0.05] [&::-webkit-details-marker]:hidden", isCollapsed && "justify-center px-0")}>
+            <span className={cn(isCollapsed && "hidden")}>More</span>
+            {isCollapsed && <MoreHorizontal className="size-4" />}
+            <ChevronDown className={cn("size-3.5 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-open/more:rotate-180", isCollapsed && "hidden")} />
           </summary>
           <div className="grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-open/more:grid-rows-[1fr] group-open/more:opacity-100">
             <div className="min-h-0 overflow-hidden">
@@ -234,6 +252,7 @@ export function SidebarNav({
                     pathname={pathname}
                     onNavigate={onNavigate}
                     key={item.href}
+                    isCollapsed={isCollapsed}
                   />
                 ))}
               </div>
@@ -245,10 +264,11 @@ export function SidebarNav({
       <Link
         href="/agents"
         onClick={onNavigate}
-        className="group mt-5 flex min-h-11 items-center justify-between rounded-lg bg-foreground px-3.5 text-[13px] font-semibold text-background transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:opacity-92 active:translate-y-px"
+        title={isCollapsed ? "Add an agent" : undefined}
+        className={cn("group mt-5 flex min-h-11 items-center justify-between rounded-lg bg-foreground px-3.5 text-[13px] font-semibold text-background transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:opacity-92 active:translate-y-px", isCollapsed && "justify-center px-0")}
       >
-        Add an agent
-        <span className="grid size-6 place-items-center rounded-md bg-background/15 transition-transform duration-500 group-hover:rotate-90">
+        <span className={cn(isCollapsed && "hidden")}>Add an agent</span>
+        <span className={cn("grid size-6 place-items-center rounded-md bg-background/15 transition-transform duration-500", !isCollapsed && "group-hover:rotate-90")}>
           <Plus className="size-3.5" />
         </span>
       </Link>

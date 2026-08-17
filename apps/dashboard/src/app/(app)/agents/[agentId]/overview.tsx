@@ -1,5 +1,6 @@
 'use client';
 
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { KnowledgeSource } from '@voomate/core';
 import Link from 'next/link';
 import {
@@ -8,6 +9,7 @@ import {
   Braces,
   Check,
   CircleDashed,
+  CodeXml,
   Globe2,
   MessageSquareText,
   Play,
@@ -375,6 +377,72 @@ export function AgentOverview() {
 }
 
 function CreateFirstState() {
+  const [step, setStep] = useState<'intro' | 'platform'>('intro');
+  const [saving, setSaving] = useState(false);
+  const { refresh } = useAgent();
+
+  const handlePlatformSelect = async (platform: string) => {
+    setSaving(true);
+    try {
+      // In a real app, this would be a POST to create the draft agent
+      // with the selected platform metadata. Since the user asked for autosave
+      // on every click, we simulate the network request and refresh the context.
+      await api.post('/v1/agents', { name: 'Web Agent', platform });
+      await refresh();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (step === 'platform') {
+    return (
+      <main className="agent-operations-enter min-w-0 pb-12">
+        <section className="mx-auto max-w-4xl">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-semibold tracking-tight text-foreground">
+              Select your platform
+            </h2>
+            <p className="mt-3 text-[15px] text-muted-foreground">
+              We'll tailor the agent setup to perfectly integrate with your existing stack.
+            </p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <button
+              onClick={() => handlePlatformSelect('shopify')}
+              disabled={saving}
+              className="group relative flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-[var(--surface-soft)] p-10 outline-none ring-1 ring-inset ring-black/[0.08] transition-all hover:-translate-y-1 hover:bg-[var(--surface-sunken)] hover:shadow-xl hover:ring-black/[0.12] dark:ring-white/[0.08] dark:hover:ring-white/[0.15]"
+            >
+              <div className="grid h-16 w-16 place-items-center transition-transform duration-500 ease-out group-hover:scale-105">
+                <svg viewBox="0 0 448 512" className="size-[42px] fill-[#95BF47]">
+                  <path d="M388.32,104.1a4.66,4.66,0,0,0-4.4-4c-2,0-37.23-.8-37.23-.8s-21.61-20.82-29.62-28.83V503.2L442.76,472S388.72,106.5,388.32,104.1ZM288.65,70.47a116.67,116.67,0,0,0-7.21-17.61C271,32.85,255.42,22,237,22a15,15,0,0,0-4,.4c-.4-.8-1.2-1.2-1.6-2C223.4,11.63,213,7.63,200.58,8c-24,.8-48,18-67.25,48.83-13.61,21.62-24,48.84-26.82,70.06-27.62,8.4-46.83,14.41-47.23,14.81-14,4.4-14.41,4.8-16,18-1.2,10-38,291.82-38,291.82L307.86,504V65.67a41.66,41.66,0,0,0-4.4.4S297.86,67.67,288.65,70.47ZM233.41,87.69c-16,4.8-33.63,10.4-50.84,15.61,4.8-18.82,14.41-37.63,25.62-50,4.4-4.4,10.41-9.61,17.21-12.81C232.21,54.86,233.81,74.48,233.41,87.69ZM200.58,24.44A27.49,27.49,0,0,1,215,28c-6.4,3.2-12.81,8.41-18.81,14.41-15.21,16.42-26.82,42-31.62,66.45-14.42,4.41-28.83,8.81-42,12.81C131.33,83.28,163.75,25.24,200.58,24.44ZM154.15,244.61c1.6,25.61,69.25,31.22,73.25,91.66,2.8,47.64-25.22,80.06-65.65,82.47-48.83,3.2-75.65-25.62-75.65-25.62l10.4-44s26.82,20.42,48.44,18.82c14-.8,19.22-12.41,18.81-20.42-2-33.62-57.24-31.62-60.84-86.86-3.2-46.44,27.22-93.27,94.47-97.68,26-1.6,39.23,4.81,39.23,4.81L221.4,225.39s-17.21-8-37.63-6.4C154.15,221,153.75,239.8,154.15,244.61ZM249.42,82.88c0-12-1.6-29.22-7.21-43.63,18.42,3.6,27.22,24,31.23,36.43Q262.63,78.68,249.42,82.88Z" />
+                </svg>
+              </div>
+              <span className="mt-6 text-[15px] font-medium text-foreground">Shopify</span>
+            </button>
+
+            <button
+              onClick={() => handlePlatformSelect('custom')}
+              disabled={saving}
+              className="group relative flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-[var(--surface-soft)] p-10 outline-none ring-1 ring-inset ring-black/[0.08] transition-all hover:-translate-y-1 hover:bg-[var(--surface-sunken)] hover:shadow-xl hover:ring-black/[0.12] dark:ring-white/[0.08] dark:hover:ring-white/[0.15]"
+            >
+              <div className="grid h-16 w-16 place-items-center rounded-xl transition-transform duration-500 ease-out group-hover:scale-105">
+                <CodeXml className="size-12 stroke-[1.5] text-foreground" />
+              </div>
+              <span className="mt-6 text-[15px] font-medium text-foreground">Custom Stack</span>
+              <span className="mt-1 flex gap-3 text-[13px] text-muted-foreground">
+                <Globe2 className="size-4" /> Websites
+                <span className="mx-1">•</span>
+                iOS / Android
+              </span>
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="agent-operations-enter min-w-0 pb-12">
       <section className="overflow-hidden rounded-lg bg-[var(--surface-soft)]">
@@ -385,23 +453,27 @@ function CreateFirstState() {
               Build the agent around your real business.
             </h2>
             <p className="mt-4 max-w-xl text-[15px] leading-6 text-muted-foreground">
-              Start with your website. Voomate creates one tenant-scoped agent that you can teach,
+              Install our web agent in your platform and follow the steps as we build. Voomate creates one tenant-scoped agent that you can teach,
               test, install and operate from this workspace.
             </p>
             <div className="mt-7">
-              <ActionLink href="/agents" icon={ArrowRight} primary>
+              <button
+                onClick={() => setStep('platform')}
+                className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-foreground px-4 text-[13.5px] font-medium text-background ring-offset-background transition-colors hover:bg-foreground/90"
+              >
                 Create Web Agent
-              </ActionLink>
+                <ArrowRight className="size-4" />
+              </button>
             </div>
           </div>
           <div className="bg-[var(--surface-sunken)] p-6 sm:p-8">
             <p className="text-[13px] font-semibold text-foreground">What happens next</p>
             <ol className="mt-5 space-y-5">
               {[
-                'Connect your website',
+                'Install our web agent in your platform',
+                'All steps follow as we build',
                 'Review learned knowledge',
                 'Test customer requests',
-                'Install and publish',
               ].map((label, index) => (
                 <li className="flex items-center gap-3" key={label}>
                   <span className="grid size-7 shrink-0 place-items-center rounded-md bg-white text-[12px] font-semibold text-muted-foreground dark:bg-white/[0.07]">

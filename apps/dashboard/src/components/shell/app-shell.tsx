@@ -16,6 +16,7 @@ import { SidebarNav } from './nav';
 import { useSession } from '@/lib/session';
 import { ThemeToggle } from './theme-toggle';
 import { DashboardMotion } from './dashboard-motion';
+import { cn } from '@/lib/cn';
 
 const pageNames: Record<string, string> = {
   '/': 'Home',
@@ -114,17 +115,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="dashboard-shell flex h-screen w-full overflow-hidden bg-background font-sans">
+    <div
+      className={cn(
+        'dashboard-layout flex h-[100dvh] w-full overflow-hidden bg-background text-foreground',
+        'transition-[grid-template-columns] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] md:grid',
+        desktopOpen ? 'md:grid-cols-[17.5rem_1fr]' : 'md:grid-cols-[4.5rem_1fr]',
+      )}
+    >
       <DashboardMotion />
 
-      <div
-        aria-hidden={!desktopOpen}
-        inert={!desktopOpen ? true : undefined}
-        className={`hidden h-full shrink-0 overflow-hidden transition-[width,opacity] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] md:block ${
-          desktopOpen ? 'w-60 opacity-100' : 'w-0 opacity-0'
-        }`}
-      >
-        <SidebarNav className="w-60" />
+      {/* Sidebar wrapper */}
+      <div className={cn(
+        "hidden min-w-0 overflow-hidden md:block transition-[width] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        desktopOpen ? "w-[17.5rem]" : "w-[4.5rem]"
+      )}>
+        <SidebarNav className="w-full" isCollapsed={!desktopOpen} />
       </div>
 
       {mobileOpen && (

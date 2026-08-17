@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Check, ChevronDown, ShieldCheck } from 'lucide-react';
 
+import { PricingGrid } from '@/components/pricing/pricing-grid';
+
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
 
 export const metadata: Metadata = {
@@ -9,60 +11,6 @@ export const metadata: Metadata = {
   description:
     'Clear Voomate plans for businesses starting, growing, or connecting custom systems.',
 };
-
-const PLANS = [
-  {
-    name: 'Starter',
-    price: 'Free',
-    period: '',
-    tagline: 'For a small team proving the workflow.',
-    cta: 'Start free',
-    href: `${DASHBOARD_URL}/sign-in`,
-    popular: false,
-    features: [
-      '100 conversations each month',
-      'One three-agent workspace',
-      'Website chat and voice entry points',
-      'Grounded knowledge answers',
-      'Community support',
-    ],
-  },
-  {
-    name: 'Growth',
-    price: '₹2,499',
-    period: '/ month',
-    tagline: 'For a business ready to connect real work.',
-    cta: 'Start a 14-day trial',
-    href: `${DASHBOARD_URL}/sign-in?plan=growth`,
-    popular: true,
-    features: [
-      '5,000 conversations each month',
-      'Web, Voice Calling, and Integration Agents',
-      'Multilingual conversations',
-      'Approved action tools and live data',
-      'Usage and gap reporting',
-      'Store and business-system adapters',
-      'Custom widget branding',
-    ],
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    tagline: 'For multiple teams and deeper system access.',
-    cta: 'Talk to the team',
-    href: 'mailto:hello@voomate.com?subject=Voomate%20Enterprise',
-    popular: false,
-    features: [
-      'Custom conversation volume',
-      'Multiple tenant-scoped workspaces',
-      'Dedicated onboarding support',
-      'Custom ERP, CRM, and OMS adapters',
-      'Security and compliance review support',
-      'Priority support channels',
-    ],
-  },
-];
 
 const FAQ = [
   {
@@ -89,54 +37,19 @@ const FAQ = [
 
 export default function PricingPage() {
   return (
-    <main className="marketing-main subpage">
-      <section className="subpage-hero subpage-hero--center" aria-labelledby="pricing-title">
-        <div className="subpage-hero__aside" data-reveal>
-          Plans that grow with the work
-        </div>
-        <h1 id="pricing-title" data-scrub>
-          Clear pricing for
-          <br />a connected AI team.
+    <main className="marketing-main subpage overflow-x-hidden w-full max-w-full">
+      <section className="pt-32 pb-24 md:pt-48 md:pb-32 flex flex-col items-center justify-center text-center px-4" aria-labelledby="pricing-title">
+        <h1 id="pricing-title" className="max-w-5xl text-balance text-[clamp(3rem,5vw,5.5rem)] font-medium tracking-tight leading-[1.05]" data-scrub>
+          Clear pricing for a connected AI team.
         </h1>
-        <p data-reveal>
+        <p className="mt-6 max-w-2xl text-lg text-gray-500" data-reveal>
           Start with the workflow you need now. Add volume, languages, and connected actions as your
           customer operation grows.
         </p>
       </section>
 
-      <section className="pricing-section" aria-label="Voomate plans">
-        <div className="pricing-grid">
-          {PLANS.map((plan) => (
-            <article
-              className="pricing-card"
-              data-featured={plan.popular}
-              data-reveal
-              key={plan.name}
-            >
-              <div className="pricing-card__topline">
-                <span>{plan.name}</span>
-                {plan.popular ? <strong>Recommended</strong> : null}
-              </div>
-              <h2>{plan.name}</h2>
-              <p className="pricing-card__tagline">{plan.tagline}</p>
-              <div className="pricing-card__price">
-                <strong>{plan.price}</strong>
-                {plan.period ? <span>{plan.period}</span> : null}
-              </div>
-              <a href={plan.href} className={plan.popular ? 'btn-ember' : 'btn-quiet'}>
-                {plan.cta} <ArrowRight size={16} />
-              </a>
-              <ul>
-                {plan.features.map((feature) => (
-                  <li key={feature}>
-                    <Check size={15} />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </div>
+      <section className="px-4 pb-32 md:pb-48" aria-label="Voomate plans">
+        <PricingGrid />
       </section>
 
       <section className="included-section" aria-labelledby="included-title">

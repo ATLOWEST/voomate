@@ -409,7 +409,7 @@ export function ShaderBackground({ className }: { className?: string }) {
       requestRender();
     };
     const onScroll = () => {
-      currentOffsetY = UNIFORMS.offsetY - window.scrollY * 0.0006;
+      currentOffsetY = UNIFORMS.offsetY;
       requestRender();
     };
     window.addEventListener('resize', updateLayout);

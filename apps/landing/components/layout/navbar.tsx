@@ -22,7 +22,7 @@ export function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => setScrolled(window.scrollY > 90);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -35,8 +35,34 @@ export function Navbar() {
         aria-label="Primary navigation"
       >
         <Link href="/" className="brand-lockup" aria-label="Voomate home">
-          <span className="brand-mark">V</span>
-          <span>Voomate</span>
+          <div className="brand-logo-container">
+            {/* Separate Voomate logo mark */}
+            <img
+              src="/voomate-logo.png"
+              alt="Voomate"
+              className="brand-logo-mark"
+            />
+            {/* Letter-by-letter animated text logo */}
+            <div className={cn(
+                'brand-logo-letters',
+                scrolled ? 'brand-logo-letters--hidden' : 'brand-logo-letters--visible'
+              )}>
+              {[...Array(7)].map((_, i) => (
+                <img
+                  key={i}
+                  src={`/letters/letter-${i}.png`}
+                  alt=""
+                  className={cn(
+                    'brand-letter',
+                    scrolled ? 'brand-letter--hidden' : 'brand-letter--visible'
+                  )}
+                  style={{
+                    transitionDelay: scrolled ? `${i * 35}ms` : `${(6 - i) * 35}ms`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
         </Link>
 
         <ul className="site-nav__links">

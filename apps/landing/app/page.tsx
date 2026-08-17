@@ -15,15 +15,14 @@ import {
   PackageCheck,
   PlugZap,
   ShieldCheck,
-  ShoppingCart,
   Sparkles,
   Workflow,
 } from 'lucide-react';
 import { OperatingFlow } from '@/components/ui/operating-flow';
 import { UseCaseAccordion } from '@/components/ui/use-case-accordion';
 import { IntegrationExplorer } from '@/components/ui/integration-explorer';
-import { LaunchStudio } from '@/components/ui/launch-studio';
 import { OutcomeCarousel } from '@/components/ui/outcome-carousel';
+import { TryNowButton } from '@/components/ui/try-now-button';
 
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
 
@@ -90,77 +89,12 @@ export default function HomePage() {
             <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
               Build your AI team <ArrowRight size={17} />
             </a>
-            <Link href="/#how-it-works" className="btn-quiet">
+            <Link href="/#features" className="btn-quiet">
               See how it works
             </Link>
           </div>
         </div>
 
-        <div className="hero-operation" data-reveal>
-          <div className="hero-operation__header">
-            <div>
-              <span className="live-mark">
-                <Sparkles size={15} />
-              </span>
-              <div>
-                <strong>Voomate operation</strong>
-                <small>One shared conversation</small>
-              </div>
-            </div>
-            <span className="live-status">
-              <i /> Live
-            </span>
-          </div>
-
-          <div className="hero-operation__body">
-            <article className="request-card">
-              <span>A</span>
-              <div>
-                <small>Customer asks</small>
-                <p>“Can you help me choose the right plan and book a demo?”</p>
-              </div>
-            </article>
-
-            <div className="operation-path" aria-label="Voomate request path">
-              <span>
-                <MessageSquareText size={16} /> Understand
-              </span>
-              <i />
-              <span>
-                <DatabaseZap size={16} /> Ground
-              </span>
-              <i />
-              <span>
-                <PlugZap size={16} /> Act
-              </span>
-            </div>
-
-            <article className="result-card">
-              <span>
-                <Check size={16} />
-              </span>
-              <div>
-                <small>Your AI team</small>
-                <p>
-                  Explained the plans, checked a connected calendar, and offered an available slot.
-                </p>
-              </div>
-              <strong>Complete</strong>
-            </article>
-          </div>
-
-          <div className="hero-operation__footer">
-            <span>
-              <MessageSquareText size={14} /> Web chat
-            </span>
-            <span>
-              <Mic2 size={14} /> Website voice
-            </span>
-            <span>
-              <Headphones size={14} /> Phone calls
-            </span>
-          </div>
-        </div>
       </section>
 
       <div className="signal-marquee" aria-label="Voomate capabilities">
@@ -173,22 +107,6 @@ export default function HomePage() {
           ))}
         </div>
       </div>
-
-      <section className="launch-section" id="how-it-works" aria-labelledby="launch-title">
-        <div className="section-heading section-heading--split">
-          <div>
-            <p className="editorial-index">Plug in. Connect. Go live.</p>
-            <h2 id="launch-title" data-scrub>
-              From website to working agent in three clear moves.
-            </h2>
-          </div>
-          <p data-reveal>
-            Voomate is designed to start small: install the widget, connect approved business truth,
-            then test a real workflow before publishing it.
-          </p>
-        </div>
-        <LaunchStudio />
-      </section>
 
       <section className="agents-section" id="features" aria-labelledby="agents-title">
         <div className="section-heading section-heading--split">
@@ -209,49 +127,39 @@ export default function HomePage() {
         <div className="agent-bento">
           <article className="agent-card agent-card--web" data-reveal>
             <div className="agent-card__head">
-              <span className="agent-symbol">
-                <MessageSquareText size={21} />
-              </span>
               <div>
                 <h3>Web Agent</h3>
               </div>
-              <span className="agent-state">
-                <i /> On your site
-              </span>
             </div>
             <p className="agent-card__lead">
               A fast, embeddable conversation layer that answers questions and carries out approved
               actions without sending a customer somewhere else.
             </p>
             <div className="web-agent-demo" aria-hidden="true">
-              <div className="demo-message demo-message--customer">Can you check order 1001?</div>
+              <div className="demo-message demo-message--customer">Hi, where is my order #5821?</div>
               <div className="demo-thinking">
-                <span />
-                <span />
-                <span /> Checking your order
+                <span /><span /><span /> Looking up your order
               </div>
               <div className="demo-message demo-message--agent">
-                It shipped today and is due Friday. I can also help update the delivery details.
+                Order #5821 has been picked up by Delhivery and is out for delivery today — expected
+                by 6 PM.
+              </div>
+              <div className="demo-message demo-message--customer">
+                Can you change the delivery address?
+              </div>
+              <div className="demo-thinking">
+                <span /><span /><span /> Checking update eligibility
+              </div>
+              <div className="demo-message demo-message--agent">
+                Done! Address updated. You&apos;ll receive a confirmation SMS shortly. Anything else
+                I can help with?
               </div>
             </div>
-            <ul className="agent-capabilities">
-              <li>
-                <Globe2 size={16} /> Chat and website voice
-              </li>
-              <li>
-                <PackageCheck size={16} /> Live tool results
-              </li>
-              <li>
-                <ShieldCheck size={16} /> Public-safe responses
-              </li>
-            </ul>
+            <TryNowButton />
           </article>
 
           <article className="agent-card agent-card--voice" data-reveal>
             <div className="agent-card__head">
-              <span className="agent-symbol agent-symbol--dark">
-                <Mic2 size={21} />
-              </span>
               <div>
                 <h3>Voice Calling Agent</h3>
               </div>
@@ -269,29 +177,27 @@ export default function HomePage() {
 
           <article className="agent-card agent-card--integration" data-reveal>
             <div className="agent-card__head">
-              <span className="agent-symbol">
-                <Workflow size={21} />
-              </span>
               <div>
                 <h3>Integration Agent</h3>
               </div>
             </div>
             <p>
-              Connects approved business systems so customer requests can become controlled,
-              validated actions.
+              Connects approved business systems so customer requests become controlled, validated
+              actions — across messaging, logistics, payments, and more.
             </p>
-            <div className="integration-line" aria-hidden="true">
-              <span>
-                <ShoppingCart size={17} />
-              </span>
-              <i />
-              <span>
-                <DatabaseZap size={17} />
-              </span>
-              <i />
-              <span>
-                <CalendarCheck2 size={17} />
-              </span>
+            {/* Standalone logos — no circles, no text */}
+            <div className="integration-logo-grid" aria-hidden="true">
+              <Image src="/logos/whatsapp.svg" alt="WhatsApp" width={36} height={36} title="WhatsApp" />
+              <Image src="/logos/gmail.svg" alt="Gmail" width={36} height={36} title="Gmail" />
+              <Image src="/logos/delhivery.svg" alt="Delhivery" width={36} height={36} title="Delhivery" />
+              <Image src="/logos/razorpay.svg" alt="Razorpay" width={36} height={36} title="Razorpay" />
+              <Image src="/logos/google-calendar.svg" alt="Google Calendar" width={36} height={36} title="Google Calendar" />
+              <Image src="/logos/instagram.svg" alt="Instagram" width={36} height={36} title="Instagram" />
+              <Image src="/logos/slack.svg" alt="Slack" width={36} height={36} title="Slack" />
+              <Image src="/logos/notion.svg" alt="Notion" width={36} height={36} title="Notion" />
+              <Link href="/product" className="integration-logo--more" title="See all integrations">
+                <span>+</span>
+              </Link>
             </div>
           </article>
         </div>
@@ -306,27 +212,6 @@ export default function HomePage() {
         <OperatingFlow />
       </div>
 
-      <section className="home-integration-section" aria-labelledby="home-integrations-title">
-        <div className="section-heading section-heading--split">
-          <div>
-            <p className="editorial-index">Knowledge when it is stable. Tools when it is live.</p>
-            <h2 id="home-integrations-title" data-scrub>
-              Connect the capability, not an industry template.
-            </h2>
-          </div>
-          <p data-reveal>
-            The Integration Agent can expose approved action, communication, and system-connection
-            tools to Web and Voice conversations. The model requests; the controlled backend
-            decides.
-          </p>
-        </div>
-        <IntegrationExplorer />
-        <div className="section-link-row" data-reveal>
-          <Link href="/integrations">
-            See integration architecture <ArrowRight size={16} />
-          </Link>
-        </div>
-      </section>
 
       <section className="use-cases-section" aria-labelledby="use-cases-title">
         <div className="section-heading">

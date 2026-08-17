@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Agent } from '@voomate/core';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Book, Bot, FlaskConical, Globe2, LayoutDashboard, Settings } from 'lucide-react';
+import { Book, Bot, ChevronLeft, FlaskConical, Globe2, LayoutDashboard, Settings } from 'lucide-react';
 import { api } from '@/lib/api';
 import { messageFor, useApiQuery } from '@/lib/hooks';
 import { useApiAuth, useSession } from '@/lib/session';
@@ -113,15 +113,26 @@ export function AgentShell({ agentId, children }: { agentId: string; children: R
 function AgentNav({ agentId, isPlaceholder }: { agentId: string; isPlaceholder: boolean }) {
   const pathname = usePathname();
   const basePath = '/agents/' + agentId;
-  const items = isPlaceholder
-    ? [{ name: 'Overview', href: basePath, icon: LayoutDashboard }]
-    : [
-        { name: 'Overview', href: basePath, icon: LayoutDashboard },
-        { name: 'Knowledge', href: basePath + '/knowledge', icon: Book },
-        { name: 'Test', href: basePath + '/playground', icon: FlaskConical },
-        { name: 'Install', href: basePath + '/install', icon: Globe2 },
-        { name: 'Settings', href: basePath + '/configuration', icon: Settings },
-      ];
+
+  if (isPlaceholder) {
+    return (
+      <Link
+        href="/agents"
+        className="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-[var(--surface-sunken)] hover:text-foreground"
+      >
+        <ChevronLeft className="size-4" />
+        Back to agents
+      </Link>
+    );
+  }
+
+  const items = [
+    { name: 'Overview', href: basePath, icon: LayoutDashboard },
+    { name: 'Knowledge', href: basePath + '/knowledge', icon: Book },
+    { name: 'Test', href: basePath + '/playground', icon: FlaskConical },
+    { name: 'Install', href: basePath + '/install', icon: Globe2 },
+    { name: 'Settings', href: basePath + '/configuration', icon: Settings },
+  ];
 
   return (
     <nav
@@ -248,9 +259,11 @@ function AgentHeader({
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--surface-sunken)] text-foreground">
-              <Bot className="size-[18px]" strokeWidth={1.8} />
-            </span>
+            {!isPlaceholder && (
+              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--surface-sunken)] text-foreground">
+                <Bot className="size-[18px]" strokeWidth={1.8} />
+              </span>
+            )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 {isEditingName ? (
@@ -273,47 +286,46 @@ function AgentHeader({
                   <button
                     type="button"
                     onClick={() => !isPlaceholder && setIsEditingName(true)}
-                    className="truncate text-left text-[18px] font-semibold text-foreground transition-opacity hover:opacity-70"
+                    className={cn(
+                      'truncate text-left text-[18px] font-semibold text-foreground transition-opacity',
+                      !isPlaceholder && 'hover:opacity-70'
+                    )}
                     title={isPlaceholder ? undefined : 'Rename agent'}
+                    disabled={isPlaceholder}
                   >
                     {editName}
                   </button>
                 )}
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10.5px] font-semibold',
-                    optimisticStatus === 'published'
-                      ? 'bg-positive-soft text-positive dark:bg-emerald-950/35'
-                      : optimisticStatus === 'paused'
-                        ? 'bg-caution-soft text-caution dark:bg-amber-950/35'
-                        : 'bg-[var(--surface-sunken)] text-muted-foreground',
-                  )}
-                >
+                {!isPlaceholder && (
                   <span
                     className={cn(
-                      'size-1.5 rounded-full',
+                      'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10.5px] font-semibold',
                       optimisticStatus === 'published'
-                        ? 'bg-positive'
+                        ? 'bg-positive-soft text-positive dark:bg-emerald-950/35'
                         : optimisticStatus === 'paused'
-                          ? 'bg-caution'
-                          : 'bg-ink-400',
+                          ? 'bg-caution-soft text-caution dark:bg-amber-950/35'
+                          : 'bg-[var(--surface-sunken)] text-muted-foreground',
                     )}
-                  />
-                  {statusLabel}
-                </span>
+                  >
+                    <span
+                      className={cn(
+                        'size-1.5 rounded-full',
+                        optimisticStatus === 'published'
+                          ? 'bg-positive'
+                          : optimisticStatus === 'paused'
+                            ? 'bg-caution'
+                            : 'bg-ink-400',
+                      )}
+                    />
+                    {statusLabel}
+                  </span>
+                )}
               </div>
               <p className="mt-0.5 text-[12px] text-muted-foreground">Customer-facing agent</p>
             </div>
           </div>
 
-          {isPlaceholder ? (
-            <Link
-              href="/agents"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-foreground px-4 text-[13px] font-semibold text-background transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:opacity-90 active:translate-y-px"
-            >
-              Create Web Agent
-            </Link>
-          ) : optimisticStatus === 'draft' ? (
+          {isPlaceholder ? null : optimisticStatus === 'draft' ? (
             <button
               type="button"
               disabled={busy}

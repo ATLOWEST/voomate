@@ -161,15 +161,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head></head>
-      <body>
-        <VoomateNavigationBridge />
-        <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
-        <script
+      <head>
+        <Script id="theme-bootstrap" strategy="beforeInteractive">
+          {THEME_BOOTSTRAP}
+        </Script>
+        <Script
+          id="voomate-ui-manifest"
           type="application/json"
           data-voomate-ui-manifest
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: UI_MANIFEST }}
         />
+      </head>
+      <body>
+        <VoomateNavigationBridge />
         {children}
         {widgetOrigin && dogfoodAgentKey && (
           <Script

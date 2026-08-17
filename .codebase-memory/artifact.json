@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
-    "commit": "609db504457581be376e055263f3595f35d071b2",
-    "indexed_at": "2026-08-16T08:44:59Z",
+    "commit": "e195dca601972b04fcf8086de4c4c957d3643f55",
+    "indexed_at": "2026-08-17T07:42:15Z",
     "project": "Users-yug-Desktop-ai-voice-agent-project",
-    "nodes": 3180,
-    "edges": 6071,
-    "original_size": 7405568,
-    "compressed_size": 1800602,
-    "compression_level": 9
+    "nodes": 9459,
+    "edges": 19283,
+    "original_size": 23789568,
+    "compressed_size": 4149910,
+    "compression_level": 3
 }

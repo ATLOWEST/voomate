@@ -104,9 +104,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <body className={`${geist.className} paper-grain`}>
         <VoomateNavigationBridge />
-        <script
+        <Script
+          id="voomate-ui-manifest"
           type="application/json"
           data-voomate-ui-manifest
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: UI_MANIFEST }}
         />
         <a href="#main-content" className="skip-link">
