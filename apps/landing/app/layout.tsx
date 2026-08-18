@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import { defineUiManifest, serializeUiManifest } from '@voomate/connect';
-import { Geist } from 'next/font/google';
+import { Geist, Plus_Jakarta_Sans } from 'next/font/google';
 import './tailwind-output.css';
 import './globals.css';
 import './marketing.css';
@@ -11,7 +11,13 @@ import { MarketingMotion } from '@/components/ui/marketing-motion';
 import { ShaderBackground } from '@/components/ui/shader-bg';
 import { VoomateNavigationBridge } from '@/components/voomate-navigation-bridge';
 
-const geist = Geist({ subsets: ['latin'], display: 'swap' });
+const geist = Geist({ subsets: ['latin'], display: 'swap', variable: '--font-sans' });
+const displayFont = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  display: 'swap',
+  variable: '--font-display',
+});
 
 export const metadata: Metadata = {
   title: { default: 'Voomate — One connected AI team', template: '%s | Voomate' },
@@ -102,7 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
-      <body className={`${geist.className} paper-grain`}>
+      <body className={`${geist.className} ${displayFont.variable} paper-grain`}>
         <VoomateNavigationBridge />
         <Script
           id="voomate-ui-manifest"
