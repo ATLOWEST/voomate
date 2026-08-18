@@ -233,6 +233,29 @@ function clearJourney(publicKey) {
   }
 }
 
+function getMerchantPrivacyUrl() {
+  try {
+    const hostPrivacyAnchor = document.querySelector('a[href*="privacy"], a[href*="policies/privacy"]');
+    if (hostPrivacyAnchor && hostPrivacyAnchor.href) {
+      return hostPrivacyAnchor.href;
+    }
+    return new URL('/privacy', window.location.origin).href;
+  } catch {
+    return '/privacy';
+  }
+}
+
+function getVoomateLandingUrl() {
+  try {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3000';
+    }
+    return 'https://voomate.ai';
+  } catch {
+    return 'https://voomate.ai';
+  }
+}
+
 function mobilePlatform() {
   const value =
     `${navigator.userAgentData?.platform ?? ''} ${navigator.platform ?? ''} ${navigator.userAgent ?? ''}`.toLowerCase();
@@ -533,19 +556,22 @@ export async function mountWidget(host, config) {
 
   const branding = element('div', 'branding-footer');
   const privacyLink = element('a', 'privacy-link', 'Privacy');
-  privacyLink.href = 'https://voomate.ai/about';
+  privacyLink.href = getMerchantPrivacyUrl();
   privacyLink.target = '_blank';
   privacyLink.rel = 'noopener noreferrer';
-  privacyLink.title = 'Privacy Policy';
+  privacyLink.title = 'Merchant Privacy Policy';
+  privacyLink.addEventListener('click', () => {
+    privacyLink.href = getMerchantPrivacyUrl();
+  });
 
   const sep = element('span', 'branding-sep', '·');
   const poweredSpan = element('span', 'powered-text', 'Powered by');
 
   const brandLink = element('a', 'branding-logo-wrap');
-  brandLink.href = 'https://voomate.ai';
+  brandLink.href = getVoomateLandingUrl();
   brandLink.target = '_blank';
   brandLink.rel = 'noopener noreferrer';
-  brandLink.title = 'Voomate';
+  brandLink.title = 'Voomate — Voice & Web AI Agents';
 
   const logoImg = element('img', 'branding-logo-icon');
   logoImg.src = new URL('/voomate-logo.png', config.apiOrigin).href;
