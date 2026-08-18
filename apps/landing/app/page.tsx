@@ -72,19 +72,9 @@ export default function HomePage() {
         <div className="hero-copy">
           <h1 id="home-title" data-scrub>
             <span>Your business deserves</span>
-            <span>
-              an AI team
-              <span className="headline-pulse" aria-hidden="true">
-                <Image src="/agent-pulse.svg" alt="" width={240} height={96} priority />
-              </span>
-              that
-            </span>
+            <span>an AI team that</span>
             <span className="hero-ember-line">never clocks out.</span>
           </h1>
-          <p data-reveal>
-            Voomate gives your business three connected agents that speak with customers, find the
-            right information, and safely complete approved work across your tools.
-          </p>
           <div className="hero-actions" data-reveal>
             <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
               Build your AI team <ArrowRight size={17} />
