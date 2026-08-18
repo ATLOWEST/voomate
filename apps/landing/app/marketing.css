@@ -6034,8 +6034,8 @@ body {
 .operating-flow-section {
   position: relative;
   width: 100%;
-  border-block: 1px solid var(--marketing-line);
-  background: rgba(255, 251, 246, 0.4);
+  background: transparent;
+  border-block: none;
 }
 
 .operating-flow-container {
