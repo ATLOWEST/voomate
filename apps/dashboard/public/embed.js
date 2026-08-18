@@ -27,18 +27,18 @@
       css.replaceSync(`
         :host{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));z-index:2147483000;font-family:Geist,"Helvetica Neue",Arial,sans-serif;color-scheme:light}
         *{box-sizing:border-box}
-        button{height:62px;display:flex;align-items:center;gap:11px;padding:6px 18px 6px 6px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:#0a0a0a;color:#fff;box-shadow:0 18px 48px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.12);cursor:pointer;animation:voomate-arrive .72s cubic-bezier(.16,1,.3,1) both;font:600 13px/1.1 inherit;letter-spacing:-.01em}
-        button:hover{transform:translateY(-3px);box-shadow:0 24px 58px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.14)}
+        button{height:59px;display:flex;align-items:center;gap:10px;padding:5px 16px 5px 5px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:#0a0a0a;color:#fff;box-shadow:0 18px 46px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.12);cursor:pointer;animation:voomate-arrive .72s cubic-bezier(.16,1,.3,1) both;font:600 12.5px/1.1 inherit;letter-spacing:-.01em}
+        button:hover{transform:translateY(-3px);box-shadow:0 22px 54px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.14)}
         button:active{transform:translateY(-1px) scale(.98)}
         button:focus-visible{outline:3px solid rgba(66,118,255,.35);outline-offset:4px}
         button:disabled{cursor:wait;opacity:.72}
-        .mark{position:relative;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 34% 28%,#fff 0 4%,#aac5ff 16%,#5b6fff 35%,#151515 72%);box-shadow:inset 0 0 14px rgba(255,255,255,.22)}
+        .mark{position:relative;width:45px;height:45px;display:grid;place-items:center;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 34% 28%,#fff 0 4%,#aac5ff 16%,#5b6fff 35%,#151515 72%);box-shadow:inset 0 0 14px rgba(255,255,255,.22)}
         .mark::before,.mark::after{content:"";position:absolute;border:1px solid rgba(255,255,255,.52);border-radius:50%;animation:voomate-orbit 4s linear infinite}
-        .mark::before{width:33px;height:13px}.mark::after{width:13px;height:33px;animation-direction:reverse}
-        .copy{display:grid;gap:3px;text-align:left;white-space:nowrap}.title{font-size:13px}.hint{font-size:10px;font-weight:500;color:rgba(255,255,255,.56);letter-spacing:.01em}
+        .mark::before{width:31px;height:12px}.mark::after{width:12px;height:31px;animation-direction:reverse}
+        .copy{display:grid;gap:3px;text-align:left;white-space:nowrap}.title{font-size:12.5px}.hint{font-size:9.5px;font-weight:500;color:rgba(255,255,255,.56);letter-spacing:.01em}
         @keyframes voomate-arrive{from{opacity:0;transform:translate3d(30px,16px,0) scale(.86)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
         @keyframes voomate-orbit{to{transform:rotate(1turn)}}
-        @media(max-width:520px){:host{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}.copy{display:none}button{width:60px;height:60px;padding:6px}.mark{width:48px;height:48px}}
+        @media(max-width:520px){:host{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}.copy{display:none}button{width:57px;height:57px;padding:5px}.mark{width:45px;height:45px}}
         @media(prefers-reduced-motion:reduce){button{animation:none;transition:none}.mark::before,.mark::after{animation:none}}
       `);
       this.shadowRoot.adoptedStyleSheets = [css];
