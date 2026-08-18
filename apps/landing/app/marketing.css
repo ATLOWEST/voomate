@@ -6251,10 +6251,13 @@ body {
 }
 
 .arch-header h2 {
-  font-size: clamp(2.5rem, 5vw, 3.5rem);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  margin-top: 1rem;
+  font-size: clamp(2.5rem, 5vw, 3.5rem) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.02em !important;
+  margin-top: 1rem !important;
+  color: var(--marketing-ink) !important;
+  -webkit-text-fill-color: var(--marketing-ink) !important;
+  background: none !important;
 }
 
 /* Pricing Inline Form */
