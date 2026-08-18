@@ -270,12 +270,26 @@ export async function runBedrockInlineAgentTurn(
   const knowledge = compacted.knowledge.length
     ? JSON.stringify(compacted.knowledge)
     : 'No verified business knowledge was retrieved.';
+
+  const normalizedMessages: Array<{ role: 'user' | 'assistant'; content: [{ text: string }] }> = [];
+  for (const turn of compacted.history) {
+    const role = turn.role === 'visitor' ? 'user' : 'assistant';
+    const text = turn.content.trim();
+    if (!text) continue;
+    const last = normalizedMessages[normalizedMessages.length - 1];
+    if (last && last.role === role) {
+      last.content[0].text += `\n\n${text}`;
+    } else {
+      normalizedMessages.push({ role, content: [{ text }] });
+    }
+  }
+  while (normalizedMessages.length > 0 && normalizedMessages[0].role !== 'user') {
+    normalizedMessages.shift();
+  }
+
   const sessionState: InlineSessionState = {
     conversationHistory: {
-      messages: compacted.history.map((turn) => ({
-        role: turn.role === 'visitor' ? 'user' : 'assistant',
-        content: [{ text: turn.content }],
-      })),
+      messages: normalizedMessages,
     },
     promptSessionAttributes: {
       channel: 'shared-web-agent',
