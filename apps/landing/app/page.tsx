@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SoftwareApplicationJsonLd } from '@/components/seo/json-ld';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -30,21 +31,32 @@ const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost
 export const metadata: Metadata = {
   title: 'Voomate — One AI team for every customer conversation',
   description:
-    'Voomate connects a Web Agent, Voice Calling Agent, and Integration Agent so businesses can answer customers and complete approved work from one shared system.',
+    'Voomate is an AI operating system that connects a Web Agent, Voice Calling Agent, and Integration Agent so businesses can answer customers and complete approved work from one shared system.',
   keywords: [
     'AI voice agent',
     'AI web agent',
     'customer service automation',
     'AI business operations',
     'AI website widget',
+    'AI operating system for business',
+    'voice AI customer support',
   ],
   openGraph: {
     type: 'website',
     title: 'Voomate — One AI team for every customer conversation',
     description: 'Answer, understand, and act across chat, voice, and connected business tools.',
     siteName: 'Voomate',
+    url: 'https://voomate.ai',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Voomate — One AI team for every customer conversation',
+    description: 'AI operating system connecting web, voice, and integration agents for customer conversations.',
   },
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: '/',
+  },
 };
 
 const SIGNALS = [
@@ -60,6 +72,7 @@ const SIGNALS = [
 export default function HomePage() {
   return (
     <main className="marketing-main">
+      <SoftwareApplicationJsonLd />
       <section className="home-hero" aria-labelledby="home-title">
         <div className="hero-status" data-reveal>
           <span>

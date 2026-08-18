@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { BreadcrumbJsonLd, WebPageJsonLd } from '@/components/seo/json-ld';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -14,8 +15,23 @@ import {
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
 
 export const metadata: Metadata = {
-  title: 'About',
-  description: 'Why Voomate is building one connected AI operating team for smaller businesses.',
+  title: 'About — The Voomate Principles',
+  description: 'Why Voomate is building one connected AI operating team for businesses. Discover our principles: grounded answers, useful actions, and private context.',
+  openGraph: {
+    title: 'About — The Voomate Principles',
+    description: 'Building one connected AI operating team for businesses.',
+    url: 'https://voomate.ai/about',
+    siteName: 'Voomate',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'About — The Voomate Principles',
+    description: 'Building one connected AI operating team for businesses.',
+  },
+  alternates: {
+    canonical: '/about',
+  },
 };
 
 const PRINCIPLES = [
@@ -55,7 +71,9 @@ const STACK = [
 
 export default function AboutPage() {
   return (
-    <main className="marketing-main subpage">
+    <main className="marketing-main subpage overflow-x-hidden w-full max-w-full">
+      <BreadcrumbJsonLd items={[{ name: 'Home', href: '/' }, { name: 'About', href: '/about' }]} />
+      <WebPageJsonLd name="About — The Voomate Principles" description="Why Voomate is building one connected AI operating team for businesses." url="/about" />
       <section className="subpage-hero subpage-hero--about" aria-labelledby="about-title">
         <div className="subpage-hero__aside" data-reveal>
           A small-business operation should not stop when the team is busy

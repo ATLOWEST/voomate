@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { BreadcrumbJsonLd, WebPageJsonLd } from '@/components/seo/json-ld';
 import Link from 'next/link';
 import {
   Activity,
@@ -15,9 +16,24 @@ import { WORKFLOW_USE_CASES, UseCaseAccordion } from '@/components/ui/use-case-a
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
 
 export const metadata: Metadata = {
-  title: 'Industries',
+  title: 'Industries — Voomate Use Cases',
   description:
-    'See how Voomate adapts to any business through tenant knowledge, live tools, and controlled workflow permissions.',
+    'See how Voomate adapts to any business through tenant knowledge, live tools, and controlled workflow permissions without rigid industry templates.',
+  openGraph: {
+    title: 'Industries — Voomate Use Cases',
+    description: 'One connected AI operating system for retail, healthcare, real estate, software, and more.',
+    url: 'https://voomate.ai/industries',
+    siteName: 'Voomate',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Industries — Voomate Use Cases',
+    description: 'One connected AI operating system for retail, healthcare, real estate, software, and more.',
+  },
+  alternates: {
+    canonical: '/industries',
+  },
 };
 
 const CONTEXTS = [
@@ -64,7 +80,9 @@ const WORKFLOW_EXAMPLES = [
 
 export default function IndustriesPage() {
   return (
-    <main className="marketing-main subpage">
+    <main className="marketing-main subpage industries-page">
+      <BreadcrumbJsonLd items={[{ name: 'Home', href: '/' }, { name: 'Industries', href: '/industries' }]} />
+      <WebPageJsonLd name="Industries — Voomate Use Cases" description="See how Voomate adapts to any business through tenant knowledge, live tools, and controlled workflow permissions." url="/industries" />
       <section className="subpage-hero" aria-labelledby="industries-title">
         <div className="subpage-hero__aside" data-reveal>
           Universal by architecture, specific through your data

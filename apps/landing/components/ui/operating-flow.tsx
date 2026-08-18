@@ -1,153 +1,165 @@
 'use client';
 
-import { useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { BookOpenText, Cable, Check, MessageSquareText, MoveRight, PhoneCall } from 'lucide-react';
+import { Code, Database, BrainCircuit, MousePointerClick, MessageSquareText, UserPlus, LayoutDashboard, Phone, Cable, CheckCircle2 } from 'lucide-react';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
-const STEPS = [
-  {
-    verb: 'Understand',
-    title: 'Understands the request',
-    body: 'The Web Agent or Voice Calling Agent follows the conversation, keeps its context, and identifies what the customer actually needs.',
-    Icon: MessageSquareText,
-  },
-  {
-    verb: 'Ground',
-    title: 'Retrieves the trusted source',
-    body: 'It checks tenant-scoped knowledge for stable business facts and identifies when the answer depends on current system data instead.',
-    Icon: BookOpenText,
-  },
-  {
-    verb: 'Act',
-    title: 'Requests an approved tool',
-    body: 'The Integration Agent exposes only the typed tools enabled for that business. The backend validates the input and executes with scoped credentials.',
-    Icon: Cable,
-  },
-  {
-    verb: 'Respond',
-    title: 'Returns a safe result',
-    body: 'Private fields are removed, sensitive actions can pause for approval, and the customer gets the useful outcome while the complete path is logged.',
-    Icon: Check,
-  },
-];
+type AgentType = 'web' | 'voice' | 'integration';
 
 export function OperatingFlow() {
-  const root = useRef<HTMLElement>(null);
+  const [activeAgent, setActiveAgent] = useState<AgentType>('web');
+  const sectionRef = useRef<HTMLElement>(null);
 
-  useGSAP(
-    () => {
-      const media = gsap.matchMedia();
+  useGSAP(() => {
+    const section = sectionRef.current;
+    if (!section) return;
 
-      media.add('(min-width: 1025px) and (prefers-reduced-motion: no-preference)', () => {
-        const section = root.current;
-        const cards = gsap.utils.toArray<HTMLElement>('[data-flow-card]', section ?? undefined);
+    // Staggered reveal animation on scroll
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: section,
+        start: 'top 75%',
+        end: 'bottom center',
+        toggleActions: 'play none none reverse',
+      }
+    });
 
-        if (!section || cards.length === 0) return;
+    tl.fromTo('.anim-stage', 
+      { autoAlpha: 0, y: 30 }, 
+      { autoAlpha: 1, y: 0, duration: 0.8, stagger: 0.2, ease: 'power3.out' }
+    );
 
-        cards.forEach((card, index) => {
-          gsap.fromTo(
-            card,
-            { autoAlpha: index === 0 ? 0.75 : 0.35, y: 44, scale: 0.94 },
-            {
-              autoAlpha: 1,
-              y: 0,
-              scale: 1,
-              ease: 'none',
-              scrollTrigger: {
-                trigger: card,
-                start: 'top 88%',
-                end: 'top 42%',
-                scrub: 0.65,
-              },
-            },
-          );
-
-          const nextCard = cards[index + 1];
-          if (nextCard) {
-            gsap.to(card, {
-              autoAlpha: 0.38,
-              scale: 0.965,
-              ease: 'none',
-              scrollTrigger: {
-                trigger: nextCard,
-                start: 'top 78%',
-                end: 'top 40%',
-                scrub: 0.65,
-              },
-            });
-          }
-        });
-      });
-
-      return () => media.revert();
-    },
-    { scope: root },
-  );
+    // Continuous pulse for SVG connecting lines
+    gsap.to('.flow-connector-line', {
+      strokeDashoffset: -40,
+      duration: 1.5,
+      ease: 'none',
+      repeat: -1,
+    });
+  }, { scope: sectionRef });
 
   return (
-    <section ref={root} className="flow-story" aria-labelledby="flow-title">
-      <div className="flow-stage" data-flow-stage>
-        <div className="flow-copy" data-flow-copy>
+    <section ref={sectionRef} className="flow-story" aria-labelledby="flow-title">
+      <div className="arch-stage">
+        {/* Header & Tabs */}
+        <div className="arch-header">
           <p className="editorial-index">How one request moves</p>
-          <h2 id="flow-title" data-scrub>
-            One conversation.
-            <br />
-            One shared brain.
+          <h2 id="arch-flow-title">
+            Install once. Understand everything. Act instantly.
           </h2>
-          <p
-            className="flow-narrative"
-            data-word-scrub
-            aria-label="Every channel uses the same knowledge, permissions, and conversation history. Your customer never has to start over when the work moves from an answer to an action."
-          >
-            {'Every channel uses the same knowledge, permissions, and conversation history. Your customer never has to start over when the work moves from an answer to an action.'
-              .split(' ')
-              .map((word, index) => (
-                <span aria-hidden="true" key={`${word}-${index}`}>
-                  {word}{' '}
-                </span>
-              ))}
-          </p>
-          <div className="flow-channel-row" aria-label="Supported conversation surfaces">
-            <span>
-              <MessageSquareText size={15} /> Website
-            </span>
-            <MoveRight size={16} aria-hidden="true" />
-            <span>
-              <PhoneCall size={15} /> Voice
-            </span>
-            <MoveRight size={16} aria-hidden="true" />
-            <span>
-              <Cable size={15} /> Tools
-            </span>
-          </div>
         </div>
 
-        <div className="flow-cards">
-          {STEPS.map(({ verb, title, body, Icon }) => (
-            <article className="flow-card" data-flow-card key={verb}>
-              <div className="flow-card__topline">
-                <span>{verb}</span>
-                <Icon size={22} strokeWidth={1.7} aria-hidden="true" />
+        <div className="agent-selector-tabs anim-stage">
+          <button 
+            className={`agent-tab ${activeAgent === 'web' ? 'active' : ''}`}
+            onClick={() => setActiveAgent('web')}
+          >
+            Web Agent
+          </button>
+          <button 
+            className={`agent-tab ${activeAgent === 'voice' ? 'active' : ''}`}
+            onClick={() => setActiveAgent('voice')}
+          >
+            Voice Agent
+          </button>
+          <button 
+            className={`agent-tab ${activeAgent === 'integration' ? 'active' : ''}`}
+            onClick={() => setActiveAgent('integration')}
+          >
+            Integration Agent
+          </button>
+        </div>
+
+        {/* 6-Stage Flow Container */}
+        <div className="six-stage-flow mt-16">
+          
+          {/* Stage 2: Install */}
+          <div className="stage-block anim-stage" data-stage="install">
+            <div className="stage-icon-wrap">
+              {activeAgent === 'web' && <Code size={24} />}
+              {activeAgent === 'voice' && <Phone size={24} />}
+              {activeAgent === 'integration' && <Cable size={24} />}
+            </div>
+            <h4>
+              {activeAgent === 'web' && 'One-line SDK'}
+              {activeAgent === 'voice' && 'Phone Number'}
+              {activeAgent === 'integration' && 'API Connect'}
+            </h4>
+            <p>Add one line. Live in minutes.</p>
+          </div>
+
+          <div className="stage-gap anim-stage">
+            <svg width="100%" height="2px"><line x1="0" y1="1" x2="100%" y2="1" className="flow-connector-line" strokeDasharray="6 6" /></svg>
+          </div>
+
+          {/* Stage 3: Understand */}
+          <div className="stage-block anim-stage" data-stage="understand">
+            <div className="stage-icon-wrap">
+              <Database size={24} />
+            </div>
+            <h4>Stack Scan</h4>
+            <p>Learns your real setup — safely, read-only.</p>
+          </div>
+
+          <div className="stage-gap anim-stage">
+            <svg width="100%" height="2px"><line x1="0" y1="1" x2="100%" y2="1" className="flow-connector-line" strokeDasharray="6 6" /></svg>
+          </div>
+
+          {/* Stage 1: The Reveal (Brain) */}
+          <div className="stage-block stage-block--brain anim-stage" data-stage="reveal">
+            <div className="brain-orb">
+              <div className="brain-orb-core">
+                <BrainCircuit size={28} className="arch-icon-ember" />
               </div>
-              <h3>{title}</h3>
-              <p>{body}</p>
-              <div className="flow-card__diagram" aria-hidden="true">
-                <span>Signal</span>
-                <i />
-                <strong>{verb}</strong>
-                <i />
-                <span>Outcome</span>
+              {/* Optional embedded orange dots pattern here */}
+              <div className="brain-particles"></div>
+            </div>
+            <h4>Voomate Engine</h4>
+            <p>Powered by frontier AI models.</p>
+          </div>
+
+          <div className="stage-gap anim-stage">
+            <svg width="100%" height="2px"><line x1="0" y1="1" x2="100%" y2="1" className="flow-connector-line" strokeDasharray="6 6" /></svg>
+          </div>
+
+          {/* Stage 4: Act (Branching) */}
+          <div className="stage-block stage-block--act anim-stage" data-stage="act">
+            <div className="act-branches">
+              <div className="act-node">
+                <MessageSquareText size={16} /> <span>Answers directly</span>
               </div>
-              <div className="flow-card__proof">
-                <Check size={15} aria-hidden="true" />
-                Controlled by your business rules
+              <div className="act-node">
+                <MousePointerClick size={16} /> <span>Guides UI</span>
               </div>
-            </article>
-          ))}
+              <div className="act-node">
+                <UserPlus size={16} /> <span>Human handoff</span>
+              </div>
+            </div>
+            <p className="mt-4">Answers, guides, and knows when to escalate.</p>
+          </div>
+
+          <div className="stage-gap anim-stage">
+            <svg width="100%" height="2px"><line x1="0" y1="1" x2="100%" y2="1" className="flow-connector-line" strokeDasharray="6 6" /></svg>
+          </div>
+
+          {/* Stage 5: Manage */}
+          <div className="stage-block stage-block--dashboard anim-stage" data-stage="manage">
+            <div className="dashboard-preview">
+               <div className="dash-header"><div className="dash-dot"/><div className="dash-dot"/><div className="dash-dot"/></div>
+               <div className="dash-body">
+                 <div className="dash-line w-3/4"></div>
+                 <div className="dash-line w-1/2"></div>
+                 <div className="dash-line w-full"></div>
+               </div>
+            </div>
+            <h4>Control Center</h4>
+            <p>Every conversation, one dashboard.</p>
+          </div>
+
         </div>
       </div>
     </section>

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { FaqPageJsonLd, BreadcrumbJsonLd, WebPageJsonLd } from '@/components/seo/json-ld';
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight, Check, ChevronDown, ShieldCheck } from 'lucide-react';
 
@@ -7,9 +8,24 @@ import { PricingGrid } from '@/components/pricing/pricing-grid';
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
 
 export const metadata: Metadata = {
-  title: 'Pricing',
+  title: 'Pricing — Voomate Plans',
   description:
-    'Clear Voomate plans for businesses starting, growing, or connecting custom systems.',
+    'Clear Voomate plans for businesses starting, growing, or connecting custom systems. Starter is free with 100 conversations per month. Growth is ₹2,499/month.',
+  openGraph: {
+    title: 'Pricing — Voomate Plans',
+    description: 'Start free with 100 conversations/month. Growth plan at ₹2,499/month with all three agents.',
+    url: 'https://voomate.ai/pricing',
+    siteName: 'Voomate',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Pricing — Voomate Plans',
+    description: 'Start free with 100 conversations/month. Growth plan at ₹2,499/month with all three agents.',
+  },
+  alternates: {
+    canonical: '/pricing',
+  },
 };
 
 const FAQ = [
@@ -38,6 +54,9 @@ const FAQ = [
 export default function PricingPage() {
   return (
     <main className="marketing-main subpage overflow-x-hidden w-full max-w-full">
+      <BreadcrumbJsonLd items={[{ name: 'Home', href: '/' }, { name: 'Pricing', href: '/pricing' }]} />
+      <WebPageJsonLd name="Pricing — Voomate Plans" description="Clear Voomate plans for businesses starting, growing, or connecting custom systems." url="/pricing" />
+      <FaqPageJsonLd faqs={FAQ} />
       <section className="pt-32 pb-24 md:pt-48 md:pb-32 flex flex-col items-center justify-center text-center px-4" aria-labelledby="pricing-title">
         <h1 id="pricing-title" className="max-w-5xl text-balance text-[clamp(3rem,5vw,5.5rem)] font-medium tracking-tight leading-[1.05]" data-scrub>
           Clear pricing for a connected AI team.

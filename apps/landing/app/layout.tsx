@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { OrganizationJsonLd } from '@/components/seo/json-ld';
 import Script from 'next/script';
 import { defineUiManifest, serializeUiManifest } from '@voomate/connect';
 import { Geist, Plus_Jakarta_Sans } from 'next/font/google';
@@ -20,6 +21,7 @@ const displayFont = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://voomate.ai'),
   title: { default: 'Voomate — One connected AI team', template: '%s | Voomate' },
   description:
     'Voomate connects a Web Agent, Voice Calling Agent, and Integration Agent for customer conversations and approved business actions.',
@@ -29,6 +31,9 @@ export const metadata: Metadata = {
     'virtual shopkeeper',
     'multilingual support',
     'AI customer support',
+    'AI agent platform',
+    'voice AI for business',
+    'AI operating system',
   ],
   openGraph: {
     type: 'website',
@@ -36,8 +41,18 @@ export const metadata: Metadata = {
     description:
       'A Web Agent, Voice Calling Agent, and Integration Agent working from one shared business context.',
     siteName: 'Voomate',
+    url: 'https://voomate.ai',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Voomate — One connected AI team',
+    description:
+      'AI operating system connecting web, voice, and integration agents for customer conversations and approved business actions.',
   },
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: '/',
+  },
 };
 
 const UI_MANIFEST = serializeUiManifest(
@@ -125,6 +140,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         <div className="site-aurora" aria-hidden="true" />
         <MarketingMotion />
+        <OrganizationJsonLd />
         <Navbar />
         <div className="site-content" id="main-content" tabIndex={-1}>
           {children}

@@ -148,21 +148,20 @@ export function PricingGrid() {
                   type="button"
                   id="talk-to-team-btn"
                   onClick={() => setFormOpen(true)}
-                  className="pricing-col__cta pricing-col__cta--solid"
-                  style={{ position: 'relative', zIndex: 10, cursor: 'pointer' }}
+                  className="pricing-col__cta pricing-col__cta--solid talk-to-team-btn"
                 >
                   Talk to the team <ArrowRight size={14} />
                 </button>
               ) : submitted ? (
-                <div className="pricing-inline-form" style={{ animation: 'pricing-form-in 0.5s ease-out both', textAlign: 'center', padding: '1.5rem 1rem' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '2.75rem', height: '2.75rem', borderRadius: '50%', background: 'rgba(34, 197, 94, 0.12)', color: 'rgb(34, 197, 94)', marginBottom: '0.75rem', animation: 'pricing-form-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both' }}>
+                <div className="pricing-inline-form pricing-inline-form--success animate-pricing-form-success">
+                  <div className="pricing-inline-form__success-icon animate-pricing-success-icon">
                     <Check size={22} />
                   </div>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--marketing-ink)', marginBottom: '0.35rem' }}>We'd love to hear more from you!</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--marketing-ink-soft)' }}>We are reaching out to you soon.</p>
+                  <h4 className="pricing-inline-form__success-title">We'd love to hear more from you!</h4>
+                  <p className="pricing-inline-form__success-desc">We are reaching out to you soon.</p>
                 </div>
               ) : (
-                <div className="pricing-inline-form" style={{ animation: 'pricing-form-in 0.35s ease-out both' }}>
+                <div className="pricing-inline-form animate-pricing-form">
                   <div className="pricing-inline-form__head">
                     <span>Get in touch</span>
                     <button type="button" onClick={() => setFormOpen(false)} className="pricing-inline-form__close" aria-label="Close">
@@ -180,11 +179,11 @@ export function PricingGrid() {
                       placeholder="Work email *" 
                       value={emailStr}
                       onChange={(e) => { setEmailStr(e.target.value); setEmailError(false); }}
-                      style={emailError ? { borderColor: '#ef4444' } : {}}
+                      className={emailError ? 'error' : ''}
                     />
-                    {emailError && <span style={{ color: '#ef4444', fontSize: '0.65rem', marginTop: '-0.25rem', fontWeight: 600 }}>Please enter a valid work email address.</span>}
+                    {emailError && <span className="pricing-inline-form__error">Please enter a valid work email address.</span>}
                     <div className="pricing-inline-form__row">
-                      <input defaultValue="+91" style={{ flex: '0 0 4.5rem' }} />
+                      <input defaultValue="+91" className="pricing-inline-form__country-code" />
                       <input required type="tel" placeholder="Phone *" />
                     </div>
                     <div className="pricing-inline-form__row">
