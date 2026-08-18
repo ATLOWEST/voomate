@@ -197,7 +197,7 @@ export function Navbar() {
             Sign in
           </a>
           <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ink btn-nav">
-            Start building <ArrowUpRight size={15} />
+            Sign up <ArrowUpRight size={15} />
           </a>
         </div>
 
@@ -258,7 +258,7 @@ export function Navbar() {
               className="btn-ink justify-center w-full"
               onClick={() => setOpen(false)}
             >
-              Start building <ArrowUpRight size={15} />
+              Sign up <ArrowUpRight size={15} />
             </a>
           </div>
         </div>

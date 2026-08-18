@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {
   ArrowDown,
   ArrowRight,
+  ArrowUpRight,
   CalendarCheck2,
   Check,
   CircleDot,
@@ -76,11 +77,12 @@ export default function HomePage() {
             <span className="hero-ember-shiny">your customers.</span>
           </h1>
           <div className="hero-actions" data-reveal>
-            <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
-              Build your AI team <ArrowRight size={17} />
+            <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember hero-btn-main">
+              Start now <ArrowRight size={17} />
             </a>
-            <Link href="/#features" className="btn-quiet">
-              See how it works
+            <Link href="/#features" className="hero-link-secondary">
+              <span>See how it works</span>
+              <ArrowUpRight size={16} />
             </Link>
           </div>
         </div>
