@@ -1,17 +1,50 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Menu, X } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  ChevronDown,
+  Globe2,
+  Menu,
+  Mic2,
+  PlugZap,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
 
-const NAV = [
-  { href: '/product', label: 'Product' },
+const PRODUCT_ITEMS = [
+  {
+    title: 'Web Agent',
+    description: 'Embeddable website AI for product search, answers & instant customer actions.',
+    href: '/product#web-agent',
+    icon: Globe2,
+    tag: 'Web',
+  },
+  {
+    title: 'Voice Calling Agent',
+    description: 'Sub-second real-time voice calling, natural interruptions & telephony.',
+    href: '/product#calling-agent',
+    icon: Mic2,
+    tag: 'Voice OS',
+  },
+  {
+    title: 'Integration Agent',
+    description: 'Unified live context across Shopify, ERP, CRM, and internal databases.',
+    href: '/integrations',
+    icon: PlugZap,
+    tag: 'Connected',
+  },
+];
+
+const NAV_LINKS = [
+  { href: '/#features', label: 'How it works' },
   { href: '/integrations', label: 'Integrations' },
-  { href: '/industries', label: 'Industries' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/about', label: 'About' },
 ];
@@ -19,57 +52,132 @@ const NAV = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [productOpen, setProductOpen] = useState(false);
+  const dropdownRef = useRef<HTMLLIElement>(null);
   const pathname = usePathname();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 90);
+    const onScroll = () => setScrolled(window.scrollY > 50);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setProductOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Close dropdown on route change
+  useEffect(() => {
+    setProductOpen(false);
+    setOpen(false);
+  }, [pathname]);
+
   return (
-    <header className="site-header">
+    <header className={cn('site-header', scrolled && 'site-header--scrolled')}>
       <nav
         className={cn('site-nav', scrolled && 'site-nav--scrolled')}
         aria-label="Primary navigation"
       >
+        {/* Brand Lockup (Always full logo mark + text) */}
         <Link href="/" className="brand-lockup" aria-label="Voomate home">
           <div className="brand-logo-container">
-            {/* Separate Voomate logo mark */}
             <img
               src="/voomate-logo.png"
               alt="Voomate"
               className="brand-logo-mark"
             />
-            {/* Letter-by-letter animated text logo */}
-            <div className={cn(
-                'brand-logo-letters',
-                scrolled ? 'brand-logo-letters--hidden' : 'brand-logo-letters--visible'
-              )}>
+            <div className="brand-logo-letters brand-logo-letters--visible">
               {[...Array(7)].map((_, i) => (
                 <img
                   key={i}
                   src={`/letters/letter-${i}.png`}
                   alt=""
-                  className={cn(
-                    'brand-letter',
-                    scrolled ? 'brand-letter--hidden' : 'brand-letter--visible'
-                  )}
-                  style={{
-                    transitionDelay: scrolled ? `${i * 35}ms` : `${(6 - i) * 35}ms`,
-                  }}
+                  className="brand-letter brand-letter--visible"
                 />
               ))}
             </div>
           </div>
         </Link>
 
+        {/* Navigation Links & Dropdown (Right-aligned) */}
         <ul className="site-nav__links">
-          {NAV.map((link) => {
+          {/* Product Dropdown */}
+          <li
+            className="nav-dropdown"
+            ref={dropdownRef}
+            onMouseEnter={() => setProductOpen(true)}
+            onMouseLeave={() => setProductOpen(false)}
+          >
+            <button
+              type="button"
+              className={cn(
+                'nav-link nav-dropdown__trigger',
+                (productOpen || pathname.startsWith('/product')) && 'nav-link--active'
+              )}
+              onClick={() => setProductOpen((prev) => !prev)}
+              aria-expanded={productOpen}
+              aria-haspopup="true"
+            >
+              <span>Product</span>
+              <ChevronDown
+                size={13}
+                className={cn(
+                  'nav-dropdown__chevron transition-transform duration-200',
+                  productOpen && 'rotate-180 text-[var(--marketing-ink)]'
+                )}
+              />
+            </button>
+
+            {/* Dropdown Card */}
+            {productOpen && (
+              <div className="nav-dropdown__menu animate-in fade-in zoom-in-95 duration-150">
+                <div className="nav-dropdown__header">
+                  <span className="nav-dropdown__category">The Voomate System</span>
+                  <Link href="/product" className="nav-dropdown__all-link" onClick={() => setProductOpen(false)}>
+                    Overview <ArrowRight size={11} />
+                  </Link>
+                </div>
+                <div className="nav-dropdown__items">
+                  {PRODUCT_ITEMS.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.title}
+                        href={item.href}
+                        className="nav-dropdown__item"
+                        onClick={() => setProductOpen(false)}
+                      >
+                        <div className="nav-dropdown__icon-wrap">
+                          <Icon size={16} />
+                        </div>
+                        <div className="nav-dropdown__text">
+                          <div className="nav-dropdown__title-row">
+                            <span className="nav-dropdown__title">{item.title}</span>
+                            <span className="nav-dropdown__tag">{item.tag}</span>
+                          </div>
+                          <p className="nav-dropdown__desc">{item.description}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </li>
+
+          {/* Standard Navigation Links */}
+          {NAV_LINKS.map((link) => {
             const active = pathname === link.href;
             return (
-              <li key={link.href}>
+              <li key={link.label}>
                 <Link
                   href={link.href}
                   className="nav-link"
@@ -83,6 +191,7 @@ export function Navbar() {
           })}
         </ul>
 
+        {/* Action Buttons */}
         <div className="site-nav__actions">
           <a href={`${DASHBOARD_URL}/sign-in`} className="site-nav__sign-in">
             Sign in
@@ -92,6 +201,7 @@ export function Navbar() {
           </a>
         </div>
 
+        {/* Mobile menu toggle */}
         <button
           type="button"
           className="site-nav__toggle"
@@ -103,27 +213,57 @@ export function Navbar() {
         </button>
       </nav>
 
+      {/* Mobile Menu Drawer */}
       {open && (
         <div className="site-nav__mobile">
-          {NAV.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="site-nav__mobile-link"
+          <div className="site-nav__mobile-section">
+            <span className="site-nav__mobile-category">Products</span>
+            {PRODUCT_ITEMS.map((item) => (
+              <Link
+                key={item.title}
+                href={item.href}
+                className="site-nav__mobile-link site-nav__mobile-link--sub"
+                onClick={() => setOpen(false)}
+              >
+                <span>{item.title}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--marketing-line)] text-[var(--marketing-ink-soft)] font-bold">{item.tag}</span>
+              </Link>
+            ))}
+          </div>
+
+          <div className="site-nav__mobile-section">
+            <span className="site-nav__mobile-category">Platform</span>
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="site-nav__mobile-link"
+                onClick={() => setOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="site-nav__mobile-actions">
+            <a
+              href={`${DASHBOARD_URL}/sign-in`}
+              className="site-nav__mobile-link text-center font-bold"
               onClick={() => setOpen(false)}
             >
-              {link.label}
-            </Link>
-          ))}
-          <a
-            href={`${DASHBOARD_URL}/sign-in`}
-            className="btn-ink justify-center"
-            onClick={() => setOpen(false)}
-          >
-            Start building <ArrowUpRight size={15} />
-          </a>
+              Sign in
+            </a>
+            <a
+              href={`${DASHBOARD_URL}/sign-in`}
+              className="btn-ink justify-center w-full"
+              onClick={() => setOpen(false)}
+            >
+              Start building <ArrowUpRight size={15} />
+            </a>
+          </div>
         </div>
       )}
     </header>
   );
 }
+
