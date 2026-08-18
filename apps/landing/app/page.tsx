@@ -73,7 +73,7 @@ export default function HomePage() {
           <h1 id="home-title" data-scrub>
             <span>Your business deserves</span>
             <span>an AI team that</span>
-            <span className="hero-ember-line">never clocks out.</span>
+            <span>never clocks out.</span>
           </h1>
           <div className="hero-actions" data-reveal>
             <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">

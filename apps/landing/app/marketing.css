@@ -416,6 +416,7 @@ summary:focus-visible {
   letter-spacing: -0.04em;
   text-wrap: balance;
   text-align: left;
+  color: var(--marketing-ink);
 }
 
 .hero-copy h1 > span {
@@ -424,10 +425,7 @@ summary:focus-visible {
   justify-content: flex-start;
   gap: 0.18em;
   text-align: left;
-}
-
-.hero-copy .hero-ember-line {
-  color: var(--marketing-ember);
+  color: var(--marketing-ink);
 }
 
 .headline-pulse {
