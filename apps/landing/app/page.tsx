@@ -76,13 +76,14 @@ export default function HomePage() {
             <span>that connects you to</span>
             <span className="hero-ember-shiny">your customers.</span>
           </h1>
-          <div className="hero-actions" data-reveal>
-            <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember hero-btn-main">
-              Start now <ArrowRight size={17} />
+          <div className="hero-actions hero-actions--buttonless" data-reveal>
+            <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+              <span>Start now</span>
+              <ArrowRight size={18} />
             </a>
-            <Link href="/#features" className="hero-link-secondary">
+            <Link href="/#features" className="hero-action-secondary">
               <span>See how it works</span>
-              <ArrowUpRight size={16} />
+              <ArrowUpRight size={17} />
             </Link>
           </div>
         </div>
