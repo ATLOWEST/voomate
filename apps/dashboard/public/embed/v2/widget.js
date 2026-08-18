@@ -51,13 +51,16 @@ stylesheet.replaceSync(`
   .composer{margin:8px 10px 4px;min-height:56px;display:grid;grid-template-columns:40px minmax(0,1fr) 44px;align-items:center;gap:3px;padding:5px;border:1px solid #dedede;border-radius:24px;background:#f8f8f8;box-shadow:0 4px 16px rgba(0,0,0,.04),inset 0 1px 0 #fff;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}.composer:focus-within{border-color:#bcbcbc;box-shadow:0 6px 20px rgba(0,0,0,.06),0 0 0 3px rgba(0,0,0,.035)}.composer.busy{opacity:.72}
   .attach,.mic{width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#111;cursor:pointer;transition:background .18s ease,transform .24s cubic-bezier(.34,1.56,.64,1),box-shadow .24s ease}.attach:hover{background:#e9e9e9;transform:rotate(7deg)}.mic{width:44px;height:44px;background:#0a0a0a;color:#fff}.mic:hover{transform:scale(1.055)}.mic:active,.attach:active{transform:scale(.92)}.mic.active{background:#e92d32;color:#fff;box-shadow:0 0 0 calc(4px + var(--audio-level) * 7px) rgba(233,45,50,.2),0 10px 24px rgba(185,25,30,.25);animation:stop-breathe 1.8s ease-in-out infinite}.mic .wave{display:flex;align-items:center;justify-content:center;gap:2px;height:16px}.mic .wave i{display:block;width:2px;border-radius:2px;background:currentColor;animation:wave-idle 1.5s ease-in-out infinite}.mic .wave i:nth-child(1),.mic .wave i:nth-child(5){height:5px}.mic .wave i:nth-child(2),.mic .wave i:nth-child(4){height:10px;animation-delay:-.2s}.mic .wave i:nth-child(3){height:15px;animation-delay:-.4s}.mic.active .wave i{animation-duration:.72s;transform:scaleY(calc(.55 + var(--audio-level) * .9));transition:transform .055s linear}
   input{min-width:0;width:100%;height:40px;padding:0 7px;border:0;outline:0;background:transparent;color:#101010;font-size:15px}input::placeholder{color:#8b8b8b}input:disabled{cursor:wait}
-  .branding-footer{display:flex;align-items:center;justify-content:center;gap:6px;padding:2px 12px 8px;font-size:10.5px;color:#858585;line-height:1;user-select:none}
-  .branding-footer a{color:#777;text-decoration:none;font-weight:500;transition:color .18s ease}
+  .branding-footer{display:flex;align-items:center;justify-content:center;gap:7px;padding:3px 14px 10px;font-size:11.5px;color:#737373;line-height:1;user-select:none}
+  .branding-footer a{color:#666;text-decoration:none;font-weight:500;transition:color .18s ease}
   .branding-footer a:hover{color:#111;text-decoration:underline}
-  .branding-sep{color:#d6d6d6;font-size:10px}
-  .branding-logo-wrap{display:inline-flex;align-items:center;gap:4px;color:#111;font-weight:620;text-decoration:none;font-size:11px;letter-spacing:-.01em}
-  .branding-logo-wrap:hover{color:#e8590c}
-  .branding-logo-icon{width:13px;height:13px;display:inline-block;object-fit:contain;vertical-align:middle;border-radius:2px}
+  .branding-sep{color:#d0d0d0;font-size:11px}
+  .powered-text{color:#777;font-size:11.5px;font-weight:500}
+  .branding-logo-wrap{display:inline-flex;align-items:center;gap:5px;padding:2.5px 7px;border-radius:7px;background:rgba(0,0,0,.035);border:1px solid rgba(0,0,0,.05);color:#0a0a0a;text-decoration:none;transition:all .2s ease}
+  .branding-logo-wrap:hover{background:rgba(232,89,12,.08);border-color:rgba(232,89,12,.25);transform:translateY(-1px);box-shadow:0 2px 8px rgba(232,89,12,.1)}
+  .branding-logo-icon{width:15px;height:15px;display:inline-block;object-fit:contain;vertical-align:middle}
+  .branding-text-logo{height:13px;width:auto;display:inline-block;object-fit:contain;vertical-align:middle}
+  .branding-logo-text{font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-weight:800;font-size:12.5px;letter-spacing:-0.035em;color:#0a0a0a}
   .voice-stage{position:relative;width:100%;height:0;min-height:0;z-index:1;display:grid;grid-template-rows:minmax(0,1fr) 24px;place-items:center;overflow:hidden;background:transparent;opacity:0;visibility:hidden;pointer-events:none;filter:blur(9px);transform:translate3d(0,34px,0) scale(.72);transform-origin:50% 100%;transition:height .58s cubic-bezier(.16,1,.3,1),opacity .22s ease,visibility 0s linear .5s,filter .36s ease,transform .62s cubic-bezier(.16,1,.3,1)}.voice-stage.active{height:260px;opacity:1;visibility:visible;filter:none;transform:translate3d(0,0,0) scale(1);transition:height .62s cubic-bezier(.16,1,.3,1),opacity .28s ease,visibility 0s,filter .42s ease,transform .68s cubic-bezier(.16,1,.3,1)}
   .voice-label{position:relative;z-index:2;align-self:start;text-align:center}.voice-title{font-size:10.5px;font-weight:620;letter-spacing:.018em;color:#585858;text-shadow:0 1px 14px rgba(255,255,255,.94)}.sphere-wrap{position:relative;width:250px;height:236px;display:grid;place-items:center;isolation:isolate}.sphere-wrap::before{content:"";position:absolute;inset:10%;z-index:-2;border-radius:50%;background:radial-gradient(circle,rgba(89,105,255,.12),rgba(122,75,255,.055) 38%,rgba(255,102,62,.025) 58%,transparent 72%);filter:blur(calc(12px + var(--audio-level) * 13px));transform:scale(calc(1 + var(--audio-level) * .09));transition:transform .06s linear,filter .06s linear}.sphere-wrap::after{content:"";position:absolute;left:21%;right:21%;bottom:7%;height:12%;z-index:-1;border-radius:50%;background:radial-gradient(ellipse,rgba(13,14,30,.18),rgba(51,57,130,.07) 45%,transparent 73%);filter:blur(11px);transform:scaleX(calc(.92 + var(--audio-level) * .12));transition:transform .06s linear}.voice-canvas{width:100%;height:100%;display:block;filter:drop-shadow(0 17px 25px rgba(25,29,75,.16)) saturate(1.04)}
   .panel.voice-active .presence{visibility:hidden}
@@ -575,12 +578,21 @@ export async function mountWidget(host, config) {
 
   const logoImg = element('img', 'branding-logo-icon');
   logoImg.src = new URL('/voomate-logo.png', config.apiOrigin).href;
-  logoImg.alt = 'Voomate';
-  logoImg.width = 13;
-  logoImg.height = 13;
+  logoImg.alt = '';
+  logoImg.width = 15;
+  logoImg.height = 15;
 
-  const brandName = element('span', 'brand-name', 'Voomate');
-  brandLink.append(logoImg, brandName);
+  const textLogoImg = element('img', 'branding-text-logo');
+  textLogoImg.src = new URL('/voomate-text-logo.png', config.apiOrigin).href;
+  textLogoImg.alt = 'Voomate';
+  textLogoImg.height = 13;
+  textLogoImg.onerror = () => {
+    textLogoImg.style.display = 'none';
+    const fallbackText = element('span', 'branding-logo-text', 'voomate');
+    brandLink.append(fallbackText);
+  };
+
+  brandLink.append(logoImg, textLogoImg);
 
   branding.append(privacyLink, sep, poweredSpan, brandLink);
 
