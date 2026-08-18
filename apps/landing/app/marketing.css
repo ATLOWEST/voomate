@@ -428,6 +428,16 @@ summary:focus-visible {
   color: var(--marketing-ink);
 }
 
+.hero-copy h1 .hero-ember-shiny {
+  color: #E8590C;
+  background: linear-gradient(135deg, #FF6224 0%, #E8590C 50%, #C43800 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  letter-spacing: -0.045em;
+  filter: drop-shadow(0 2px 16px rgba(232, 89, 12, 0.18));
+}
+
 .headline-pulse {
   display: inline-flex;
   flex: 0 0 auto;

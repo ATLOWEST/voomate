@@ -71,9 +71,9 @@ export default function HomePage() {
 
         <div className="hero-copy">
           <h1 id="home-title" data-scrub>
-            <span>Your business deserves</span>
-            <span>an AI team that</span>
-            <span>never clocks out.</span>
+            <span>The Agentic OS</span>
+            <span>that connects you to</span>
+            <span className="hero-ember-shiny">your customers.</span>
           </h1>
           <div className="hero-actions" data-reveal>
             <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
