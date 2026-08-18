@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {
   Activity,
   ArrowRight,
+  ArrowUpRight,
   BookOpenText,
   CheckCircle2,
   ClipboardCheck,
@@ -211,12 +212,14 @@ export default function IndustriesPage() {
           <br />
           Keep one controlled system.
         </h2>
-        <div data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
-            Build your AI team <ArrowRight size={16} />
+        <div className="hero-actions--buttonless justify-center" data-reveal>
+          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+            <span>Start now</span>
+            <ArrowRight size={18} />
           </a>
-          <Link href="/integrations" className="btn-quiet">
-            Explore integrations
+          <Link href="/integrations" className="hero-action-secondary">
+            <span>Explore integrations</span>
+            <ArrowUpRight size={17} />
           </Link>
         </div>
       </section>

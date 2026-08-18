@@ -291,12 +291,14 @@ export default function HomePage() {
           Start with the same three-agent system and connect only the knowledge and actions your
           business needs.
         </p>
-        <div className="hero-actions" data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
-            Start building <ArrowRight size={17} />
+        <div className="hero-actions hero-actions--buttonless justify-center" data-reveal>
+          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+            <span>Start now</span>
+            <ArrowRight size={18} />
           </a>
-          <Link href="/pricing" className="btn-quiet">
-            View pricing
+          <Link href="/pricing" className="hero-action-secondary">
+            <span>View pricing</span>
+            <ArrowUpRight size={17} />
           </Link>
         </div>
       </section>

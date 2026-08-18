@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import {
   ArrowRight,
+  ArrowUpRight,
   CheckCircle2,
   Headphones,
   MessageSquareText,
@@ -33,14 +34,14 @@ export function HeroSection() {
             your business, and safely gets work done across your tools.
           </p>
           <div
-            className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center animate-fade"
+            className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-center animate-fade"
             style={{ '--delay': '220ms' } as React.CSSProperties}
           >
-            <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember justify-center">
-              Build your AI team <ArrowRight size={17} />
+            <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+              <span>Start now</span> <ArrowRight size={18} />
             </a>
-            <Link href="/#how-it-works" className="btn-ghost justify-center">
-              See how it works
+            <Link href="/#features" className="hero-action-secondary">
+              <span>See how it works</span> <ArrowUpRight size={17} />
             </Link>
           </div>
           <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-[#5C4A38]">

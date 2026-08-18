@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import {
   ArrowRight,
+  ArrowUpRight,
   Braces,
   DatabaseZap,
   Fingerprint,
@@ -145,12 +146,14 @@ export default function AboutPage() {
           <br />
           you want customers to feel.
         </h2>
-        <div data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
-            Start building <ArrowRight size={16} />
+        <div className="hero-actions--buttonless justify-center" data-reveal>
+          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+            <span>Start now</span>
+            <ArrowRight size={18} />
           </a>
-          <a href="mailto:hello@voomate.com" className="btn-quiet">
-            Talk to the team
+          <a href="mailto:hello@voomate.com" className="hero-action-secondary">
+            <span>Talk to the team</span>
+            <ArrowUpRight size={17} />
           </a>
         </div>
       </section>

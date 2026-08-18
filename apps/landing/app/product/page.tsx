@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowRight,
+  ArrowUpRight,
   BookOpenText,
   Braces,
   CircleGauge,
@@ -196,12 +197,14 @@ export default function ProductPage() {
           <br />
           Expand from evidence.
         </h2>
-        <div data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
-            Start building <ArrowRight size={16} />
+        <div className="hero-actions--buttonless justify-center" data-reveal>
+          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+            <span>Start now</span>
+            <ArrowRight size={18} />
           </a>
-          <Link href="/integrations" className="btn-quiet">
-            Explore integrations
+          <Link href="/integrations" className="hero-action-secondary">
+            <span>Explore integrations</span>
+            <ArrowUpRight size={17} />
           </Link>
         </div>
       </section>

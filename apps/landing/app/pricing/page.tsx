@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Check, ChevronDown, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, ChevronDown, ShieldCheck } from 'lucide-react';
 
 import { PricingGrid } from '@/components/pricing/pricing-grid';
 
@@ -105,12 +105,14 @@ export default function PricingPage() {
           <br />
           Keep the system connected.
         </h2>
-        <div data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
-            Start building <ArrowRight size={16} />
+        <div className="hero-actions--buttonless justify-center" data-reveal>
+          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+            <span>Start now</span>
+            <ArrowRight size={18} />
           </a>
-          <Link href="/about" className="btn-quiet">
-            How Voomate is built
+          <Link href="/about" className="hero-action-secondary">
+            <span>How Voomate is built</span>
+            <ArrowUpRight size={17} />
           </Link>
         </div>
       </section>

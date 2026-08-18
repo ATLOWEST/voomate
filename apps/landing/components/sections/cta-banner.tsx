@@ -43,12 +43,14 @@ export function CTASection() {
                 handles every customer conversation, in every language, 24 hours a day.
               </p>
 
-              <a
-                href={`${DASHBOARD_URL}/sign-in`}
-                className="btn-ember mb-8 inline-flex px-10 py-4 text-[1rem]"
-              >
-                Build your AI team →
-              </a>
+              <div className="mb-8">
+                <a
+                  href={`${DASHBOARD_URL}/sign-in`}
+                  className="hero-action-primary"
+                >
+                  <span>Start now</span> →
+                </a>
+              </div>
 
               {/* Guarantee trio */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

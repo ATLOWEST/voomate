@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowRight,
+  ArrowUpRight,
   BookOpenText,
   Braces,
   Cable,
@@ -184,12 +185,14 @@ export default function IntegrationsPage() {
           <br />
           Prove the full loop.
         </h2>
-        <div data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="btn-ember">
-            Open your agent board <ArrowRight size={16} />
+        <div className="hero-actions--buttonless justify-center" data-reveal>
+          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+            <span>Start now</span>
+            <ArrowRight size={18} />
           </a>
-          <Link href="/product" className="btn-quiet">
-            See the product
+          <Link href="/product" className="hero-action-secondary">
+            <span>See the product</span>
+            <ArrowUpRight size={17} />
           </Link>
         </div>
       </section>
