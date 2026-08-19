@@ -53,6 +53,60 @@ I have inspected your database architecture in `client.ts` and `10_rls_policies.
 1. **Session-Level Database Enforcement:** Instead of bypassing RLS with a Service Role, we will use Postgres configuration variables (`set_config('app.current_tenant', ...)`). We will wrap all Drizzle database queries in a transaction that sets the current `organizationId` directly in Postgres.
 2. **Fail-Safe RLS:** We will update the RLS policies so that the database engine itself rejects any query attempting to read or write an agent belonging to a different client. Even if a developer writes a completely unscoped query like `select * from agents`, the database will automatically filter it. This guarantees clients and their agents never get merged.
 
+### Problem 5: Dynamic Role & Portal Boundary Isolation (Multi-Dashboard Scope Blindness)
+When an application contains multiple distinct portals or dashboards under the same domain (e.g., **Super Admin Portal** `/admin/*`, **Merchant Admin Dashboard** `/`, and **Customer Storefront** `/store/*`), the Web Agent fails to isolate the active role and portal boundaries. It mixes up navigation scopes and hallucinates links from other dashboards.
+
+#### Real Chat Log of the Web Agent Scope Collision (Super Admin Failure)
+> **Active User URL:** `http://localhost:3001/admin/merchants` (Super Admin Portal)
+> **User:** "hey can you aplc redirect this to agabt fellet page" *(Intent: Navigate to Super Admin Agent Fleet `/admin/agents`)*
+> **Agent:** "I couldn't safely match that to a page here. I can open Overview, Agents, Web Agent, Voice Calling Agent, Integration Agent, Integrations, Conversations, Logs."
+>
+> ❌ **The Failure:** The user was on the Super Admin portal, but the agent attempted to resolve against and advertised the **Merchant Dashboard's** navigation routes (`Overview`, `Integrations`, `Logs`) instead of the **Super Admin's** actual routes (`Merchants & Workspaces`, `Agent Fleet & LLMs`, `Voice Edge Studio`, `Telephony & WebRTC`, `Cluster Health & Logs`).
+
+#### Why This Is a Critical Flaw for Multi-Tenant B2B Customers
+A client project rarely has only one screen. In production B2B SaaS and e-commerce:
+1. **Super Admin / Platform Team:** Manages organizations, LLM model routing, telephony clusters, and global quotas (`/admin/*`).
+2. **Merchant / Workspace Admin:** Manages products, catalog, team members, and store settings (`/app/*` or `/`).
+3. **End-User / Shopper:** Browses store catalog, tracks orders, and manages cart (`/store/*` or `/account/*`).
+
+If the Web Agent is scope-blind, it leaks internal admin routes to public customers, or leaks merchant store settings to super admins, completely breaking trust and multi-tenant security.
+
+---
+
+### Required Actions for Dynamic Role & Portal Isolation (CTO Architecture)
+*(Zero-Config, Dynamic Framework Adapting to Any Client's Codebase)*
+
+1. **DOM-Native Active Nav Discovery:**
+   - The embed widget must dynamically extract navigation links directly from the *currently visible* active navigation containers (`aside nav`, `header nav`, `nav[aria-label]`) in the live DOM rather than relying on a static global manifest.
+   - Automatically bind the current URL prefix (e.g. `/admin/` vs `/app/` vs `/`) as the primary destination resolution scope.
+
+2. **Dynamic Portal Boundary Scoping (`portalScope`):**
+   - The orchestrator and destination resolver must dynamically partition navigation targets by their URL path prefix and active layout hierarchy.
+   - When the user is at `/admin/*`, the destination resolver strictly prioritizes same-boundary links (`/admin/agents`, `/admin/voice-studio`, `/admin/telephony`) and completely filters out routes belonging to unmounted sister portals.
+
+3. **Role-Aware Context & Persona Calibration:**
+   - Inject `portalScope` and `activeLayout` into `pageContext`.
+   - The system prompt automatically adapts: in Super Admin mode, the agent speaks as the Platform Infrastructure Assistant; in Merchant mode, as the Store Operations Assistant; in Storefront mode, as the Customer Concierge—with **zero manual configuration** required by clients.
+
+4. **Fuzzy Typo & Multi-Token Resolution (`agabt fellet` ➔ `Agent Fleet`):**
+   - Enhance the tokenizer and Levenshtein distance metric in `destination-resolver.ts` to support compound multi-token phonetic matches (e.g., `"agabt fellet"` ➔ `"agent fleet"`, `"supr amdn"` ➔ `"super admin"`).
+
+---
+
+### 📋 Technical Execution Prompt for IDE & AI Codex Agents
+```markdown
+[PROMPT FOR IDE / AGENT EXECUTION]:
+Implement Dynamic Role & Portal Boundary Isolation for the Voomate Web Agent architecture:
+1. Update `apps/dashboard/public/embed/v2/widget.js` -> `collectPageContext()` to dynamically scrape navigation links from the active `<aside>`, `<nav>`, and `<header>` elements on the rendered DOM, grouping them under `portalScope` derived from `window.location.pathname.split('/')[1]`.
+2. Update `apps/dashboard/src/lib/web-agent/destination-resolver.ts` and `orchestration.ts`:
+   - Filter `pageContext.navigation` strictly by the active `portalScope` so that `/admin/*` queries only resolve against `/admin/*` routes, and merchant queries resolve against merchant routes.
+   - Expand multi-word fuzzy typo tolerance to match compound queries like "agabt fellet" -> "Agent Fleet & LLMs" (/admin/agents).
+   - Ensure the direct fallback reply advertises ONLY the active portal's available links.
+3. Validate with unit tests and ensure zero static hardcoding so any client dashboard with 1 to N sub-portals automatically inherits dynamic scope isolation.
+```
+
+---
+
 ## 2. The "Agentic Tab" Dynamic Framework (Compulsory Guide)
 When solving the problem above, the solution **must not** be hardcoded just for the Voomate dashboard. We must build an "Agentic Tab" that operates within a dynamic framework so it works seamlessly for **all of our clients**.
 
