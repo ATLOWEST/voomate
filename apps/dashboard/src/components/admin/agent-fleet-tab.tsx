@@ -5,6 +5,7 @@ import { Search } from 'lucide-react';
 import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogActions } from '@/components/ui/dialog';
 
 interface AgentRecord {
   id: string;
@@ -72,6 +73,7 @@ const MOCK_AGENTS: AgentRecord[] = [
 
 export function AgentFleetTab() {
   const [search, setSearch] = useState('');
+  const [routingAgent, setRoutingAgent] = useState<AgentRecord | null>(null);
 
   const filteredAgents = MOCK_AGENTS.filter((agent) =>
     agent.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -140,7 +142,7 @@ export function AgentFleetTab() {
                     <td className="px-4 py-3.5 text-right">
                       <Button
                         size="sm"
-                        onClick={() => alert(`Configuring model route: ${agent.name}`)}
+                        onClick={() => setRoutingAgent(agent)}
                       >
                         Route
                       </Button>
@@ -152,6 +154,64 @@ export function AgentFleetTab() {
           </div>
         </PanelBody>
       </Panel>
+
+      {/* In-place Model Routing Dialog (Keeps user on /admin) */}
+      {routingAgent && (
+        <Dialog
+          title={`Route LLM Model: ${routingAgent.name}`}
+          description={`Assigned to workspace: ${routingAgent.orgName}`}
+          onClose={() => setRoutingAgent(null)}
+        >
+          <div className="space-y-3 py-2 text-[13px]">
+            <p className="text-muted-foreground">Select the real-time inference model backend for this agent:</p>
+            <div className="space-y-2">
+              {[
+                { id: 'amazon.nova-sonic-v1:0', name: 'AWS Bedrock Nova 2 (Sonic)', desc: 'Ultra low-latency speech & conversational streaming' },
+                { id: 'amazon.nova-pro-v1:0', name: 'AWS Bedrock Nova Pro', desc: 'Complex reasoning and deep tool orchestration' },
+                { id: 'anthropic.claude-3-5-sonnet', name: 'Anthropic Claude 3.5 Sonnet', desc: 'High capability multimodal RAG agent' },
+              ].map((m) => (
+                <label
+                  key={m.id}
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                    routingAgent.model === m.id
+                      ? 'border-accent-500 bg-accent-50/50 dark:bg-accent-950/20'
+                      : 'border-[var(--border-default)] hover:bg-[var(--surface-sunken)]'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="modelRoute"
+                    checked={routingAgent.model === m.id}
+                    onChange={() => {
+                      setRoutingAgent({ ...routingAgent, model: m.id, modelDisplayName: m.name });
+                    }}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <div className="font-semibold text-foreground">{m.name}</div>
+                    <div className="text-[11.5px] text-muted-foreground">{m.desc}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <DialogActions>
+            <Button variant="secondary" onClick={() => setRoutingAgent(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                alert(`Updated model for ${routingAgent.name} to ${routingAgent.modelDisplayName}`);
+                setRoutingAgent(null);
+              }}
+            >
+              Save Route
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </div>
   );
 }

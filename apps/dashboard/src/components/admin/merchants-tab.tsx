@@ -5,6 +5,7 @@ import { Search } from 'lucide-react';
 import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogActions } from '@/components/ui/dialog';
 
 interface MerchantRecord {
   id: string;
@@ -104,6 +105,7 @@ const MOCK_MERCHANTS: MerchantRecord[] = [
 export function MerchantsTab() {
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState<string>('all');
+  const [inspectingMerchant, setInspectingMerchant] = useState<MerchantRecord | null>(null);
 
   const filteredMerchants = MOCK_MERCHANTS.filter((merchant) => {
     const matchesSearch =
@@ -196,7 +198,7 @@ export function MerchantsTab() {
                     <td className="px-4 py-3.5 text-right">
                       <Button
                         size="sm"
-                        onClick={() => alert(`Inspecting workspace: ${merchant.name}`)}
+                        onClick={() => setInspectingMerchant(merchant)}
                       >
                         Inspect
                       </Button>
@@ -208,6 +210,51 @@ export function MerchantsTab() {
           </div>
         </PanelBody>
       </Panel>
+
+      {/* In-place Inspector Dialog (Keeps user on /admin) */}
+      {inspectingMerchant && (
+        <Dialog
+          title={inspectingMerchant.name}
+          description={`Workspace ID: ${inspectingMerchant.id}`}
+          onClose={() => setInspectingMerchant(null)}
+          wide
+        >
+          <div className="space-y-4 py-2 text-[13px]">
+            <div className="grid grid-cols-2 gap-4 rounded-lg bg-[var(--surface-sunken)] p-3.5">
+              <div>
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Domain</span>
+                <p className="font-medium text-foreground">{inspectingMerchant.domain}</p>
+              </div>
+              <div>
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Owner</span>
+                <p className="font-medium text-foreground">{inspectingMerchant.ownerEmail}</p>
+              </div>
+              <div>
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Plan Tier</span>
+                <p className="capitalize font-medium text-foreground">{inspectingMerchant.plan}</p>
+              </div>
+              <div>
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Platform</span>
+                <p className="capitalize font-medium text-foreground">{inspectingMerchant.platform}</p>
+              </div>
+            </div>
+
+            <div>
+              <span className="text-[11px] font-medium uppercase text-muted-foreground">Monthly Voice Quota</span>
+              <div className="mt-1 flex items-center justify-between text-xs">
+                <span className="font-semibold text-foreground">{inspectingMerchant.voiceMinutes.toLocaleString()} minutes used</span>
+                <span className="text-muted-foreground">{inspectingMerchant.maxMinutes.toLocaleString()} total quota</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogActions>
+            <Button variant="secondary" onClick={() => setInspectingMerchant(null)}>
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </div>
   );
 }
