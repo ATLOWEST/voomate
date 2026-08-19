@@ -1,158 +1,126 @@
 'use client';
 
-import { useState } from 'react';
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  Database,
-  Globe,
-  Radio,
-  RefreshCw,
-  Server,
-  ShieldCheck,
-  Terminal,
-  Zap,
-} from 'lucide-react';
+import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 interface ServiceNode {
   name: string;
   role: string;
   port: number;
-  url: string;
   latencyMs: number;
-  status: 'healthy' | 'degraded' | 'down';
   uptime: string;
 }
 
 const SERVICES: ServiceNode[] = [
   {
-    name: 'Landing & Marketing Site',
+    name: 'Landing Site',
     role: 'Public Edge Web',
     port: 3000,
-    url: 'http://127.0.0.1:3000',
     latencyMs: 95,
-    status: 'healthy',
     uptime: '99.98%',
   },
   {
-    name: 'Merchant Dashboard & Widget Runtime',
+    name: 'Dashboard & Widget Runtime',
     role: 'Client App & Embed Host',
     port: 3001,
-    url: 'http://127.0.0.1:3001/embed.js',
     latencyMs: 18,
-    status: 'healthy',
     uptime: '99.99%',
   },
   {
     name: 'Connect & Control API Engine',
-    role: 'Multi-Tenant Fastify Backend',
+    role: 'Fastify Backend',
     port: 4000,
-    url: 'http://127.0.0.1:4000/health',
     latencyMs: 12,
-    status: 'healthy',
     uptime: '100.0%',
   },
   {
     name: 'Voice Edge WebRTC Node',
-    role: 'Pipecat RTVI Python Cluster',
+    role: 'Pipecat Python Cluster',
     port: 7860,
-    url: 'http://127.0.0.1:7860',
     latencyMs: 17,
-    status: 'healthy',
     uptime: '99.95%',
   },
   {
     name: 'PostgreSQL & pgvector Cluster',
-    role: 'Multi-Tenant Knowledge Vector Index',
+    role: 'Vector Knowledge Index',
     port: 5432,
-    url: 'localhost:5432/voomate',
     latencyMs: 4,
-    status: 'healthy',
     uptime: '100.0%',
   },
 ];
 
 const RECENT_AUDIT_LOGS = [
-  { time: '11:30:14', level: 'info', service: 'Voice Edge', message: 'WebRTC RTVI session initialized: room_webrtc_829471' },
-  { time: '11:29:48', level: 'info', service: 'Bedrock Nova', message: 'ConverseStream normalized 4 conversation turns (role alternation ok)' },
-  { time: '11:28:02', level: 'info', service: 'Connect API', message: 'Shopify order verification tool executed: orderId DEMO-1001' },
-  { time: '11:26:30', level: 'info', service: 'pgvector RAG', message: 'Retrieved 3 similarity chunks for query: "30-day return policy"' },
-  { time: '11:24:19', level: 'info', service: 'Dashboard', message: 'Widget embed v2 bundle served to client runtime (398px x 639px)' },
-  { time: '11:21:05', level: 'info', service: 'Auth RLS', message: 'Tenant boundary verified for organization: Voomate Dogfood Demo Store' },
+  { time: '11:38:14', service: 'Voice Edge', message: 'WebRTC RTVI session connected: room_webrtc_829471' },
+  { time: '11:37:48', service: 'Bedrock Nova', message: 'ConverseStream normalized 4 conversation turns' },
+  { time: '11:36:02', service: 'Connect API', message: 'Shopify order verification tool executed: DEMO-1001' },
+  { time: '11:35:30', service: 'pgvector RAG', message: 'Retrieved 3 similarity chunks for query: "return policy"' },
+  { time: '11:34:19', service: 'Dashboard', message: 'Widget embed v2 bundle served to client runtime' },
+  { time: '11:32:05', service: 'Auth RLS', message: 'Tenant boundary verified for current workspace' },
 ];
 
 export function ClusterHealthTab() {
-  const [logs, setLogs] = useState(RECENT_AUDIT_LOGS);
-
   return (
-    <div className="space-y-6">
-      {/* Cluster Node Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {SERVICES.map((node) => (
-          <div
-            key={node.name}
-            className="rounded-2xl border border-border/80 bg-card/85 p-5 shadow-sm backdrop-blur-md transition-all hover:border-border"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[11.5px] font-medium text-muted-foreground">{node.role}</span>
-                <h4 className="text-sm font-semibold text-foreground mt-0.5">{node.name}</h4>
-              </div>
-              <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Healthy
-              </span>
-            </div>
+    <div className="space-y-4">
+      <Panel>
+        <PanelHeader
+          title="Cluster Nodes & Microservices"
+          description="Operational status and response latency of all backend and edge services."
+        />
+        <PanelBody className="p-0">
+          <table className="w-full text-left text-[13px]">
+            <thead className="border-b border-[var(--border-default)] bg-[var(--surface-sunken)] text-[11.5px] font-medium uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3">Service</th>
+                <th className="px-4 py-3">Role</th>
+                <th className="px-4 py-3">Port</th>
+                <th className="px-4 py-3">Latency</th>
+                <th className="px-4 py-3 text-right">Uptime</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border-default)]">
+              {SERVICES.map((node) => (
+                <tr key={node.name} className="hover:bg-[var(--surface-sunken)]/50 transition-colors">
+                  <td className="px-4 py-3.5 font-semibold text-foreground">
+                    {node.name}
+                  </td>
+                  <td className="px-4 py-3.5 text-muted-foreground">
+                    {node.role}
+                  </td>
+                  <td className="px-4 py-3.5 font-mono text-xs text-foreground">
+                    :{node.port}
+                  </td>
+                  <td className="px-4 py-3.5 font-mono text-xs text-foreground">
+                    {node.latencyMs}ms
+                  </td>
+                  <td className="px-4 py-3.5 text-right font-medium text-foreground">
+                    {node.uptime}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </PanelBody>
+      </Panel>
 
-            <div className="mt-4 flex items-baseline justify-between border-t border-border/60 pt-3 text-xs">
-              <div>
-                <span className="text-muted-foreground">Port / Target:</span>{' '}
-                <span className="font-mono font-medium text-foreground">:{node.port}</span>
+      <Panel>
+        <PanelHeader
+          title="Recent Cluster Events"
+          description="Real-time communication and tool execution trace across microservices."
+        />
+        <PanelBody className="p-0">
+          <div className="divide-y divide-[var(--border-default)] font-mono text-xs">
+            {RECENT_AUDIT_LOGS.map((log, i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3 hover:bg-[var(--surface-sunken)]/40 transition-colors">
+                <span className="text-muted-foreground shrink-0">{log.time}</span>
+                <span className="rounded bg-[var(--surface-sunken)] px-1.5 py-0.5 text-[11px] font-semibold text-foreground shrink-0">
+                  {log.service}
+                </span>
+                <span className="text-foreground truncate">{log.message}</span>
               </div>
-              <div>
-                <span className="text-muted-foreground">Latency:</span>{' '}
-                <span className="font-mono font-medium text-emerald-600 dark:text-emerald-400">{node.latencyMs}ms</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Uptime:</span>{' '}
-                <span className="font-medium text-foreground">{node.uptime}</span>
-              </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
-
-      {/* Live Cluster Event Log Stream */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b border-border/80 bg-[var(--surface-sunken)]/60 px-5 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <Terminal className="size-4 text-accent-600" />
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Live Cluster Event Stream & Audit Log</h3>
-              <p className="text-[11.5px] text-muted-foreground">Real-time microservices communication and tool execution trace.</p>
-            </div>
-          </div>
-
-          <Badge tone="neutral">
-            P50 Cluster Latency: 18ms
-          </Badge>
-        </div>
-
-        <div className="divide-y divide-border/60 bg-background/50 font-mono text-xs">
-          {logs.map((log, i) => (
-            <div key={i} className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-accent-50/20 dark:hover:bg-accent-950/10">
-              <span className="text-muted-foreground shrink-0">{log.time}</span>
-              <span className="rounded bg-[var(--surface-sunken)] px-1.5 py-0.5 text-[10.5px] font-semibold text-accent-700 dark:text-accent-300 shrink-0">
-                {log.service}
-              </span>
-              <span className="text-foreground truncate">{log.message}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+        </PanelBody>
+      </Panel>
     </div>
   );
 }
