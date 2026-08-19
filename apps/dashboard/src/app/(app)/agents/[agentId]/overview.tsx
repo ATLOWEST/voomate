@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAgent } from '@/components/agent/shell';
 import { Callout } from '@/components/ui/callout';
+import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 

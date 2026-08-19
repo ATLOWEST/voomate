@@ -283,7 +283,7 @@ export async function runBedrockInlineAgentTurn(
       normalizedMessages.push({ role, content: [{ text }] });
     }
   }
-  while (normalizedMessages.length > 0 && normalizedMessages[0].role !== 'user') {
+  while (normalizedMessages.length > 0 && normalizedMessages[0]?.role !== 'user') {
     normalizedMessages.shift();
   }
 

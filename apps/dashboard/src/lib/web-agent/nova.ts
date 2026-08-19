@@ -247,7 +247,7 @@ export async function runNovaTurnStream(
       messages.push({ ...msg, content: [...(msg.content ?? [])] });
     }
   }
-  while (messages.length > 0 && messages[0].role !== 'user') {
+  while (messages.length > 0 && messages[0]?.role !== 'user') {
     messages.shift();
   }
 
