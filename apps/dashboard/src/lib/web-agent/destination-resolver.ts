@@ -119,13 +119,38 @@ function meaningfulTokens(value: string): string[] {
 
 function canonicalToken(value: string): string {
   const norm = value.toLowerCase();
-  if (norm === 'againt' || norm === 'aganit' || norm === 'agent' || norm === 'agents') {
+  if (
+    norm === 'againt' ||
+    norm === 'aganit' ||
+    norm === 'agabt' ||
+    norm === 'agant' ||
+    norm === 'agent' ||
+    norm === 'agents'
+  ) {
     return 'agent';
+  }
+  if (norm === 'fellet' || norm === 'fleat' || norm === 'fllet' || norm === 'fleet' || norm === 'fleets') {
+    return 'fleet';
+  }
+  if (norm === 'marchant' || norm === 'merchent' || norm === 'merchant' || norm === 'merchants') {
+    return 'merchant';
+  }
+  if (norm === 'supr' || norm === 'super') {
+    return 'super';
+  }
+  if (norm === 'admn' || norm === 'admin' || norm === 'admins') {
+    return 'admin';
   }
   if (norm === 'conection' || norm === 'conections' || norm === 'connection' || norm === 'connections') {
     return 'connection';
   }
-  if (norm === 'inbox' || norm === 'conversation' || norm === 'conversations' || norm === 'message' || norm === 'messages') {
+  if (
+    norm === 'inbox' ||
+    norm === 'conversation' ||
+    norm === 'conversations' ||
+    norm === 'message' ||
+    norm === 'messages'
+  ) {
     return 'inbox';
   }
   if (norm === 'setting' || norm === 'settings') {
@@ -173,7 +198,7 @@ function navigationSubject(message: string): string {
     /\b(?:navigate|head|switch|redirect|route)(?:\s+me)?\s+(?:back\s+)?to\s+(.+)/i,
     /\bvisit(?:\s+the)?\s+(.+)/i,
     /\bopen(?:\s+the)?\s+(.+)/i,
-    /\b(?:redirect|take|lead|move|switch)\s+(?:me\s+)?(?:to\s+)?(.+)/i,
+    /\b(?:redirect|take|lead|move|switch)\s+(?:this\s+)?(?:me\s+)?(?:to\s+)?(.+)/i,
   ];
   const subject = patterns.map((pattern) => message.match(pattern)?.[1]).find(Boolean) ?? message;
   return subject.split(/\b(?:and|then|so that|because)\b/i, 1)[0] ?? subject;
@@ -213,11 +238,11 @@ function scoreTerm(
         best = Math.max(best, source === 'path' ? 9 : 12 + sourceBonus);
         continue;
       }
-      if (queryToken.length < 4 || termToken.length < 4) continue;
-      const distance = editDistance(queryToken, termToken);
+      if (queryToken.length < 3 || termToken.length < 3) continue;
+      const distance = editDistance(canonicalToken(queryToken), canonicalToken(termToken));
       const longest = Math.max(queryToken.length, termToken.length);
-      const allowed = longest >= 8 ? 2 : 1;
-      if (distance <= allowed && 1 - distance / longest >= 0.72) {
+      const allowed = longest >= 7 ? 2 : 1;
+      if (distance <= allowed) {
         best = Math.max(best, (source === 'path' ? 8 : 10 + sourceBonus) - (distance - 1) * 2);
         fuzzy = true;
       }
@@ -242,6 +267,16 @@ export function resolveDestination(
   const queryPhrase = queryTokens.join(' ');
   if (!queryPhrase) return { kind: 'none', reason: 'no_query' };
 
+  let currentPortal = '';
+  try {
+    if (pageContext?.url) {
+      const path = new URL(pageContext.url).pathname;
+      if (path.startsWith('/admin')) currentPortal = '/admin';
+      else if (path.startsWith('/store')) currentPortal = '/store';
+      else if (path.startsWith('/app')) currentPortal = '/app';
+    }
+  } catch {}
+
   const scored = pageContext.navigation
     .map((destination) => {
       const terms: Array<{ value: string; source: Exclude<MatchKind, 'fuzzy'> }> = [
@@ -256,7 +291,16 @@ export function resolveDestination(
         score: 0,
         match: 'title' as const,
       };
-      return { destination, ...best };
+
+      let bonus = 0;
+      try {
+        const destPath = new URL(destination.url).pathname;
+        if (currentPortal && destPath.startsWith(currentPortal)) {
+          bonus = 15;
+        }
+      } catch {}
+
+      return { destination, score: best.score + (best.score > 0 ? bonus : 0), match: best.match };
     })
     .sort(
       (left, right) =>

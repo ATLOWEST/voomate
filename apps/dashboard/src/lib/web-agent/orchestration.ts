@@ -329,9 +329,29 @@ export function planWebAgentTurn(input: {
       'The requested destination is ambiguous. Ask the visitor to choose one of the verified candidates; do not request or invent a URL.';
     directReply = `I found more than one matching place. Did you mean ${labels.join(' or ')}?`;
   } else if (requestedIntent && !asksForInformation && navigationResolution.kind === 'none') {
-    const labels = [
-      ...new Set((input.pageContext?.navigation ?? []).map(({ label }) => label)),
-    ].slice(0, 8);
+    let currentPortal = '';
+    try {
+      if (input.pageContext?.url) {
+        const path = new URL(input.pageContext.url).pathname;
+        if (path.startsWith('/admin')) currentPortal = '/admin';
+        else if (path.startsWith('/store')) currentPortal = '/store';
+        else if (path.startsWith('/app')) currentPortal = '/app';
+      }
+    } catch {}
+
+    const allNav = input.pageContext?.navigation ?? [];
+    const scopedNav = currentPortal
+      ? allNav.filter((item) => {
+          try {
+            return new URL(item.url).pathname.startsWith(currentPortal);
+          } catch {
+            return false;
+          }
+        })
+      : allNav;
+
+    const targetList = scopedNav.length > 0 ? scopedNav : allNav;
+    const labels = [...new Set(targetList.map(({ label }) => label))].slice(0, 8);
     responseGuidance =
       'The requested destination did not safely match the host manifest. Name available destinations without asking the visitor for a URL.';
     directReply = labels.length
