@@ -375,8 +375,15 @@ function resolveClientNavigation(commands, pageContext) {
   const navigation = commands.find((command) => command?.type === 'navigate');
   if (!navigation) return undefined;
   try {
-    const target = new URL(navigation.url);
-    const advertised = pageContext.navigation.find((item) => item.url === target.href);
+    const target = new URL(navigation.url, window.location.origin);
+    const advertised = pageContext.navigation.find((item) => {
+      if (item.url === target.href) return true;
+      try {
+        return new URL(item.url, window.location.origin).pathname === target.pathname;
+      } catch {
+        return false;
+      }
+    });
     if (target.origin !== window.location.origin || !advertised) return undefined;
     const intent = ['web', 'open_app', 'install_app'].includes(navigation.intent)
       ? navigation.intent

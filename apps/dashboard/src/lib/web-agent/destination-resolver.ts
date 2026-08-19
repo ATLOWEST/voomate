@@ -48,10 +48,12 @@ const fillerWords = new Set([
   'is',
   'it',
   'its',
+  'lead',
   'let',
   'like',
   'me',
   'mobile',
+  'move',
   'much',
   'my',
   'navigate',
@@ -64,12 +66,23 @@ const fillerWords = new Set([
   'page',
   'pages',
   'place',
+  'pleace',
   'please',
+  'plz',
+  'redirect',
+  'redirects',
+  'redirecting',
+  'route',
+  'routes',
+  'routing',
   'screen',
+  'screens',
   'send',
   'show',
   'somewhere',
   'switch',
+  'tab',
+  'tabs',
   'take',
   'tell',
   'the',
@@ -105,6 +118,19 @@ function meaningfulTokens(value: string): string[] {
 }
 
 function canonicalToken(value: string): string {
+  const norm = value.toLowerCase();
+  if (norm === 'againt' || norm === 'aganit' || norm === 'agent' || norm === 'agents') {
+    return 'agent';
+  }
+  if (norm === 'conection' || norm === 'conections' || norm === 'connection' || norm === 'connections') {
+    return 'connection';
+  }
+  if (norm === 'inbox' || norm === 'conversation' || norm === 'conversations' || norm === 'message' || norm === 'messages') {
+    return 'inbox';
+  }
+  if (norm === 'setting' || norm === 'settings') {
+    return 'setting';
+  }
   return value.length > 4 && value.endsWith('s') && !value.endsWith('ss')
     ? value.slice(0, -1)
     : value;
@@ -144,9 +170,10 @@ function navigationSubject(message: string): string {
   const patterns = [
     /\b(?:go|send)(?:\s+me)?(?:\s+back)?\s+to\s+(.+)/i,
     /\b(?:take|bring)\s+me(?:\s+back)?\s+to\s+(.+)/i,
-    /\b(?:navigate|head|switch)(?:\s+me)?\s+to\s+(.+)/i,
+    /\b(?:navigate|head|switch|redirect|route)(?:\s+me)?\s+(?:back\s+)?to\s+(.+)/i,
     /\bvisit(?:\s+the)?\s+(.+)/i,
     /\bopen(?:\s+the)?\s+(.+)/i,
+    /\b(?:redirect|take|lead|move|switch)\s+(?:me\s+)?(?:to\s+)?(.+)/i,
   ];
   const subject = patterns.map((pattern) => message.match(pattern)?.[1]).find(Boolean) ?? message;
   return subject.split(/\b(?:and|then|so that|because)\b/i, 1)[0] ?? subject;

@@ -27,11 +27,12 @@ const liveOrActionIntent =
 const pageAssistanceIntent =
   /\b(this|that|current|dashboard|page|screen|here|where am i|how (?:do|can|to)|what is this)\b/i;
 const explicitWebNavigation = [
-  /\b(?:go|send)(?: me)?(?: back)?\s+to\b/i,
-  /\b(?:take|bring) me(?: back)?\s+to\b/i,
-  /\b(?:navigate|head|switch)(?: me)?\s+to\b/i,
+  /\b(?:go|send)(?: me)?(?: back)?\s+(?:to|into)\b/i,
+  /\b(?:take|bring) me(?: back)?\s+(?:to|into)\b/i,
+  /\b(?:navigate|head|switch|redirect|route)(?: me)?\s+(?:back\s+)?(?:to|into)\b/i,
   /\bvisit(?: the)?\b/i,
   /\bopen(?: the)?\b/i,
+  /\b(?:redirect|take|lead|move|switch)\s+(?:me\s+)?(?:to\s+)?/i,
 ];
 const informationRequest =
   /\b(what(?:'s| is| are)|how much|cost|price|pricing (?:details|plans|options)|tell me|explain|compare|comparison|difference|which plan|show me|learn about|details about|where (?:is|can))\b/i;
