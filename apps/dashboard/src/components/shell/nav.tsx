@@ -39,7 +39,6 @@ const workspaceItems: NavItem[] = [
 ];
 
 const secondaryItems: NavItem[] = [
-  { title: 'Super Admin', href: '/admin', icon: ShieldAlert },
   { title: 'Activity', href: '/logs', icon: Activity },
   { title: 'Approvals', href: '/approvals', icon: ShieldCheck },
   { title: 'Feedback', href: '/feedback', icon: MessageSquareText },
