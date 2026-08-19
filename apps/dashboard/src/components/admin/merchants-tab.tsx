@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Plus, Search, Check, Copy, ExternalLink, Settings2, Trash2 } from 'lucide-react';
 import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogActions } from '@/components/ui/dialog';
+import { Field, TextInput } from '@/components/ui/field';
 
-interface MerchantRecord {
+export interface MerchantRecord {
   id: string;
   name: string;
   domain: string;
@@ -21,7 +22,7 @@ interface MerchantRecord {
   createdAt: string;
 }
 
-const MOCK_MERCHANTS: MerchantRecord[] = [
+const INITIAL_MERCHANTS: MerchantRecord[] = [
   {
     id: '00000000-0000-0000-0000-000000000001',
     name: 'Voomate Dogfood Demo Store',
@@ -103,11 +104,21 @@ const MOCK_MERCHANTS: MerchantRecord[] = [
 ];
 
 export function MerchantsTab() {
+  const [merchants, setMerchants] = useState<MerchantRecord[]>(INITIAL_MERCHANTS);
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [inspectingMerchant, setInspectingMerchant] = useState<MerchantRecord | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const filteredMerchants = MOCK_MERCHANTS.filter((merchant) => {
+  // New Merchant Form State
+  const [newName, setNewName] = useState('');
+  const [newDomain, setNewDomain] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPlan, setNewPlan] = useState<'enterprise' | 'pro' | 'starter' | 'trial'>('pro');
+  const [newPlatform, setNewPlatform] = useState<'shopify' | 'woocommerce' | 'custom'>('shopify');
+  const [newMaxMinutes, setNewMaxMinutes] = useState(5000);
+
+  const filteredMerchants = merchants.filter((merchant) => {
     const matchesSearch =
       merchant.name.toLowerCase().includes(search.toLowerCase()) ||
       merchant.domain.toLowerCase().includes(search.toLowerCase()) ||
@@ -116,15 +127,68 @@ export function MerchantsTab() {
     return matchesSearch && matchesPlan;
   });
 
+  const handleCreateMerchant = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || !newDomain.trim() || !newEmail.trim()) {
+      return;
+    }
+
+    const created: MerchantRecord = {
+      id: `org_${Date.now().toString(36)}`,
+      name: newName.trim(),
+      domain: newDomain.trim().replace(/^https?:\/\//, ''),
+      ownerEmail: newEmail.trim(),
+      plan: newPlan,
+      activeAgents: 1,
+      voiceMinutes: 0,
+      maxMinutes: Number(newMaxMinutes) || 5000,
+      platform: newPlatform,
+      status: 'active',
+      createdAt: new Date().toISOString().split('T')[0] || new Date().toISOString(),
+    };
+
+    setMerchants([created, ...merchants]);
+    setCreateModalOpen(false);
+
+    // Reset Form
+    setNewName('');
+    setNewDomain('');
+    setNewEmail('');
+    setNewPlan('pro');
+    setNewPlatform('shopify');
+    setNewMaxMinutes(5000);
+  };
+
   return (
     <div className="space-y-4">
       <Panel>
         <PanelHeader
-          title="Customer Workspaces"
-          description="Directory of all merchant accounts, subscribed plan tiers, and usage quotas."
+          title="Merchants & Customer Workspaces"
+          description="Provision new customer organizations, allocate voice quotas, and manage client storefronts."
           action={
             <div className="flex items-center gap-2">
-              {['all', 'enterprise', 'pro', 'starter'].map((plan) => (
+              <Button variant="primary" size="sm" onClick={() => setCreateModalOpen(true)}>
+                <Plus className="size-3.5 mr-1.5" />
+                Create Merchant
+              </Button>
+            </div>
+          }
+        />
+        <PanelBody className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search merchant name, domain, or email..."
+                className="h-9 w-full rounded-lg border border-[var(--border-default)] bg-background pl-9 pr-3 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-accent-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {['all', 'enterprise', 'pro', 'starter', 'trial'].map((plan) => (
                 <button
                   key={plan}
                   type="button"
@@ -139,29 +203,17 @@ export function MerchantsTab() {
                 </button>
               ))}
             </div>
-          }
-        />
-        <PanelBody className="space-y-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search workspaces..."
-              className="h-9 w-full rounded-lg border border-[var(--border-default)] bg-background pl-9 pr-3 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-accent-500 focus:outline-none"
-            />
           </div>
 
           <div className="overflow-hidden rounded-lg border border-[var(--border-default)]">
             <table className="w-full text-left text-[13px]">
               <thead className="border-b border-[var(--border-default)] bg-[var(--surface-sunken)] text-[11.5px] font-medium uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3">Workspace</th>
-                  <th className="px-4 py-3">Plan</th>
-                  <th className="px-4 py-3">Agents</th>
-                  <th className="px-4 py-3">Voice Minutes</th>
-                  <th className="px-4 py-3">Integration</th>
+                  <th className="px-4 py-3">Merchant Workspace</th>
+                  <th className="px-4 py-3">Plan Tier</th>
+                  <th className="px-4 py-3">Active Agents</th>
+                  <th className="px-4 py-3">Voice Minutes Quota</th>
+                  <th className="px-4 py-3">Platform</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -190,7 +242,7 @@ export function MerchantsTab() {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="font-medium text-foreground">{merchant.voiceMinutes.toLocaleString()}</span>
-                      <span className="text-muted-foreground"> / {merchant.maxMinutes.toLocaleString()}</span>
+                      <span className="text-muted-foreground"> / {merchant.maxMinutes.toLocaleString()} mins</span>
                     </td>
                     <td className="px-4 py-3.5 capitalize text-foreground">
                       {merchant.platform}
@@ -211,7 +263,101 @@ export function MerchantsTab() {
         </PanelBody>
       </Panel>
 
-      {/* In-place Inspector Dialog (Keeps user on /admin) */}
+      {/* Create New Merchant Modal */}
+      {createModalOpen && (
+        <Dialog
+          title="Create Merchant Workspace"
+          description="Onboard a new merchant organization to the Voomate platform."
+          onClose={() => setCreateModalOpen(false)}
+          wide
+        >
+          <form onSubmit={handleCreateMerchant} className="space-y-4 py-2">
+            <Field label="Merchant / Store Name" htmlFor="merchant-name">
+              <TextInput
+                id="merchant-name"
+                required
+                placeholder="e.g. Acme Fashion Co."
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+            </Field>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Store Domain" htmlFor="merchant-domain" hint="e.g. acme.com or store.myshopify.com">
+                <TextInput
+                  id="merchant-domain"
+                  required
+                  placeholder="acmefashion.com"
+                  value={newDomain}
+                  onChange={(e) => setNewDomain(e.target.value)}
+                />
+              </Field>
+
+              <Field label="Owner Email" htmlFor="merchant-email">
+                <TextInput
+                  id="merchant-email"
+                  type="email"
+                  required
+                  placeholder="admin@acmefashion.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Field label="Plan Tier" htmlFor="merchant-plan">
+                <select
+                  id="merchant-plan"
+                  value={newPlan}
+                  onChange={(e) => setNewPlan(e.target.value as any)}
+                  className="h-9.5 w-full rounded-lg border border-[var(--border-default)] bg-[var(--surface-panel)] px-3 text-sm text-[var(--text-primary)] focus:border-accent-500 focus:outline-none"
+                >
+                  <option value="trial">Trial (500 mins)</option>
+                  <option value="starter">Starter (1,000 mins)</option>
+                  <option value="pro">Pro (5,000 mins)</option>
+                  <option value="enterprise">Enterprise (20,000+ mins)</option>
+                </select>
+              </Field>
+
+              <Field label="Store Platform" htmlFor="merchant-platform">
+                <select
+                  id="merchant-platform"
+                  value={newPlatform}
+                  onChange={(e) => setNewPlatform(e.target.value as any)}
+                  className="h-9.5 w-full rounded-lg border border-[var(--border-default)] bg-[var(--surface-panel)] px-3 text-sm text-[var(--text-primary)] focus:border-accent-500 focus:outline-none"
+                >
+                  <option value="shopify">Shopify</option>
+                  <option value="woocommerce">WooCommerce</option>
+                  <option value="custom">Custom Headless</option>
+                </select>
+              </Field>
+
+              <Field label="Voice Minutes Quota" htmlFor="merchant-quota">
+                <TextInput
+                  id="merchant-quota"
+                  type="number"
+                  min={100}
+                  step={500}
+                  value={newMaxMinutes}
+                  onChange={(e) => setNewMaxMinutes(Number(e.target.value))}
+                />
+              </Field>
+            </div>
+
+            <DialogActions>
+              <Button variant="secondary" onClick={() => setCreateModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit">
+                Provision Merchant
+              </Button>
+            </DialogActions>
+          </form>
+        </Dialog>
+      )}
+
+      {/* Inspect & Manage Workspace Modal */}
       {inspectingMerchant && (
         <Dialog
           title={inspectingMerchant.name}
@@ -222,29 +368,42 @@ export function MerchantsTab() {
           <div className="space-y-4 py-2 text-[13px]">
             <div className="grid grid-cols-2 gap-4 rounded-lg bg-[var(--surface-sunken)] p-3.5">
               <div>
-                <span className="text-[11px] font-medium uppercase text-muted-foreground">Domain</span>
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Store Domain</span>
                 <p className="font-medium text-foreground">{inspectingMerchant.domain}</p>
               </div>
               <div>
-                <span className="text-[11px] font-medium uppercase text-muted-foreground">Owner</span>
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Owner Account</span>
                 <p className="font-medium text-foreground">{inspectingMerchant.ownerEmail}</p>
               </div>
               <div>
-                <span className="text-[11px] font-medium uppercase text-muted-foreground">Plan Tier</span>
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Plan Subscription</span>
                 <p className="capitalize font-medium text-foreground">{inspectingMerchant.plan}</p>
               </div>
               <div>
-                <span className="text-[11px] font-medium uppercase text-muted-foreground">Platform</span>
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">E-Commerce Platform</span>
                 <p className="capitalize font-medium text-foreground">{inspectingMerchant.platform}</p>
               </div>
             </div>
 
-            <div>
-              <span className="text-[11px] font-medium uppercase text-muted-foreground">Monthly Voice Quota</span>
-              <div className="mt-1 flex items-center justify-between text-xs">
-                <span className="font-semibold text-foreground">{inspectingMerchant.voiceMinutes.toLocaleString()} minutes used</span>
-                <span className="text-muted-foreground">{inspectingMerchant.maxMinutes.toLocaleString()} total quota</span>
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-medium uppercase text-muted-foreground">Voice Minutes Quota Allocation</span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-foreground">{inspectingMerchant.voiceMinutes.toLocaleString()} minutes consumed</span>
+                <span className="text-muted-foreground">{inspectingMerchant.maxMinutes.toLocaleString()} minutes monthly limit</span>
               </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-sunken)]">
+                <div
+                  className="h-full bg-accent-600 rounded-full"
+                  style={{ width: `${Math.min(100, (inspectingMerchant.voiceMinutes / inspectingMerchant.maxMinutes) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-[var(--border-default)] p-3 bg-background">
+              <span className="text-[11px] font-medium uppercase text-muted-foreground">Client Embed Snippet</span>
+              <p className="mt-1 font-mono text-[11px] text-muted-foreground bg-[var(--surface-sunken)] p-2 rounded truncate select-all">
+                {`<script src="http://127.0.0.1:3001/embed.js" data-agent-id="${inspectingMerchant.id}" async></script>`}
+              </p>
             </div>
           </div>
 
