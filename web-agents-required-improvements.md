@@ -54,55 +54,135 @@ I have inspected your database architecture in `client.ts` and `10_rls_policies.
 2. **Fail-Safe RLS:** We will update the RLS policies so that the database engine itself rejects any query attempting to read or write an agent belonging to a different client. Even if a developer writes a completely unscoped query like `select * from agents`, the database will automatically filter it. This guarantees clients and their agents never get merged.
 
 ### Problem 5: Dynamic Role & Portal Boundary Isolation (Multi-Dashboard Scope Blindness)
-When an application contains multiple distinct portals or dashboards under the same domain (e.g., **Super Admin Portal** `/admin/*`, **Merchant Admin Dashboard** `/`, and **Customer Storefront** `/store/*`), the Web Agent fails to isolate the active role and portal boundaries. It mixes up navigation scopes and hallucinates links from other dashboards.
+When an enterprise or B2B application contains multiple distinct portals or dashboards under the same root domain (e.g., **Super Admin Portal** at `/admin/*`, **Merchant Admin Dashboard** at `/app/*` or `/`, and **Customer Storefront** at `/store/*` or `/account/*`), the Web Agent currently suffers from **Scope Blindness**. It fails to isolate the active role and layout boundaries, causing cross-portal hallucinations and navigational collisions.
+
+```
+┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 MULTI-PORTAL SCOPE ARCHITECTURE                                   │
+├───────────────────────────────┬─────────────────────────────────┬─────────────────────────────────┤
+│    👑 Super Admin Portal      │   🏢 Merchant Admin Dashboard   │     🛍️ Customer Storefront       │
+│         (/admin/*)            │          (/ or /app/*)          │          (/store/*)             │
+├───────────────────────────────┼─────────────────────────────────┼─────────────────────────────────┤
+│ • Merchants & Workspaces      │ • Agents & AI Config            │ • Product Catalog & Search      │
+│ • Agent Fleet & LLM Routing   │ • Connections & Integrations    │ • Shopping Cart & Checkout      │
+│ • Pipecat Voice Studio (7860) │ • Customer Conversations Inbox  │ • Order Tracking & Lookups      │
+│ • Telephony & WebRTC Relays   │ • Team Approvals & Feedback     │ • Return & Shipping Policies    │
+│ • Cluster Health & Audit Logs │ • Organization Settings         │ • Customer Support Inquiries    │
+└───────────────────────────────┴─────────────────────────────────┴─────────────────────────────────┘
+```
 
 #### Real Chat Log of the Web Agent Scope Collision (Super Admin Failure)
-> **Active User URL:** `http://localhost:3001/admin/merchants` (Super Admin Portal)
-> **User:** "hey can you aplc redirect this to agabt fellet page" *(Intent: Navigate to Super Admin Agent Fleet `/admin/agents`)*
-> **Agent:** "I couldn't safely match that to a page here. I can open Overview, Agents, Web Agent, Voice Calling Agent, Integration Agent, Integrations, Conversations, Logs."
->
-> ❌ **The Failure:** The user was on the Super Admin portal, but the agent attempted to resolve against and advertised the **Merchant Dashboard's** navigation routes (`Overview`, `Integrations`, `Logs`) instead of the **Super Admin's** actual routes (`Merchants & Workspaces`, `Agent Fleet & LLMs`, `Voice Edge Studio`, `Telephony & WebRTC`, `Cluster Health & Logs`).
+> **Active User URL:** `http://localhost:3001/admin/merchants` (Super Admin Portal)  
+> **User Prompt:** `"hey can you aplc redirect this to agabt fellet page"` *(Intent: Navigate to Super Admin Agent Fleet `/admin/agents`)*  
+> **Flawed Agent Response:** `"I couldn't safely match that to a page here. I can open Overview, Agents, Web Agent, Voice Calling Agent, Integration Agent, Integrations, Conversations, Logs."`  
+> 
+> ❌ **Root-Cause Analysis of the Failure:**  
+> 1. The user was inside the Super Admin portal (`/admin/*`), but the agent attempted to resolve the destination against a static, out-of-scope **Merchant Dashboard** manifest.  
+> 2. It failed to recognize compound typos (`"agabt fellet"` ➔ `"Agent Fleet & LLMs"`).  
+> 3. It leaked merchant navigation links inside the super admin console, breaking boundary security and confusing the operator.
 
-#### Why This Is a Critical Flaw for Multi-Tenant B2B Customers
-A client project rarely has only one screen. In production B2B SaaS and e-commerce:
-1. **Super Admin / Platform Team:** Manages organizations, LLM model routing, telephony clusters, and global quotas (`/admin/*`).
-2. **Merchant / Workspace Admin:** Manages products, catalog, team members, and store settings (`/app/*` or `/`).
-3. **End-User / Shopper:** Browses store catalog, tracks orders, and manages cart (`/store/*` or `/account/*`).
+#### Why This Is a Critical Flaw for Multi-Tenant B2B Platforms
+A single customer project rarely has only one screen. In production multi-tenant environments:
+1. **Super Admin / Platform Team:** Manages client accounts, LLM model routing, telephony infrastructure, and billing quotas (`/admin/*`).
+2. **Merchant / Workspace Admin:** Configures their own store's voice bots, knowledge base, integrations, and team permissions (`/app/*` or `/`).
+3. **End-User / Customer:** Browses products, adds items to cart, checks order status, and asks store policy questions (`/store/*`).
 
-If the Web Agent is scope-blind, it leaks internal admin routes to public customers, or leaks merchant store settings to super admins, completely breaking trust and multi-tenant security.
-
----
-
-### Required Actions for Dynamic Role & Portal Isolation (CTO Architecture)
-*(Zero-Config, Dynamic Framework Adapting to Any Client's Codebase)*
-
-1. **DOM-Native Active Nav Discovery:**
-   - The embed widget must dynamically extract navigation links directly from the *currently visible* active navigation containers (`aside nav`, `header nav`, `nav[aria-label]`) in the live DOM rather than relying on a static global manifest.
-   - Automatically bind the current URL prefix (e.g. `/admin/` vs `/app/` vs `/`) as the primary destination resolution scope.
-
-2. **Dynamic Portal Boundary Scoping (`portalScope`):**
-   - The orchestrator and destination resolver must dynamically partition navigation targets by their URL path prefix and active layout hierarchy.
-   - When the user is at `/admin/*`, the destination resolver strictly prioritizes same-boundary links (`/admin/agents`, `/admin/voice-studio`, `/admin/telephony`) and completely filters out routes belonging to unmounted sister portals.
-
-3. **Role-Aware Context & Persona Calibration:**
-   - Inject `portalScope` and `activeLayout` into `pageContext`.
-   - The system prompt automatically adapts: in Super Admin mode, the agent speaks as the Platform Infrastructure Assistant; in Merchant mode, as the Store Operations Assistant; in Storefront mode, as the Customer Concierge—with **zero manual configuration** required by clients.
-
-4. **Fuzzy Typo & Multi-Token Resolution (`agabt fellet` ➔ `Agent Fleet`):**
-   - Enhance the tokenizer and Levenshtein distance metric in `destination-resolver.ts` to support compound multi-token phonetic matches (e.g., `"agabt fellet"` ➔ `"agent fleet"`, `"supr amdn"` ➔ `"super admin"`).
+If the Web Agent is scope-blind, it leaks internal operational links to public customers, or leaks merchant settings to super admins, completely breaking trust and multi-tenant isolation.
 
 ---
 
-### 📋 Technical Execution Prompt for IDE & AI Codex Agents
+### Deep Technical Specification & Architecture (CTO Blueprint)
+*(Zero-Config, Dynamic Framework Adapting Automatically to Any Client's Codebase)*
+
+#### 1. DOM-Native Active Navigation Discovery Engine (`widget.js`)
+- The embed widget runtime must dynamically scrape navigation targets from the *currently mounted* semantic HTML elements on the host DOM (`aside nav`, `header nav`, `[role="navigation"] a[href]`, `[data-sidebar] a[href]`).
+- It extracts the `href`, `aria-label`, visible text, and active hierarchy tags.
+- It attaches an auto-discovered `portalScope` (e.g. `/admin`, `/app`, `/store`, or `/`) derived from `window.location.pathname.split('/')[1]`.
+
+#### 2. Dynamic Portal Boundary Partitioning (`destination-resolver.ts`)
+- Destinations are dynamically partitioned by path hierarchy.
+- **Portal Affinity Scoring:** If the active user session is at `/admin/*`, any destination starting with `/admin/` receives an automatic `+15` affinity bonus, ensuring super admin destinations always take precedence over sister-portal links.
+- **Strict Fallback Scope Isolation:** When a destination cannot be matched, the direct fallback message (`"I can open..."`) filters its advertised list strictly to routes within the active `portalScope`. Super Admin users will ONLY ever be shown Super Admin pages.
+
+#### 3. Compound Phonetic Typo Tokenizer (`destination-resolver.ts`)
+- Multi-token Levenshtein distance with canonical token phonetic normalization:
+  - `"agabt"` / `"agant"` / `"againt"` / `"aganit"` ➔ `"agent"`
+  - `"fellet"` / `"fleat"` / `"fllet"` / `"fleet"` ➔ `"fleet"`
+  - `"marchant"` / `"merchent"` ➔ `"merchant"`
+  - `"supr"` ➔ `"super"` | `"admn"` ➔ `"admin"` | `"telefoni"` ➔ `"telephony"`
+- Compound matcher computes token-pair alignments: `"agabt fellet"` aligns with `"Agent Fleet & LLMs"` (`/admin/agents`) with a high confidence match.
+
+#### 4. Role-Aware Context & Persona Calibration (`turn.ts` & `nova.ts`)
+- The orchestrator injects the active `portalScope` into the LLM system context.
+- System prompt dynamically calibrates without manual code changes:
+  - **In `/admin/*`:** Operates as the **Platform Infrastructure Assistant** (focusing on tenant management, model routing, and cluster telemetry).
+  - **In `/` or `/app/*`:** Operates as the **Merchant Workspace Assistant** (focusing on store agent setup, knowledge bases, and connections).
+  - **In `/store/*`:** Operates as the **Customer Concierge** (focusing on product inquiries, order tracking, and checkout guidance).
+
+---
+
+### Data Contract & Schema Specification
+
+```typescript
+// Enriched WebAgentPageContext Schema (Zod-validated)
+export interface EnrichedWebAgentPageContext {
+  url: string;                           // e.g. "http://localhost:3001/admin/merchants"
+  portalScope: '/admin' | '/app' | '/' | string; // Auto-derived root boundary
+  activeRole: 'super_admin' | 'merchant_admin' | 'end_user';
+  title: string;                         // Document title
+  description?: string;
+  headings: string[];
+  navigation: Array<{
+    label: string;                       // e.g. "Agent Fleet & LLMs"
+    url: string;                         // e.g. "http://localhost:3001/admin/agents"
+    portalScope?: string;                // e.g. "/admin"
+    description?: string;
+    aliases?: string[];                  // e.g. ["agent fleet", "llm fleet", "agabt fellet"]
+    facts?: string[];
+  }>;
+  surface?: {
+    id: string;                          // e.g. "admin-merchants"
+    title: string;
+    description: string;
+  };
+}
+```
+
+---
+
+### 📋 Master Implementation Prompt (For Codex & IDE AI Agents)
+
 ```markdown
-[PROMPT FOR IDE / AGENT EXECUTION]:
-Implement Dynamic Role & Portal Boundary Isolation for the Voomate Web Agent architecture:
-1. Update `apps/dashboard/public/embed/v2/widget.js` -> `collectPageContext()` to dynamically scrape navigation links from the active `<aside>`, `<nav>`, and `<header>` elements on the rendered DOM, grouping them under `portalScope` derived from `window.location.pathname.split('/')[1]`.
-2. Update `apps/dashboard/src/lib/web-agent/destination-resolver.ts` and `orchestration.ts`:
-   - Filter `pageContext.navigation` strictly by the active `portalScope` so that `/admin/*` queries only resolve against `/admin/*` routes, and merchant queries resolve against merchant routes.
-   - Expand multi-word fuzzy typo tolerance to match compound queries like "agabt fellet" -> "Agent Fleet & LLMs" (/admin/agents).
-   - Ensure the direct fallback reply advertises ONLY the active portal's available links.
-3. Validate with unit tests and ensure zero static hardcoding so any client dashboard with 1 to N sub-portals automatically inherits dynamic scope isolation.
+[CODEX & IDE AI AGENT INSTRUCTION]:
+Implement Dynamic Role & Portal Boundary Isolation for the Voomate Web Agent architecture across all dashboards:
+
+PHASE 1: CLIENT RUNTIME ENHANCEMENTS (`apps/dashboard/public/embed/v2/widget.js`)
+1. In `collectPageContext()`:
+   - Extract `portalScope` from `window.location.pathname.split('/')[1]` (e.g. "admin", "app", "store").
+   - Query the active DOM for `<aside nav a[href]>`, `<header nav a[href]>`, and `[role="navigation"] a[href]`.
+   - Tag each discovered navigation destination with its matching `portalScope`.
+2. In `resolveClientNavigation()`:
+   - Ensure URL path resolution works seamlessly with relative paths, hash variations, and cross-subpath navigation within the same host origin.
+
+PHASE 2: ORCHESTRATION & DESTINATION RESOLVER (`apps/dashboard/src/lib/web-agent/`)
+1. In `destination-resolver.ts`:
+   - Implement `portalScope` affinity bonus (+15 score) for destinations sharing the active URL path prefix.
+   - Expand `canonicalToken()` to normalize common compound typos ("agabt" -> "agent", "fellet" -> "fleet", "marchant" -> "merchant", "supr" -> "super", "admn" -> "admin").
+   - Upgrade `navigationSubject()` to strip movement verbs including "redirect this to", "take me to", "lead me to", "switch to".
+2. In `orchestration.ts`:
+   - Filter fallback direct replies (`navigationResolution.kind === 'none'`) so the advertised link list ONLY contains routes belonging to the active `portalScope`.
+   - Prevent out-of-scope sister portal routes (e.g. merchant routes) from leaking when a user is on an admin portal.
+
+PHASE 3: MANIFEST & PROMPT CALIBRATION (`apps/dashboard/src/app/layout.tsx` & `nova.ts`)
+1. Ensure `UI_MANIFEST` includes all primary portal routes (`/admin/merchants`, `/admin/agents`, `/admin/voice-studio`, `/admin/telephony`, `/admin/health`) with rich multi-word aliases.
+2. In `nova.ts` and `bedrock-inline-agent.ts`, ensure `pageContext.portalScope` informs the system instructions so the agent naturally speaks in the context of the active portal.
+
+PHASE 4: VALIDATION
+1. Run `npm run typecheck` across all workspaces to guarantee 0 TypeScript errors.
+2. Run navigation smoke tests verifying:
+   - Querying "redirect to agent fleet" on `/admin/*` navigates to `/admin/agents`.
+   - Querying "redirect to agents" on `/` navigates to `/agents`.
+   - Typo query "agabt fellet" correctly resolves to "Agent Fleet & LLMs".
 ```
 
 ---
