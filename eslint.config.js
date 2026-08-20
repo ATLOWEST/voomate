@@ -35,9 +35,15 @@ export default tseslint.config(
     },
   },
   {
-    // Build tooling. Runs in Node with no TypeScript, and printing to stdout is the point —
-    // a build script that reports nothing on success tells you nothing when it starts lying.
-    files: ['**/scripts/**/*.mjs', '**/*.config.mjs'],
+    // Build tooling, eval harnesses, and CLI test scripts. Runs in Node, and printing to stdout
+    // is the point — a build script that reports nothing on success tells you nothing when it starts lying.
+    files: [
+      'scripts/**/*.{mjs,js,cjs,ts}',
+      '**/scripts/**/*.{mjs,js,cjs,ts}',
+      'evals/**/*.{mjs,js,ts}',
+      '**/*.config.{js,mjs,ts,cjs}',
+      'apps/api/src/test-*.ts',
+    ],
     languageOptions: {
       globals: {
         console: 'readonly',
@@ -51,10 +57,17 @@ export default tseslint.config(
         setInterval: 'readonly',
         clearInterval: 'readonly',
         Buffer: 'readonly',
+        performance: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
       },
     },
     rules: {
       'no-console': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
   {

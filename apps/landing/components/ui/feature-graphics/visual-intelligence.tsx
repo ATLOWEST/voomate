@@ -1,7 +1,7 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { Zap, Search, ShoppingCart, MapPin, CalendarCheck, Tag } from 'lucide-react';
+import { Search, ShoppingCart, MapPin, CalendarCheck, Tag } from 'lucide-react';
 
 type Tool = {
   name: string;
@@ -71,7 +71,6 @@ export function VisualIntelligence() {
     };
     const t = setTimeout(cycle, 500);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx]);
 
   const tool = TOOLS[activeIdx];

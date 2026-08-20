@@ -1,7 +1,6 @@
 'use client';
 
 import { BarChart2, TrendingUp, Users, Target, ShieldCheck } from 'lucide-react';
-import { cn } from '@/lib/cn';
 
 export function ShopifyInsights() {
   return (

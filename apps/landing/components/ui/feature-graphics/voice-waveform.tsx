@@ -1,7 +1,7 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { Phone, PhoneCall, PhoneOutgoing, Mic, Clock } from 'lucide-react';
+import { PhoneCall, PhoneOutgoing, Mic, Clock } from 'lucide-react';
 
 const CALLS = [
   {

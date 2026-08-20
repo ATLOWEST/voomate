@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { SplineScene } from '@/components/ui/splite';
 
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';

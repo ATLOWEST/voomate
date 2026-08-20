@@ -15,9 +15,7 @@ import {
   MoreHorizontal,
   Plus,
   Settings2,
-  ShieldAlert,
   ShieldCheck,
-  Waypoints,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useSession } from '@/lib/session';

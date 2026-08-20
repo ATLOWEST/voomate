@@ -1,14 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/cn';
-import {
-  CheckCircle,
-  ShoppingCart,
-  Calendar,
-  MessageSquare,
-  Webhook,
-  Database,
-} from 'lucide-react';
+import { ShoppingCart, Calendar, Webhook, Database } from 'lucide-react';
 import { ActionPill, type PillStatus } from './action-pill';
 
 export interface BentoItem {

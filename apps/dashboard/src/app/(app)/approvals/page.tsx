@@ -6,7 +6,7 @@ export default async function ApprovalsPage() {
   const db = createDatabase({ connectionString: process.env.DATABASE_URL || '' });
 
   let org = null;
-  let pendingApprovals: any[] = [];
+  let pendingApprovals: (typeof approvalRequests.$inferSelect)[] = [];
 
   try {
     org = await db.query.organizations.findFirst();

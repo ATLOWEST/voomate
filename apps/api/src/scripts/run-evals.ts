@@ -3,7 +3,7 @@ dotenv.config({ path: '../../.env' });
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createDatabase, organizations, agents } from '@voomate/db';
+import { createDatabase } from '@voomate/db';
 import { answer } from '../lib/answer.js';
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 import type { OrganizationId, AgentId } from '@voomate/core';

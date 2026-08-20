@@ -1,4 +1,4 @@
-import { Worker, Job } from 'bullmq';
+import { Worker, type Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import { MESSAGE_QUEUE_NAME } from '../lib/queue.js';
 import { answer, type AnswerRequest } from '../lib/answer.js';
@@ -13,7 +13,7 @@ const db = createDatabase({ connectionString: process.env.DATABASE_URL || '' });
 export const messageWorker = new Worker(
   MESSAGE_QUEUE_NAME,
   async (job: Job<Omit<AnswerRequest, 'db'>>) => {
-    console.log(`[Queue Worker] Processing job ${job.id} for org ${job.data.organizationId}`);
+    console.warn(`[Queue Worker] Processing job ${job.id} for org ${job.data.organizationId}`);
     try {
       // Re-hydrate the db connection into the payload
       const req: AnswerRequest = { ...job.data, db };
@@ -22,7 +22,7 @@ export const messageWorker = new Worker(
       const result = await answer(req);
 
       // In a real application, you would now send this result back to the user via WebSocket or webhook
-      console.log(
+      console.warn(
         `[Queue Worker] Job ${job.id} completed. Result text length: ${result.text.length}`,
       );
 
@@ -44,7 +44,7 @@ export const messageWorker = new Worker(
 );
 
 messageWorker.on('completed', (job) => {
-  console.log(`Job ${job.id} completed successfully`);
+  console.warn(`Job ${job.id} completed successfully`);
 });
 
 messageWorker.on('failed', (job, err) => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Ticket, Search, Filter, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Search, CheckCircle2, Clock } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 export function ShopifyTickets() {

@@ -1,30 +1,9 @@
 'use client';
 
-import { useState, type ElementType } from 'react';
+import type { ElementType } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  Activity,
-  ArrowUpRight,
-  Bot,
-  Building2,
-  Check,
-  ChevronDown,
-  CircleGauge,
-  Crown,
-  ExternalLink,
-  Layers,
-  Mic,
-  PhoneCall,
-  Plus,
-  Radio,
-  RefreshCw,
-  Server,
-  Shield,
-  ShieldAlert,
-  Sparkles,
-  Zap,
-} from 'lucide-react';
+import { ArrowUpRight, Bot, Building2, Mic, PhoneCall, Server } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 type NavItem = {

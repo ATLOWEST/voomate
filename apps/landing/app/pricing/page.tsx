@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { FaqPageJsonLd, BreadcrumbJsonLd, WebPageJsonLd } from '@/components/seo/json-ld';
 import { siteUrl } from '@/lib/site-url';
 import Link from 'next/link';
-import { ArrowRight, ArrowUpRight, Check, ChevronDown, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, ChevronDown, ShieldCheck } from 'lucide-react';
 
 import { PricingGrid } from '@/components/pricing/pricing-grid';
 

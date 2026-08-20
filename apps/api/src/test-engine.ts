@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 dotenv.config({ path: '../../.env' });
 import { answer } from './lib/answer.js';
-import { createDatabase, organizations, agents } from '@voomate/db';
+import { createDatabase, agents } from '@voomate/db';
 import type { AgentId, OrganizationId } from '@voomate/core';
 
 const db = createDatabase({
@@ -12,7 +12,7 @@ async function runTest() {
   console.log('=== STARTING VOOMATE OS ENGINE TEST ===\n');
 
   // 1. Fetch a real organization and agent from the DB
-  let org = await db.query.organizations.findFirst();
+  const org = await db.query.organizations.findFirst();
   if (!org) {
     console.error('No organization found in DB. Please seed the DB first.');
     process.exit(1);

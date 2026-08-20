@@ -6,8 +6,9 @@ export function TryNowButton() {
       type="button"
       className="try-now-btn"
       onClick={() => {
-        const widget = document.querySelector('voomate-widget');
-        if (widget) (widget as any).open?.();
+        const widget = document.querySelector('voomate-widget') as
+          (HTMLElement & { open?: () => void }) | null;
+        if (widget) widget.open?.();
         else {
           const btn = document.querySelector('[data-voomate-trigger]') as HTMLElement;
           btn?.click();

@@ -61,25 +61,20 @@ const statusColor = { approved: '#10B981', gated: '#F59E0B', blocked: '#EF4444' 
 
 export function QualityAudit() {
   const [visibleCount, setVisibleCount] = useState(0);
-  const [gateIdx, setGateIdx] = useState<number | null>(null);
 
   useEffect(() => {
     setVisibleCount(0);
-    setGateIdx(null);
     let i = 0;
     const addNext = () => {
       if (i >= AUDIT_LOG.length) {
         setTimeout(() => {
           setVisibleCount(0);
-          setGateIdx(null);
           i = 0;
           addNext();
         }, 2000);
         return;
       }
-      const entry = AUDIT_LOG[i];
       setVisibleCount(i + 1);
-      if (entry.status === 'gated') setGateIdx(i);
       i++;
       setTimeout(addNext, 900);
     };
@@ -127,7 +122,7 @@ export function QualityAudit() {
           </div>
           <div className="divide-y divide-[#F5EDE2] min-h-[180px]">
             <AnimatePresence>
-              {visible.map((entry, i) => (
+              {visible.map((entry) => (
                 <motion.div
                   key={entry.id}
                   initial={{ opacity: 0, height: 0 }}

@@ -6,23 +6,13 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUpRight,
-  CalendarCheck2,
-  Check,
   CircleDot,
   DatabaseZap,
   Globe2,
-  Headphones,
-  MessageSquareText,
-  Mic2,
-  PackageCheck,
-  PlugZap,
   ShieldCheck,
-  Sparkles,
-  Workflow,
 } from 'lucide-react';
 import { OperatingFlow } from '@/components/ui/operating-flow';
 import { UseCaseAccordion } from '@/components/ui/use-case-accordion';
-import { IntegrationExplorer } from '@/components/ui/integration-explorer';
 import { OutcomeCarousel } from '@/components/ui/outcome-carousel';
 import { TryNowButton } from '@/components/ui/try-now-button';
 import { SITE_URL } from '@/lib/site-url';

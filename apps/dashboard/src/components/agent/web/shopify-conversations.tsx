@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { MessageSquare, Calendar, Download, Trash2, ArrowRight } from 'lucide-react';
+import { Calendar, Download } from 'lucide-react';
 import { cn } from '@/lib/cn';
+
+type TranscriptMessage = { role: string; content: string };
 
 export function ShopifyConversations() {
   const [dateFilter, setDateFilter] = useState('7');
-  const [viewTranscript, setViewTranscript] = useState<any[] | null>(null);
+  const [viewTranscript, setViewTranscript] = useState<TranscriptMessage[] | null>(null);
 
   // Mock sessions for demo
   const sessions = useMemo(

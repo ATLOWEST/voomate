@@ -1,25 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  ArrowLeft,
-  ChevronDown,
-  Crown,
-  LogOut,
-  Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
-  RefreshCw,
-  Server,
-  ShieldAlert,
-  X,
-} from 'lucide-react';
+import { Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { SuperAdminSidebarNav } from './super-admin-nav';
 import { ThemeToggle } from '@/components/shell/theme-toggle';
 import { cn } from '@/lib/cn';
-import { Button } from '@/components/ui/button';
 
 const adminPageNames: Record<string, string> = {
   '/admin': 'Overview',

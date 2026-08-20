@@ -1,18 +1,6 @@
 'use client';
 
-import {
-  ArrowLeft,
-  Bot,
-  Phone,
-  Code,
-  Clock,
-  User,
-  Download,
-  X,
-  MessageSquare,
-  CheckCircle2,
-} from 'lucide-react';
-import Link from 'next/link';
+import { Bot, Phone, Code, User, Download, X, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 

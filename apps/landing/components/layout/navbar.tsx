@@ -10,7 +10,6 @@ import {
   Menu,
   Mic2,
   PlugZap,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';

@@ -1,17 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Bot,
-  MessageSquare,
-  Ticket,
-  Settings2,
-  BarChart2,
-  Zap,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-} from 'lucide-react';
+import { Bot, MessageSquare, BarChart2, Zap, ArrowRight, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useRouter } from 'next/navigation';
 

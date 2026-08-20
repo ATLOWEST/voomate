@@ -29,7 +29,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       accessToken,
     });
     organizations = result.organizations;
-  } catch {}
+  } catch {
+    // Fall back to empty organizations list if API is unreachable
+  }
 
   const cookieStore = await cookies();
   const preferred = cookieStore.get(ORG_COOKIE)?.value;

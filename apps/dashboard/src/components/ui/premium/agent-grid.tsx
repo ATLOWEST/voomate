@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bot, Phone, Globe, Database, Activity, Plus, Link as LinkIcon, X } from 'lucide-react';
-import Link from 'next/link';
+import { Bot, Phone, Globe, Database, Plus, Link as LinkIcon, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useRouter } from 'next/navigation';
 

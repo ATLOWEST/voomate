@@ -167,14 +167,6 @@ export function OrbitDiagram() {
           opacity={0.4}
         />
         {/* Connector line from active node to center */}
-        {(() => {
-          const stage = STAGES[active];
-          const cx = 0.5;
-          const cy = 0.5;
-          const rad = toRad(stage.angle);
-          // These are fractional values, we'll use foreignObject workaround — use absolute px center
-          return null;
-        })()}
       </svg>
 
       {/* Center panel */}

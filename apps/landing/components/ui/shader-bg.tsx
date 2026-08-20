@@ -366,15 +366,8 @@ export function ShaderBackground({ className }: { className?: string }) {
       UNIFORMS.cursorRadius,
     );
 
-    let mouseX = 0,
-      mouseY = 0,
-      cursorPresence = 0;
-    let targetX = 0,
-      targetY = 0,
-      targetPresence = 0;
-    let pointerKnown = false,
-      pointerClientX = 0,
-      pointerClientY = 0;
+    const mouseX = 0;
+    const mouseY = 0;
     let bounds = canvas.getBoundingClientRect();
     let raf = 0,
       lastNow: number | null = null;
@@ -446,7 +439,7 @@ export function ShaderBackground({ className }: { className?: string }) {
     function render(now: number) {
       raf = 0;
       if (disposed || !visible || !inView) return;
-      const dt = lastNow === null ? 0 : Math.min((now - lastNow) / 1000, 0.1);
+      const _dt = lastNow === null ? 0 : Math.min((now - lastNow) / 1000, 0.1);
       lastNow = now;
       resizeCanvas();
       renderGl.uniform4f(

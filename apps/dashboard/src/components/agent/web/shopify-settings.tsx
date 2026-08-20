@@ -1,16 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Mic,
-  Palette,
-  MessageSquare,
-  Zap,
-  CheckCircle2,
-  Play,
-  Menu,
-  ShoppingBag,
-} from 'lucide-react';
+import { Mic, Palette, MessageSquare, Zap, Play, Menu, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 export function ShopifySettings() {

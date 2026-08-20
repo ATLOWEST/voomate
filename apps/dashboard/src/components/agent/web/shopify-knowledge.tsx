@@ -10,10 +10,9 @@ import {
   Trash2,
   Plus,
 } from 'lucide-react';
-import { cn } from '@/lib/cn';
 
 export function ShopifyKnowledge() {
-  const [sources, setSources] = useState([
+  const [sources] = useState([
     {
       id: '1',
       type: 'url',
