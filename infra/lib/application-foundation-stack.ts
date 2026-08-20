@@ -312,6 +312,16 @@ export class ApplicationFoundationStack extends Stack {
 
     voiceTaskDef.addContainer('voice', {
       image: ecs.ContainerImage.fromEcrRepository(this.repositories.voice, 'candidate'),
+      command: [
+        '/app/.venv/bin/python',
+        'bot.py',
+        '--transport',
+        'webrtc',
+        '--host',
+        '0.0.0.0',
+        '--port',
+        '7860',
+      ],
       logging: ecs.LogDrivers.awsLogs({
         logGroup: logGroups.voice,
         streamPrefix: 'voice',

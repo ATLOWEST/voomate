@@ -12,4 +12,4 @@ COPY services/voice/bot.py ./
 COPY services/voice/voomate_voice ./voomate_voice
 USER voomate
 EXPOSE 7860
-CMD ["uv", "run", "python", "bot.py", "--transport", "webrtc", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["/app/.venv/bin/python", "bot.py", "--transport", "webrtc", "--host", "0.0.0.0", "--port", "7860"]
