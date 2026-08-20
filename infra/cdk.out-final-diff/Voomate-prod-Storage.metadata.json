@@ -1,0 +1,162 @@
+{
+  "/Voomate-prod-Storage": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:16:17)",
+        "...node internals..."
+      ]
+    },
+    {
+      "type": "aws:cdk:stack-tags",
+      "data": [
+        {
+          "key": "Project",
+          "value": "voomate"
+        },
+        {
+          "key": "Stage",
+          "value": "prod"
+        }
+      ]
+    }
+  ],
+  "/Voomate-prod-Storage/KnowledgeBucketName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "KnowledgeBucketName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new StorageStack (/Users/yug/Desktop/ai voice agent project/infra/lib/storage-stack.ts:58:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:16:17)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-Storage/AssetsBucketName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AssetsBucketName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new StorageStack (/Users/yug/Desktop/ai voice agent project/infra/lib/storage-stack.ts:64:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:16:17)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-Storage/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-Storage/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-Storage/KnowledgeBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "KnowledgeBucketD7C8B00D"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new StorageStack (/Users/yug/Desktop/ai voice agent project/infra/lib/storage-stack.ts:26:28)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:16:17)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-Storage/AssetsBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AssetsBucket5CB76180"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new StorageStack (/Users/yug/Desktop/ai voice agent project/infra/lib/storage-stack.ts:45:25)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:16:17)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-Storage/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-Storage/Exports/Output{\"Fn::GetAtt\":[\"KnowledgeBucketD7C8B00D\",\"Arn\"]}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ExportsOutputFnGetAttKnowledgeBucketD7C8B00DArn0E6CDADF"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-Storage/KnowledgeBucket/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "KnowledgeBucketPolicy59FB573E"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new StorageStack (/Users/yug/Desktop/ai voice agent project/infra/lib/storage-stack.ts:26:28)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:16:17)"
+      ]
+    }
+  ],
+  "/Voomate-prod-Storage/AssetsBucket/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AssetsBucketPolicyFFACF6C4"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new StorageStack (/Users/yug/Desktop/ai voice agent project/infra/lib/storage-stack.ts:45:25)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:16:17)"
+      ]
+    }
+  ]
+}

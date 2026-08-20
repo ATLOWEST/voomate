@@ -1,0 +1,260 @@
+{
+  "/Voomate-prod-LandingDelivery": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)",
+        "...node internals..."
+      ]
+    },
+    {
+      "type": "aws:cdk:stack-tags",
+      "data": [
+        {
+          "key": "Project",
+          "value": "voomate"
+        },
+        {
+          "key": "Stage",
+          "value": "prod"
+        }
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-singleton",
+      "data": true
+    },
+    {
+      "type": "aws:cdk:is-custom-resource-handler-runtime-family",
+      "data": 2
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/LandingDistributionDomainName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LandingDistributionDomainName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:134:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/LandingAssetsBucketName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LandingAssetsBucketName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:138:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/LandingAssets/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LandingAssets09F6B3BE"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:36:24)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/LandingSecurityHeaders/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LandingSecurityHeadersB9A4A34B"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new ResponseHeadersPolicy2 in aws-cdk-lib...",
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:45:29)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/CleanUrlRewrite/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CleanUrlRewrite97083637"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Function2 in aws-cdk-lib...",
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:76:29)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/LandingDistribution/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LandingDistribution9C1CBB20"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Distribution2 in aws-cdk-lib...",
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:92:25)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new BucketDeployment2 in aws-cdk-lib...",
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:125:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)"
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/LandingAssets/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LandingAssetsPolicy2B327F6A"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:36:24)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)"
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/PublishLanding/AwsCliLayer/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PublishLandingAwsCliLayer8227ACD3"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new BucketDeployment2 in aws-cdk-lib...",
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:125:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/PublishLanding/CustomResource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PublishLandingCustomResourceFCC5417B"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new BucketDeployment2 in aws-cdk-lib...",
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:125:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/LandingDistribution/Origin1/S3OriginAccessControl/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LandingDistributionOrigin1S3OriginAccessControl43FA30FA"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Distribution2 in aws-cdk-lib...",
+        "new LandingDeliveryStack (/Users/yug/Desktop/ai voice agent project/infra/lib/landing-delivery-stack.ts:92:25)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:39:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-LandingDelivery/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ]
+}

@@ -120,10 +120,12 @@ const UI_MANIFEST = serializeUiManifest(
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const configuredWidgetOrigin = (process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? '').replace(/\/$/, '');
-  // A public landing page must never try to load an agent bundle from a developer machine.
-  // Keep the widget absent until its production HTTPS origin is deployed in AWS.
-  const widgetOrigin = /^https:\/\//.test(configuredWidgetOrigin) ? configuredWidgetOrigin : '';
-  const dogfoodAgentKey = process.env.NEXT_PUBLIC_VOOMATE_DOGFOOD_AGENT_KEY;
+  const widgetOrigin = /^https:\/\//.test(configuredWidgetOrigin)
+    ? configuredWidgetOrigin
+    : process.env.NODE_ENV === 'development'
+      ? configuredWidgetOrigin || 'http://localhost:3001'
+      : '';
+  const dogfoodAgentKey = process.env.NEXT_PUBLIC_VOOMATE_DOGFOOD_AGENT_KEY || 'test-embed-key';
 
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">

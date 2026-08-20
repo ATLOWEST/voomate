@@ -1,0 +1,107 @@
+{
+  "/Voomate-prod-Runtime": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:18:1)",
+        "...node internals..."
+      ]
+    },
+    {
+      "type": "aws:cdk:stack-tags",
+      "data": [
+        {
+          "key": "Project",
+          "value": "voomate"
+        },
+        {
+          "key": "Stage",
+          "value": "prod"
+        }
+      ]
+    }
+  ],
+  "/Voomate-prod-Runtime/ApiRoleArn": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiRoleArn"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new RuntimeStack (/Users/yug/Desktop/ai voice agent project/infra/lib/runtime-stack.ts:104:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:18:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-Runtime/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-Runtime/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-Runtime/ApiRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiRole1873F438"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Role2 in aws-cdk-lib...",
+        "new RuntimeStack (/Users/yug/Desktop/ai voice agent project/infra/lib/runtime-stack.ts:29:20)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:18:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-Runtime/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-Runtime/ApiRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiRoleDefaultPolicyCFEBAD31"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.<anonymous> in aws-cdk-lib...",
+        "new RuntimeStack (/Users/yug/Desktop/ai voice agent project/infra/lib/runtime-stack.ts:40:18)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:18:1)",
+        "...node internals..."
+      ]
+    }
+  ]
+}

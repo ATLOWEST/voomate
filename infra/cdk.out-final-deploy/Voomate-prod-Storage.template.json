@@ -1,0 +1,262 @@
+{
+ "Resources": {
+  "KnowledgeBucketD7C8B00D": {
+   "Type": "AWS::S3::Bucket",
+   "Properties": {
+    "BucketEncryption": {
+     "ServerSideEncryptionConfiguration": [
+      {
+       "ServerSideEncryptionByDefault": {
+        "SSEAlgorithm": "AES256"
+       }
+      }
+     ]
+    },
+    "LifecycleConfiguration": {
+     "Rules": [
+      {
+       "Id": "expire-superseded-crawls",
+       "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 30
+       },
+       "Status": "Enabled"
+      }
+     ]
+    },
+    "PublicAccessBlockConfiguration": {
+     "BlockPublicAcls": true,
+     "BlockPublicPolicy": true,
+     "IgnorePublicAcls": true,
+     "RestrictPublicBuckets": true
+    },
+    "Tags": [
+     {
+      "Key": "Project",
+      "Value": "voomate"
+     },
+     {
+      "Key": "Stage",
+      "Value": "prod"
+     }
+    ],
+    "VersioningConfiguration": {
+     "Status": "Enabled"
+    }
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "Voomate-prod-Storage/KnowledgeBucket/Resource"
+   }
+  },
+  "KnowledgeBucketPolicy59FB573E": {
+   "Type": "AWS::S3::BucketPolicy",
+   "Properties": {
+    "Bucket": {
+     "Ref": "KnowledgeBucketD7C8B00D"
+    },
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "s3:*",
+       "Condition": {
+        "Bool": {
+         "aws:SecureTransport": "false"
+        }
+       },
+       "Effect": "Deny",
+       "Principal": {
+        "AWS": "*"
+       },
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "KnowledgeBucketD7C8B00D",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "KnowledgeBucketD7C8B00D",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "Voomate-prod-Storage/KnowledgeBucket/Policy/Resource"
+   }
+  },
+  "AssetsBucket5CB76180": {
+   "Type": "AWS::S3::Bucket",
+   "Properties": {
+    "BucketEncryption": {
+     "ServerSideEncryptionConfiguration": [
+      {
+       "ServerSideEncryptionByDefault": {
+        "SSEAlgorithm": "AES256"
+       }
+      }
+     ]
+    },
+    "PublicAccessBlockConfiguration": {
+     "BlockPublicAcls": true,
+     "BlockPublicPolicy": true,
+     "IgnorePublicAcls": true,
+     "RestrictPublicBuckets": true
+    },
+    "Tags": [
+     {
+      "Key": "Project",
+      "Value": "voomate"
+     },
+     {
+      "Key": "Stage",
+      "Value": "prod"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "Voomate-prod-Storage/AssetsBucket/Resource"
+   }
+  },
+  "AssetsBucketPolicyFFACF6C4": {
+   "Type": "AWS::S3::BucketPolicy",
+   "Properties": {
+    "Bucket": {
+     "Ref": "AssetsBucket5CB76180"
+    },
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "s3:*",
+       "Condition": {
+        "Bool": {
+         "aws:SecureTransport": "false"
+        }
+       },
+       "Effect": "Deny",
+       "Principal": {
+        "AWS": "*"
+       },
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "AssetsBucket5CB76180",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "AssetsBucket5CB76180",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "Voomate-prod-Storage/AssetsBucket/Policy/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/zPSMzIz1TNQTCwv1k1OydbNyUzSqw4uSUzO1gEKxRcb61U7lSZnp5boOKflQVkQKiA/JzO5EiEM4deCBPxLSwpKS2p18vJTUvWyivXLjEz1jPQMFbOKMzN1i0rzSjJzU/WCIDQA2UyQNYEAAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "Voomate-prod-Storage/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "KnowledgeBucketName": {
+   "Description": "Set as CRAWL_ARCHIVE_BUCKET",
+   "Value": {
+    "Ref": "KnowledgeBucketD7C8B00D"
+   },
+   "Export": {
+    "Name": "Voomate-prod-Storage-KnowledgeBucket"
+   }
+  },
+  "AssetsBucketName": {
+   "Description": "Widget loader and iframe app, served via CloudFront",
+   "Value": {
+    "Ref": "AssetsBucket5CB76180"
+   },
+   "Export": {
+    "Name": "Voomate-prod-Storage-AssetsBucket"
+   }
+  },
+  "ExportsOutputFnGetAttKnowledgeBucketD7C8B00DArn0E6CDADF": {
+   "Value": {
+    "Fn::GetAtt": [
+     "KnowledgeBucketD7C8B00D",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "Voomate-prod-Storage:ExportsOutputFnGetAttKnowledgeBucketD7C8B00DArn0E6CDADF"
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

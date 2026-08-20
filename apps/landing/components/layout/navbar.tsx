@@ -15,7 +15,11 @@ import {
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
+const DASHBOARD_URL =
+  process.env.NEXT_PUBLIC_DASHBOARD_URL ??
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:3001'
+    : '/sign-in');
 
 const PRODUCT_ITEMS = [
   {
@@ -192,10 +196,24 @@ export function Navbar() {
 
         {/* Action Buttons (Buttonless text + arrow) */}
         <div className="site-nav__actions">
-          <a href={`${DASHBOARD_URL}/sign-in`} className="site-nav__sign-in">
+          <a
+            href={
+              process.env.NEXT_PUBLIC_DASHBOARD_URL
+                ? `${process.env.NEXT_PUBLIC_DASHBOARD_URL}/sign-in`
+                : '/sign-in'
+            }
+            className="site-nav__sign-in"
+          >
             Sign in
           </a>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="site-nav__sign-up">
+          <a
+            href={
+              process.env.NEXT_PUBLIC_DASHBOARD_URL
+                ? `${process.env.NEXT_PUBLIC_DASHBOARD_URL}/sign-in`
+                : '/sign-in'
+            }
+            className="site-nav__sign-up"
+          >
             Sign up <ArrowUpRight size={15} />
           </a>
         </div>

@@ -1,0 +1,887 @@
+{
+  "/Voomate-prod-ApplicationFoundation": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    },
+    {
+      "type": "aws:cdk:stack-tags",
+      "data": [
+        {
+          "key": "Project",
+          "value": "voomate"
+        },
+        {
+          "key": "Stage",
+          "value": "prod"
+        }
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ClusterName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ClusterName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:359:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/PrivateNamespaceName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PrivateNamespaceName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:360:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeSecretArn": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeSecretArn"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:361:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/VpcId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VpcId"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:365:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/TaskSecurityGroupId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "TaskSecurityGroupId"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:366:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ReleaseSourceBucketName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ReleaseSourceBucketName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:367:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApiServiceArn": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiServiceArn"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:368:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/DashboardServiceArn": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardServiceArn"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:369:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/VoiceServiceArn": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceServiceArn"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:370:5)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpc8BF17FDC"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Vpc2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:38:17)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/IGW": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpcIGW6C65992C"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Vpc2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:38:17)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/VPCGW": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpcVPCGW5A3E8114"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Vpc2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:38:17)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApplicationTasksSecurityGroup/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApplicationTasksSecurityGroup1D507527"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new SecurityGroup2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:44:30)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/Cluster/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ClusterEB0386A7"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Cluster2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:51:20)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/PrivateNamespace/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PrivateNamespace147795D2"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new PrivateDnsNamespace2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:56:22)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeConfiguration/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeConfiguration500014AA"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Secret2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:64:26)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ReleaseSourceBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ReleaseSourceBucket10BBBB92"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:71:26)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApiRepository/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiRepositoryB8378B43"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Repository2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:86:36)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApiLogGroup/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiLogGroup1DEDFC07"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new LogGroup2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:97:28)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/DashboardRepository/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardRepository2095AA42"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Repository2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:86:36)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/DashboardLogGroup/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardLogGroupA1507A3B"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new LogGroup2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:97:28)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/VoiceRepository/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceRepositoryBEE66617"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Repository2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:86:36)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/VoiceLogGroup/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceLogGroup6CE34D5E"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new LogGroup2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:97:28)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApplicationTaskRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApplicationTaskRole69491568"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Role2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:105:22)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApiTaskDefinition/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiTaskDefinition51EA709E"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateTaskDefinition2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:153:24)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApiService/Service": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiServiceC9037CF0"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateService2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:219:24)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/DashboardTaskDefinition/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardTaskDefinition9477022D"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateTaskDefinition2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:237:30)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/DashboardService/Service": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardService73233129"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateService2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:288:30)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/VoiceTaskDefinition/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceTaskDefinitionE36C458A"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateTaskDefinition2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:306:26)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/VoiceService/Service": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceService93359B3C"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateService2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:342:26)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/Exports/Output{\"Fn::GetAtt\":[\"ReleaseSourceBucket10BBBB92\",\"Arn\"]}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ExportsOutputFnGetAttReleaseSourceBucket10BBBB92Arn38DF5AC8"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/Exports/Output{\"Fn::GetAtt\":[\"ApiRepositoryB8378B43\",\"Arn\"]}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ExportsOutputFnGetAttApiRepositoryB8378B43ArnC5B66F61"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/Exports/Output{\"Ref\":\"ApiRepositoryB8378B43\"}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ExportsOutputRefApiRepositoryB8378B43D566CA3C"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/Exports/Output{\"Ref\":\"ReleaseSourceBucket10BBBB92\"}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ExportsOutputRefReleaseSourceBucket10BBBB92BE365062"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/Exports/Output{\"Fn::GetAtt\":[\"DashboardRepository2095AA42\",\"Arn\"]}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ExportsOutputFnGetAttDashboardRepository2095AA42Arn4C7DD15A"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/Exports/Output{\"Ref\":\"DashboardRepository2095AA42\"}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ExportsOutputRefDashboardRepository2095AA426CC00E8C"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/Exports/Output{\"Fn::GetAtt\":[\"VoiceRepositoryBEE66617\",\"Arn\"]}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ExportsOutputFnGetAttVoiceRepositoryBEE66617ArnAC9E8199"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/Exports/Output{\"Ref\":\"VoiceRepositoryBEE66617\"}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ExportsOutputRefVoiceRepositoryBEE66617A15DBB78"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/egressSubnet1/Subnet": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpcegressSubnet1Subnet863BAE41"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        ".../Users/yug/Desktop/ai voice agent project/node_modules/aws-cdk-lib/aws-ec2/lib/vpc.js:1:268 in aws-cdk-lib...",
+        "Array.forEach (:)",
+        "...aws-cdk-lib..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/egressSubnet1/RouteTable": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpcegressSubnet1RouteTableC7B1B495"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        ".../Users/yug/Desktop/ai voice agent project/node_modules/aws-cdk-lib/aws-ec2/lib/vpc.js:1:268 in aws-cdk-lib...",
+        "Array.forEach (:)",
+        "...aws-cdk-lib..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/egressSubnet1/RouteTableAssociation": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpcegressSubnet1RouteTableAssociation6E3A1BD9"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        ".../Users/yug/Desktop/ai voice agent project/node_modules/aws-cdk-lib/aws-ec2/lib/vpc.js:1:268 in aws-cdk-lib...",
+        "Array.forEach (:)",
+        "...aws-cdk-lib..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/egressSubnet1/DefaultRoute": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpcegressSubnet1DefaultRoute5DC11F7A"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        ".../Users/yug/Desktop/ai voice agent project/node_modules/aws-cdk-lib/aws-ec2/lib/vpc.js:1:208 in aws-cdk-lib...",
+        "Array.forEach (:)",
+        "...new Vpc2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:38:17)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/egressSubnet2/Subnet": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpcegressSubnet2Subnet3E0A7664"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        ".../Users/yug/Desktop/ai voice agent project/node_modules/aws-cdk-lib/aws-ec2/lib/vpc.js:1:268 in aws-cdk-lib...",
+        "Array.forEach (:)",
+        "...aws-cdk-lib..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/egressSubnet2/RouteTable": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpcegressSubnet2RouteTable8FE04562"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        ".../Users/yug/Desktop/ai voice agent project/node_modules/aws-cdk-lib/aws-ec2/lib/vpc.js:1:268 in aws-cdk-lib...",
+        "Array.forEach (:)",
+        "...aws-cdk-lib..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/egressSubnet2/RouteTableAssociation": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpcegressSubnet2RouteTableAssociation0F3F61F3"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        ".../Users/yug/Desktop/ai voice agent project/node_modules/aws-cdk-lib/aws-ec2/lib/vpc.js:1:268 in aws-cdk-lib...",
+        "Array.forEach (:)",
+        "...aws-cdk-lib..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/RuntimeVpc/egressSubnet2/DefaultRoute": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RuntimeVpcegressSubnet2DefaultRouteC9F0C7C0"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        ".../Users/yug/Desktop/ai voice agent project/node_modules/aws-cdk-lib/aws-ec2/lib/vpc.js:1:208 in aws-cdk-lib...",
+        "Array.forEach (:)",
+        "...new Vpc2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:38:17)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ReleaseSourceBucket/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ReleaseSourceBucketPolicyF3F94F95"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:71:26)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApplicationTaskRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApplicationTaskRoleDefaultPolicy3E6397C6"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.<anonymous> in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:110:14)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApiTaskDefinition/ExecutionRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiTaskDefinitionExecutionRoleA3303016"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.<anonymous> in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:158:45)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApiService/CloudmapService/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiServiceCloudmapService1E8DB4DE"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateService2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:219:24)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/DashboardTaskDefinition/ExecutionRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardTaskDefinitionExecutionRole7C294CCD"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.<anonymous> in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:242:51)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/DashboardService/CloudmapService/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardServiceCloudmapService4F3C7B23"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateService2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:288:30)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/VoiceTaskDefinition/ExecutionRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceTaskDefinitionExecutionRole2FA417B7"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.<anonymous> in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:311:47)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/VoiceService/CloudmapService/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceServiceCloudmapService0FD50F02"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateService2 in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:342:26)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/ApiTaskDefinition/ExecutionRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiTaskDefinitionExecutionRoleDefaultPolicy5B03B3DE"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.grantRead in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:158:24)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/DashboardTaskDefinition/ExecutionRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardTaskDefinitionExecutionRoleDefaultPolicy52EC320A"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.grantRead in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:242:24)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationFoundation/VoiceTaskDefinition/ExecutionRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceTaskDefinitionExecutionRoleDefaultPolicyFDFAAD7B"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.grantRead in aws-cdk-lib...",
+        "new ApplicationFoundationStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-foundation-stack.ts:311:24)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:24:31)"
+      ]
+    }
+  ]
+}

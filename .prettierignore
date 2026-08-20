@@ -4,6 +4,8 @@ build
 .next
 out
 cdk.out
+cdk.out*
+**/cdk.out*
 coverage
 *.md
 package-lock.json

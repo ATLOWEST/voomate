@@ -1,0 +1,234 @@
+{
+  "/Voomate-prod-ApplicationBuild": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:33:1)",
+        "...node internals..."
+      ]
+    },
+    {
+      "type": "aws:cdk:stack-tags",
+      "data": [
+        {
+          "key": "Project",
+          "value": "voomate"
+        },
+        {
+          "key": "Stage",
+          "value": "prod"
+        }
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/ApiBuildProjectName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiBuildProjectName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationBuildStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-build-stack.ts:70:7)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:33:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/DashboardBuildProjectName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardBuildProjectName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationBuildStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-build-stack.ts:70:7)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:33:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/VoiceBuildProjectName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceBuildProjectName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new ApplicationBuildStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-build-stack.ts:70:7)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:33:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/ApiImageBuild/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiImageBuild53994DE8"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Project2 in aws-cdk-lib...",
+        "new ApplicationBuildStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-build-stack.ts:23:23)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:33:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/DashboardImageBuild/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardImageBuild1DC564BA"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Project2 in aws-cdk-lib...",
+        "new ApplicationBuildStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-build-stack.ts:23:23)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:33:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/VoiceImageBuild/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceImageBuildED2DBAA2"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Project2 in aws-cdk-lib...",
+        "new ApplicationBuildStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-build-stack.ts:23:23)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:33:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/ApiImageBuild/Role/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiImageBuildRole27E7F2D7"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Project2 in aws-cdk-lib...",
+        "new ApplicationBuildStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-build-stack.ts:23:23)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:33:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/DashboardImageBuild/Role/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardImageBuildRoleB120D0D8"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Project2 in aws-cdk-lib...",
+        "new ApplicationBuildStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-build-stack.ts:23:23)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:33:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/VoiceImageBuild/Role/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceImageBuildRole78ED303B"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Project2 in aws-cdk-lib...",
+        "new ApplicationBuildStack (/Users/yug/Desktop/ai voice agent project/infra/lib/application-build-stack.ts:23:23)",
+        "<anonymous> (/Users/yug/Desktop/ai voice agent project/infra/bin/soniq.ts:33:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/ApiImageBuild/Role/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiImageBuildRoleDefaultPolicy78F89BAC"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/DashboardImageBuild/Role/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DashboardImageBuildRoleDefaultPolicyFBCDD45D"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/Voomate-prod-ApplicationBuild/VoiceImageBuild/Role/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VoiceImageBuildRoleDefaultPolicyEB5D163B"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ]
+}
