@@ -1,6 +1,6 @@
 # The control-plane API is built from the monorepo so its internal workspace packages always
 # match the application code. Secrets are deliberately excluded by .dockerignore.
-FROM node:22-bookworm-slim AS build
+FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
@@ -13,7 +13,7 @@ RUN npm ci
 COPY . .
 RUN npm run build:packages && npm run build --workspace @voomate/api
 
-FROM node:22-bookworm-slim AS runtime
+FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app /app
