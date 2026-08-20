@@ -30,6 +30,8 @@ describe('widget session security', () => {
       origin: 'https://shop.example',
       keyFingerprint: '0123456789abcdef',
       visitorSessionId: '33333333-3333-4333-8333-333333333333',
+      configurationRevision: 4,
+      executionLeaseId: '44444444-4444-4444-8444-444444444444',
     };
     const session = await mintWidgetSession(claims);
     await expect(verifyWidgetSession(session.token, claims.origin)).resolves.toMatchObject(claims);
@@ -46,6 +48,8 @@ describe('widget session security', () => {
       origin: 'https://shop.example',
       keyFingerprint: '0123456789abcdef',
       visitorSessionId: '33333333-3333-4333-8333-333333333333',
+      configurationRevision: 4,
+      executionLeaseId: '44444444-4444-4444-8444-444444444444',
     };
     const continuation = await mintWidgetContinuation(claims);
     await expect(

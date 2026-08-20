@@ -125,10 +125,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <DashboardMotion />
 
       {/* Sidebar wrapper */}
-      <div className={cn(
-        "hidden min-w-0 overflow-hidden md:block transition-[width] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        desktopOpen ? "w-[17.5rem]" : "w-[4.5rem]"
-      )}>
+      <div
+        className={cn(
+          'hidden min-w-0 overflow-hidden md:block transition-[width] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+          desktopOpen ? 'w-[17.5rem]' : 'w-[4.5rem]',
+        )}
+      >
         <SidebarNav className="w-full" isCollapsed={!desktopOpen} />
       </div>
 

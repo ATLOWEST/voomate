@@ -26,13 +26,11 @@ describe('store public-field adapter', () => {
         lastCustomerEmail: 'private-customer@example.test',
       },
     };
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ ok: true, items: [{ status: 'synced', chunks: 1 }] }), {
-          status: 200,
-        }),
-      );
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, items: [{ status: 'synced', chunks: 1 }] }), {
+        status: 200,
+      }),
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(

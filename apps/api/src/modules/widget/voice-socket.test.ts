@@ -76,7 +76,10 @@ const { voiceSocketRoutes } = await import('./voice-socket.js');
 const publishedAgent = () => ({
   id: 'agent-123',
   organizationId: 'org-456',
-  status: 'published',
+  status: 'active',
+  desiredStateRevision: 3,
+  executionLeaseId: 'lease-123',
+  executionLeaseExpiresAt: new Date(Date.now() + 60_000),
   voiceEnabled: true,
   language: {
     languages: ['en-IN', 'hi-IN'],
@@ -122,6 +125,8 @@ const token = async (over: Partial<{ origin: string; channel: 'voice' | 'text' }
         organizationId: 'org-456' as OrganizationId,
         origin: over.origin ?? ORIGIN,
         channel: over.channel ?? 'voice',
+        configurationRevision: 3,
+        executionLeaseId: 'lease-123',
       },
       { secret: SECRET, ttlSeconds: 900 },
     )
@@ -291,6 +296,16 @@ describe('refusing a voice session', () => {
 
   it('refuses an agent with voice switched off', async () => {
     fakes.agent['voiceEnabled'] = false;
+    const connection = await connect();
+    start(connection, { sessionToken: await token() });
+
+    const { error } = await refusal(connection);
+    expect(error).toMatchObject({ code: 'unavailable' });
+  });
+
+  it('refuses a token from a revoked execution lease or stale configuration revision', async () => {
+    fakes.agent['executionLeaseId'] = 'replacement-lease';
+    fakes.agent['desiredStateRevision'] = 4;
     const connection = await connect();
     start(connection, { sessionToken: await token() });
 

@@ -1,5 +1,10 @@
 import type { Metadata } from 'next';
-import { BreadcrumbJsonLd, WebPageJsonLd, SoftwareApplicationJsonLd } from '@/components/seo/json-ld';
+import {
+  BreadcrumbJsonLd,
+  WebPageJsonLd,
+  SoftwareApplicationJsonLd,
+} from '@/components/seo/json-ld';
+import { siteUrl } from '@/lib/site-url';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -14,23 +19,25 @@ import {
 } from 'lucide-react';
 import { ProductTabs } from '@/components/ui/product-tabs';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
 
 export const metadata: Metadata = {
   title: 'Product — How Voomate Works',
   description:
-    'See how Voomate\'s Web, Voice Calling, and Integration Agents work as one controlled operating system for customer conversations and approved business actions.',
+    "See how Voomate's Web, Voice Calling, and Integration Agents work as one controlled operating system for customer conversations and approved business actions.",
   openGraph: {
     title: 'Product — How Voomate Works',
-    description: 'Web, Voice, and Integration Agents working as one controlled AI operating system.',
-    url: 'https://voomate.ai/product',
+    description:
+      'Web, Voice, and Integration Agents working as one controlled AI operating system.',
+    url: siteUrl('/product'),
     siteName: 'Voomate',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Product — How Voomate Works',
-    description: 'Web, Voice, and Integration Agents working as one controlled AI operating system.',
+    description:
+      'Web, Voice, and Integration Agents working as one controlled AI operating system.',
   },
   alternates: {
     canonical: '/product',
@@ -85,8 +92,17 @@ const TOOL_STEPS = [
 export default function ProductPage() {
   return (
     <main className="marketing-main subpage product-page">
-      <BreadcrumbJsonLd items={[{ name: 'Home', href: '/' }, { name: 'Product', href: '/product' }]} />
-      <WebPageJsonLd name="Product — How Voomate Works" description="See how Voomate's Web, Voice Calling, and Integration Agents work as one controlled operating system." url="/product" />
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', href: '/' },
+          { name: 'Product', href: '/product' },
+        ]}
+      />
+      <WebPageJsonLd
+        name="Product — How Voomate Works"
+        description="See how Voomate's Web, Voice Calling, and Integration Agents work as one controlled operating system."
+        url="/product"
+      />
       <SoftwareApplicationJsonLd />
       <section className="subpage-hero product-hero" aria-labelledby="product-title">
         <div className="subpage-hero__aside" data-reveal>

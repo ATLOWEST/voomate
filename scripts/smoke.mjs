@@ -37,7 +37,8 @@ if (existsSync(envPath)) {
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const anonKey = process.env.SUPABASE_ANON_KEY;
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? `http://localhost:${process.env.API_PORT ?? '4000'}`;
+const apiUrl =
+  process.env.NEXT_PUBLIC_API_URL ?? `http://localhost:${process.env.API_PORT ?? '4000'}`;
 
 const [email, password] = process.argv.slice(2);
 if (!email || !password) {
@@ -95,8 +96,11 @@ const signIn = await fetch(new URL('/auth/v1/token?grant_type=password', supabas
   body: JSON.stringify({ email, password }),
 });
 const session = await signIn.json();
-check('sign in with email and password', signIn.ok && Boolean(session.access_token),
-  signIn.ok ? '' : JSON.stringify(session));
+check(
+  'sign in with email and password',
+  signIn.ok && Boolean(session.access_token),
+  signIn.ok ? '' : JSON.stringify(session),
+);
 
 const token = session.access_token;
 
@@ -113,8 +117,11 @@ check('API is reachable', health?.status === 'ok', apiUrl);
 step('2. Tenancy');
 
 const { organizations } = await call('/v1/organizations', { token });
-check('user belongs to at least one organization', organizations.length > 0,
-  organizations.map((o) => o.name).join(', '));
+check(
+  'user belongs to at least one organization',
+  organizations.length > 0,
+  organizations.map((o) => o.name).join(', '),
+);
 
 const organizationId = organizations[0].id;
 
@@ -143,7 +150,7 @@ check('agent created', Boolean(agent?.id), agent.id);
 check('starts as a draft', agent.status === 'draft');
 check('embed key generated', typeof agent.embedKey === 'string' && agent.embedKey.length >= 16);
 check(
-  "own site allowlisted by default",
+  'own site allowlisted by default',
   agent.allowedOrigins.includes('https://example.com'),
   agent.allowedOrigins.join(', '),
 );
@@ -216,8 +223,11 @@ try {
 
   check('a question gets an answer', typeof asked.answer === 'string' && asked.answer.length > 0);
   check('the answer is grounded in stored content', asked.ungrounded === false);
-  check('citations returned', asked.citations.length > 0,
-    asked.citations.map((c) => `${c.title} ${c.score.toFixed(2)}`).join(' · '));
+  check(
+    'citations returned',
+    asked.citations.length > 0,
+    asked.citations.map((c) => `${c.title} ${c.score.toFixed(2)}`).join(' · '),
+  );
   // Deliberately paraphrased — "send something back" shares no keyword with "return an item".
   // Matching it is the thing vector search does that a keyword index cannot.
   check(
@@ -225,8 +235,11 @@ try {
     asked.citations[0].title.toLowerCase().includes('return'),
     asked.citations[0].title,
   );
-  check('the answer mentions the 30 day window', asked.answer.includes('30'),
-    asked.answer.slice(0, 120).replace(/\n/g, ' '));
+  check(
+    'the answer mentions the 30 day window',
+    asked.answer.includes('30'),
+    asked.answer.slice(0, 120).replace(/\n/g, ' '),
+  );
   console.log(
     `        latency: ${asked.latency.embeddingMs}ms embed · ${asked.latency.retrievalMs}ms search` +
       ` · ${asked.latency.firstTokenMs}ms to first token · ${asked.latency.totalMs}ms total`,
@@ -284,8 +297,11 @@ try {
   check('a final result followed the deltas', Boolean(done?.answer));
   // The voice channel must not emit markdown — a screen reader saying "asterisk asterisk" is
   // the whole reason the two channels are prompted differently.
-  check('the voice answer contains no markdown', !/[*#`]/.test(done.answer),
-    done.answer.slice(0, 100).replace(/\n/g, ' '));
+  check(
+    'the voice answer contains no markdown',
+    !/[*#`]/.test(done.answer),
+    done.answer.slice(0, 100).replace(/\n/g, ' '),
+  );
 
   // --- 7. Publish ----------------------------------------------------------------------------
 
@@ -296,7 +312,7 @@ try {
     token,
     organizationId,
   });
-  check('publish succeeds once knowledge is indexed', published.agent.status === 'published');
+  check('activation succeeds once knowledge is indexed', published.agent.status === 'active');
   check('publishedAt recorded', Boolean(published.agent.publishedAt));
 
   // --- 8. Crawling a real website --------------------------------------------------------------
@@ -323,21 +339,32 @@ try {
     if (crawled.status === 'ready' || crawled.status === 'failed') break;
     await sleep(1000);
   }
-  check('the crawl finished', crawled.status === 'ready',
-    `${crawled.status}${crawled.errorMessage ? `: ${crawled.errorMessage}` : ''}`);
-  check('it read more than one page', crawled.documentCount > 1,
-    `${String(crawled.documentCount)} pages`);
+  check(
+    'the crawl finished',
+    crawled.status === 'ready',
+    `${crawled.status}${crawled.errorMessage ? `: ${crawled.errorMessage}` : ''}`,
+  );
+  check(
+    'it read more than one page',
+    crawled.documentCount > 1,
+    `${String(crawled.documentCount)} pages`,
+  );
 
   const { documents } = await call(
     `/v1/agents/${agent.id}/knowledge/${registered.source.id}/documents`,
     { token, organizationId },
   );
-  check('every crawled page indexed', documents.every((d) => d.status === 'ready'),
-    documents.map((d) => `${d.url}=${d.status}`).join(' · '));
+  check(
+    'every crawled page indexed',
+    documents.every((d) => d.status === 'ready'),
+    documents.map((d) => `${d.url}=${d.status}`).join(' · '),
+  );
   // Each page must be its own document. One document holding the whole site means the
   // extractor collapsed the crawl, and every citation would point at the homepage.
-  check('pages are stored with their own URLs',
-    new Set(documents.map((d) => d.url)).size === documents.length);
+  check(
+    'pages are stored with their own URLs',
+    new Set(documents.map((d) => d.url)).size === documents.length,
+  );
 
   const aboutSite = await call(`/v1/agents/${agent.id}/ask`, {
     method: 'POST',
@@ -345,10 +372,12 @@ try {
     organizationId,
     body: { question: 'What kind of books do you sell?', channel: 'text' },
   });
-  check('a question about the crawled site is answered from the crawl',
+  check(
+    'a question about the crawled site is answered from the crawl',
     aboutSite.ungrounded === false &&
       aboutSite.citations.some((c) => (c.url ?? '').startsWith('http')),
-    aboutSite.citations.map((c) => c.url ?? c.title).join(' · '));
+    aboutSite.citations.map((c) => c.url ?? c.title).join(' · '),
+  );
 } catch (error) {
   failure = error;
 } finally {

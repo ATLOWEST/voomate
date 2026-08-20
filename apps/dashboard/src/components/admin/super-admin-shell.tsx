@@ -43,7 +43,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           'hidden shrink-0 transition-[width] duration-300 md:block',
-          isCollapsed ? 'w-16' : 'w-64'
+          isCollapsed ? 'w-16' : 'w-64',
         )}
       >
         <SuperAdminSidebarNav isCollapsed={isCollapsed} />
@@ -71,7 +71,11 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               onClick={() => setIsCollapsed((prev) => !prev)}
               aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {isCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+              {isCollapsed ? (
+                <PanelLeftOpen className="size-4" />
+              ) : (
+                <PanelLeftClose className="size-4" />
+              )}
             </button>
 
             <div className="flex items-center gap-2">
@@ -103,9 +107,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Scrollable Body Content */}
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
 
       {/* Mobile Drawer */}

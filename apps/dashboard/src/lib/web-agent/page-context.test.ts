@@ -31,6 +31,7 @@ describe('Web Agent page context', () => {
       {
         label: 'Agents',
         url: 'https://app.example/agents',
+        portalScope: '/',
         aliases: ['agent board'],
         native: {
           ios: {
@@ -41,6 +42,25 @@ describe('Web Agent page context', () => {
       },
     ]);
     expect(sanitizePageContext(input, 'https://other.example')).toBeUndefined();
+  });
+
+  it('derives portal and role from the verified current URL rather than browser input', () => {
+    const context = pageContextSchema.parse({
+      url: 'https://app.example/admin/merchants',
+      title: 'Merchants',
+      description: '',
+      headings: [],
+      portalScope: '/store',
+      activeRole: 'end_user',
+      navigation: [
+        { label: 'Agent Fleet', url: 'https://app.example/admin/agents', portalScope: '/store' },
+      ],
+    });
+    expect(sanitizePageContext(context, 'https://app.example')).toMatchObject({
+      portalScope: '/admin',
+      activeRole: 'super_admin',
+      navigation: [{ portalScope: '/admin' }],
+    });
   });
 
   it('rejects inconsistent agent inventory counts', () => {

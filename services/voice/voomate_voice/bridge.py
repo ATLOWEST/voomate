@@ -1,7 +1,7 @@
 """Pipecat processor that reuses the existing Next.js Web Agent runtime."""
 
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 from urllib.parse import urlparse
 
@@ -77,6 +77,7 @@ class VoomateAgentBridge(FrameProcessor):
         conversation_id: str | None,
         page_url: str | None,
         page_context: dict[str, Any] | None = None,
+        on_first_model_text: Callable[[], Awaitable[None]] | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -87,6 +88,8 @@ class VoomateAgentBridge(FrameProcessor):
         self._run_id: str | None = None
         self._page_url = page_url
         self._page_context = page_context
+        self._on_first_model_text = on_first_model_text
+        self._first_model_text_sent = False
         self._client = httpx.AsyncClient(timeout=httpx.Timeout(45, connect=5))
 
     @property
@@ -120,6 +123,9 @@ class VoomateAgentBridge(FrameProcessor):
         self._page_url = page_url
         self._page_context = page_context
         return True
+
+    def set_first_model_text_callback(self, callback: Callable[[], Awaitable[None]]) -> None:
+        self._on_first_model_text = callback
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
@@ -173,6 +179,10 @@ class VoomateAgentBridge(FrameProcessor):
                             )
                         )
                     elif event.get("type") == "delta" and isinstance(event.get("text"), str):
+                        if not self._first_model_text_sent:
+                            self._first_model_text_sent = True
+                            if self._on_first_model_text:
+                                await self._on_first_model_text()
                         await self.push_frame(LLMTextFrame(event["text"]))
                     elif event.get("type") == "done":
                         self._conversation_id = event.get("conversationId")
@@ -197,4 +207,5 @@ class VoomateAgentBridge(FrameProcessor):
                 LLMTextFrame("I’m having trouble answering right now. Please continue by chat.")
             )
         finally:
+            self._first_model_text_sent = False
             await self.push_frame(LLMFullResponseEndFrame())

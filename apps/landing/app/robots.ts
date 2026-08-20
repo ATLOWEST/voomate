@@ -1,4 +1,7 @@
 import type { MetadataRoute } from 'next';
+import { SITE_URL } from '@/lib/site-url';
+
+export const dynamic = 'force-static';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -9,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/seller/', '/admin/', '/api/', '/referral/', '/supplier/'],
       },
     ],
-    sitemap: 'https://voomate.ai/sitemap.xml',
-    host: 'https://voomate.ai',
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   };
 }

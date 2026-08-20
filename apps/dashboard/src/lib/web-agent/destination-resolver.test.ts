@@ -105,4 +105,45 @@ describe('destination resolver', () => {
       reason: 'below_threshold',
     });
   });
+
+  it('strictly keeps navigation inside the current portal while repairing compound voice typos', () => {
+    const multiPortal: WebAgentPageContext = {
+      url: 'https://app.example/admin/merchants',
+      portalScope: '/admin',
+      activeRole: 'super_admin',
+      title: 'Merchants',
+      description: '',
+      headings: [],
+      navigation: [
+        {
+          label: 'Agent Fleet & LLMs',
+          url: 'https://app.example/admin/agents',
+          portalScope: '/admin',
+          aliases: ['agent fleet', 'llm fleet'],
+        },
+        {
+          label: 'Agents',
+          url: 'https://app.example/agents',
+          portalScope: '/',
+          aliases: ['agent board'],
+        },
+      ],
+    };
+    expect(
+      resolveDestination(
+        'hey please redirect this to agabt fellet page',
+        multiPortal,
+        'navigation',
+      ),
+    ).toMatchObject({
+      kind: 'resolved',
+      destination: { label: 'Agent Fleet & LLMs' },
+    });
+    expect(resolveDestination('open merchant agents', multiPortal, 'navigation')).not.toMatchObject(
+      {
+        kind: 'resolved',
+        destination: { label: 'Agents' },
+      },
+    );
+  });
 });

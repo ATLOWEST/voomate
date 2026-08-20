@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, sql } from 'drizzle-orm';
-import { agents, conversations, messages } from '@voomate/db';
-import { businessProfileGuidance, inferBusinessProfile } from '@voomate/core';
+import { and, desc, eq, gt, sql } from 'drizzle-orm';
+import { agents, businessProfileVersions, conversations, messages } from '@voomate/db';
+import {
+  businessOperatingProfileSchema,
+  businessProfileGuidance,
+  inferBusinessProfile,
+  operatingProfileGuidance,
+} from '@voomate/core';
 import { getWebAgentDb } from './db';
 import { attachImagesToMessage, consumeImagesForMessage } from './images';
 import { logRunEvent, recordRunUsage, type RunContext } from './log';
@@ -11,10 +16,11 @@ import { createCustomerFacingStream, validateCustomerFacingReply } from './custo
 import { sessionFingerprint, type WidgetClaims } from './security';
 import { decideDialogue } from './dialogue-manager';
 import { listLiveReadCapabilities } from './live-data';
-import { planWebAgentTurn } from './orchestration';
+import { planWebAgentTurn, repairPlatformTranscription } from './orchestration';
 import { buildResponsePresentation, type ResponsePresentation } from './presentation';
 import {
   sanitizePageContext,
+  pageContextRoleGuidance,
   type NavigateClientCommand,
   type WebAgentPageContext,
 } from './page-context';
@@ -57,13 +63,17 @@ export async function runWebAgentTurn(args: {
       persona: agents.persona,
       name: agents.name,
       transcriptRetentionDays: agents.transcriptRetentionDays,
+      businessProfileVersionId: agents.businessProfileVersionId,
     })
     .from(agents)
     .where(
       and(
         eq(agents.organizationId, claims.organizationId),
         eq(agents.id, claims.agentId),
-        eq(agents.status, 'published'),
+        eq(agents.status, 'active'),
+        eq(agents.desiredStateRevision, claims.configurationRevision),
+        eq(agents.executionLeaseId, claims.executionLeaseId),
+        gt(agents.executionLeaseExpiresAt, new Date()),
       ),
     )
     .limit(1);
@@ -144,7 +154,7 @@ export async function runWebAgentTurn(args: {
       : null,
   });
   if (input.channel === 'text') recordRunUsage(context, 'text_messages', 1);
-  const [novaImages, previousMessages] = await Promise.all([
+  const [novaImages, previousMessages, approvedProfileRows] = await Promise.all([
     input.imageIds.length === 0
       ? Promise.resolve([])
       : consumeImagesForMessage({
@@ -163,11 +173,34 @@ export async function runWebAgentTurn(args: {
       )
       .orderBy(desc(messages.createdAt))
       .limit(12),
+    agent.businessProfileVersionId
+      ? db
+          .select({
+            id: businessProfileVersions.id,
+            revision: businessProfileVersions.revision,
+            profile: businessProfileVersions.profile,
+          })
+          .from(businessProfileVersions)
+          .where(
+            and(
+              eq(businessProfileVersions.organizationId, claims.organizationId),
+              eq(businessProfileVersions.id, agent.businessProfileVersionId),
+              eq(businessProfileVersions.status, 'approved'),
+            ),
+          )
+          .limit(1)
+      : Promise.resolve([]),
   ]);
 
   const persona = agent.persona as { company?: string; displayName?: string; name?: string };
   const businessName = persona.company ?? agent.name;
   const agentName = persona.displayName ?? persona.name ?? agent.name;
+  // Preserve the original transcript for auditability. The repaired form is used only for
+  // deterministic intent recognition and model grounding when this is the Voomate platform.
+  const runtimeMessage = repairPlatformTranscription(
+    input.message,
+    businessName.trim().toLowerCase() === 'voomate',
+  );
   const insertedMessages = await db
     .insert(messages)
     .values({
@@ -188,7 +221,7 @@ export async function runWebAgentTurn(args: {
     content: turn.content,
   }));
   const decision = decideDialogue({
-    message: input.message,
+    message: runtimeMessage,
     agentName,
     businessName,
     previousVisitorMessages: chronologicalHistory
@@ -198,14 +231,14 @@ export async function runWebAgentTurn(args: {
   const availableLiveCapabilities =
     decision.kind === 'agent' ? await listLiveReadCapabilities(context) : [];
   const orchestration = planWebAgentTurn({
-    message: input.message,
+    message: runtimeMessage,
     availableCapabilities: availableLiveCapabilities,
     pageContext,
     platformMode: businessName.trim().toLowerCase() === 'voomate',
   });
   const knowledge =
     decision.kind === 'agent'
-      ? await retrieveWebAgentKnowledge(context, input.message, orchestration.useKnowledge)
+      ? await retrieveWebAgentKnowledge(context, runtimeMessage, orchestration.useKnowledge)
       : [];
   const businessProfile = inferBusinessProfile(
     pageContext?.businessSummary,
@@ -214,6 +247,10 @@ export async function runWebAgentTurn(args: {
     knowledge.map(({ title, content }) => `${title}\n${content}`).join('\n'),
     availableLiveCapabilities.map(({ name, description }) => `${name} ${description}`).join('\n'),
   );
+  const [approvedProfileRow] = approvedProfileRows;
+  const approvedProfile = approvedProfileRow
+    ? businessOperatingProfileSchema.parse(approvedProfileRow.profile)
+    : undefined;
   await logRunEvent(context, 'orchestration_plan', 'success', {
     route: orchestration.route,
     selection: orchestration.selection,
@@ -225,7 +262,13 @@ export async function runWebAgentTurn(args: {
     destinationDecision: orchestration.destinationDecision,
     platformJourney: orchestration.platformJourney,
     learningMode: 'offline_reviewed_promotion',
-    businessProfile,
+    businessProfile: approvedProfileRow
+      ? {
+          source: 'approved_operating_profile',
+          id: approvedProfileRow.id,
+          revision: approvedProfileRow.revision,
+        }
+      : { source: 'turn_inference', ...businessProfile },
   });
   if (decision.kind !== 'agent') {
     await logRunEvent(context, 'knowledge_retrieval', 'success', {
@@ -257,14 +300,20 @@ export async function runWebAgentTurn(args: {
       sourceCount: orchestration.sources.length,
     });
   } else if (decision.kind === 'agent') {
-    reply = await runBedrockInlineAgentTurn(context, input.message, {
+    reply = await runBedrockInlineAgentTurn(context, runtimeMessage, {
       businessName,
       agentName,
       knowledge,
       liveCapabilities: orchestration.capabilities,
       enableOrderStatus: orchestration.controlledActions.includes('check_order_status'),
       pageContext: orchestration.usePageContext ? pageContext : undefined,
-      responseGuidance: [orchestration.responseGuidance, businessProfileGuidance(businessProfile)]
+      responseGuidance: [
+        orchestration.responseGuidance,
+        pageContextRoleGuidance(pageContext),
+        approvedProfile
+          ? operatingProfileGuidance(approvedProfile)
+          : businessProfileGuidance(businessProfile),
+      ]
         .filter(Boolean)
         .join('\n'),
       images: novaImages,

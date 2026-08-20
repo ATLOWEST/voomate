@@ -1,5 +1,9 @@
 import type { LiveReadCapability } from './live-data';
-import type { NavigateClientCommand, WebAgentPageContext } from './page-context';
+import {
+  portalScopeForUrl,
+  type NavigateClientCommand,
+  type WebAgentPageContext,
+} from './page-context';
 import { resolveDestination, type DestinationResolution } from './destination-resolver';
 
 const MAX_LIVE_CAPABILITIES_PER_TURN = 8;
@@ -45,6 +49,18 @@ const platformSetupIntent =
   /\b(?:set ?up|onboard|connect|configure|start|create)\b[\s\S]{0,100}\b(?:account|business|workspace|agent|voomate)\b|\bhow (?:do|can|to) (?:i|we) (?:get started|set ?up)\b/i;
 const agentInventoryIntent =
   /\b(?:do (?:i|we) have|is there|are there|how many|check|show)\b[\s\S]{0,80}\bagents?\b|\bagents?\b[\s\S]{0,80}\b(?:active|configured|installed|added|running)\b/i;
+
+/**
+ * Repairs only the small set of product-name substitutions that are repeatedly produced by
+ * speech recognition. This is deliberately opt-in for the Voomate control plane: a client
+ * discussing a literal roommate must never have their words silently rewritten.
+ */
+export function repairPlatformTranscription(message: string, platformMode: boolean): string {
+  if (!platformMode) return message;
+  return message
+    .replace(/\b(?:his|this|the)\s+roommate\b/gi, 'Voomate')
+    .replace(/\bvy\s+(?=overview\b)/gi, 'why ');
+}
 
 export interface PlatformJourneyDecision {
   kind: 'workspace_setup' | 'agent_inventory';
@@ -161,6 +177,20 @@ function tokens(value: string): Set<string> {
   return result;
 }
 
+function mentionsCurrentSurface(
+  message: string,
+  pageContext: WebAgentPageContext | undefined,
+): boolean {
+  if (!pageContext) return false;
+  const messageTokens = tokens(message);
+  const surfaceTokens = [
+    pageContext.title,
+    pageContext.surface?.title,
+    ...(pageContext.surface?.aliases ?? []),
+  ].flatMap((value) => [...tokens(value ?? '')]);
+  return surfaceTokens.some((token) => messageTokens.has(token));
+}
+
 function relevance(messageTokens: Set<string>, capability: LiveReadCapability): number {
   const nameTokens = tokens(capability.name.replaceAll('_', ' '));
   const descriptionTokens = tokens(capability.description);
@@ -257,6 +287,7 @@ export function planWebAgentTurn(input: {
   const usePageContext = Boolean(
     input.pageContext &&
     (pageAssistanceIntent.test(input.message) ||
+      mentionsCurrentSurface(input.message, input.pageContext) ||
       requestedIntent ||
       informationTarget ||
       platformJourney ||
@@ -329,28 +360,12 @@ export function planWebAgentTurn(input: {
       'The requested destination is ambiguous. Ask the visitor to choose one of the verified candidates; do not request or invent a URL.';
     directReply = `I found more than one matching place. Did you mean ${labels.join(' or ')}?`;
   } else if (requestedIntent && !asksForInformation && navigationResolution.kind === 'none') {
-    let currentPortal = '';
-    try {
-      if (input.pageContext?.url) {
-        const path = new URL(input.pageContext.url).pathname;
-        if (path.startsWith('/admin')) currentPortal = '/admin';
-        else if (path.startsWith('/store')) currentPortal = '/store';
-        else if (path.startsWith('/app')) currentPortal = '/app';
-      }
-    } catch {}
-
+    const currentPortal =
+      input.pageContext?.portalScope ?? portalScopeForUrl(input.pageContext?.url ?? '');
     const allNav = input.pageContext?.navigation ?? [];
-    const scopedNav = currentPortal
-      ? allNav.filter((item) => {
-          try {
-            return new URL(item.url).pathname.startsWith(currentPortal);
-          } catch {
-            return false;
-          }
-        })
-      : allNav;
-
-    const targetList = scopedNav.length > 0 ? scopedNav : allNav;
+    const targetList = allNav.filter(
+      (item) => (item.portalScope ?? portalScopeForUrl(item.url)) === currentPortal,
+    );
     const labels = [...new Set(targetList.map(({ label }) => label))].slice(0, 8);
     responseGuidance =
       'The requested destination did not safely match the host manifest. Name available destinations without asking the visitor for a URL.';
@@ -415,14 +430,23 @@ export function planWebAgentTurn(input: {
             '1. If no agent exists, choose Add agent, then Web Agent.',
             '2. If one already exists, open it and continue with knowledge, connections, testing, and publishing.',
           ].join('\n');
-  } else if (usePageContext && /\b(what|explain|how)\b/i.test(input.message)) {
+  } else if (
+    usePageContext &&
+    (/\b(?:what|explain|how|why|vy|where|can(?:not|'t)\s+see)\b/i.test(input.message) ||
+      mentionsCurrentSurface(input.message, input.pageContext))
+  ) {
     responseGuidance =
       'Explain the current page directly from its title, description, and visible headings, then give the next useful action. Do not say the page is unsupported.';
-    if (input.platformMode && input.pageContext) {
+    if (input.pageContext) {
       const surface = input.pageContext.surface;
+      const portalScope = input.pageContext.portalScope ?? portalScopeForUrl(input.pageContext.url);
+      const labels = input.pageContext.navigation
+        .filter((item) => (item.portalScope ?? portalScopeForUrl(item.url)) === portalScope)
+        .map(({ label }) => label)
+        .slice(0, 4);
       directReply = `${(surface?.title ?? input.pageContext.title) || 'This page'} is ${
         (surface?.description ?? input.pageContext.description) || 'your current Voomate workspace'
-      } Start with Agents to configure the team, Integrations to connect business systems, and Logs to see what each response consulted and why.`;
+      }${labels.length ? ` Available here: ${labels.join(', ')}.` : ''}`;
     }
   }
   if (

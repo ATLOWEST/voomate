@@ -42,6 +42,9 @@ export async function POST(request: Request): Promise<Response> {
         persona: agents.persona,
         appearance: agents.appearance,
         voiceEnabled: agents.voiceEnabled,
+        desiredStateRevision: agents.desiredStateRevision,
+        executionLeaseId: agents.executionLeaseId,
+        executionLeaseExpiresAt: agents.executionLeaseExpiresAt,
       })
       .from(agents)
       .where(eq(agents.embedKey, input.publicKey))
@@ -50,7 +53,12 @@ export async function POST(request: Request): Promise<Response> {
     const allowedOrigins = (agent?.allowedOrigins ?? [])
       .map((value) => normalizeOrigin(value))
       .filter((value): value is string => Boolean(value));
-    if (!agent || agent.status !== 'published' || !allowedOrigins.includes(origin)) {
+    if (
+      !agent ||
+      agent.status !== 'active' ||
+      !agent.executionLeaseId ||
+      !allowedOrigins.includes(origin)
+    ) {
       console.warn(
         JSON.stringify({ event: 'widget_session_denied', origin, keyFingerprint: fingerprint }),
       );
@@ -58,6 +66,25 @@ export async function POST(request: Request): Promise<Response> {
         { error: 'This assistant is not authorized for this website.' },
         { status: 403, headers: corsHeaders(origin) },
       );
+    }
+
+    if (
+      !agent.executionLeaseExpiresAt ||
+      agent.executionLeaseExpiresAt.getTime() < Date.now() + 5 * 60 * 1_000
+    ) {
+      const leaseExpiresAt = new Date(Date.now() + 20 * 60 * 1_000);
+      await getWebAgentDb()
+        .update(agents)
+        .set({ executionLeaseExpiresAt: leaseExpiresAt, updatedAt: new Date() })
+        .where(
+          and(
+            eq(agents.organizationId, agent.organizationId),
+            eq(agents.id, agent.id),
+            eq(agents.status, 'active'),
+            eq(agents.executionLeaseId, agent.executionLeaseId),
+            eq(agents.desiredStateRevision, agent.desiredStateRevision),
+          ),
+        );
     }
 
     let visitorSessionId: string = randomUUID();
@@ -92,6 +119,8 @@ export async function POST(request: Request): Promise<Response> {
       origin,
       keyFingerprint: fingerprint,
       visitorSessionId,
+      configurationRevision: agent.desiredStateRevision,
+      executionLeaseId: agent.executionLeaseId,
     };
     const [session, continuation] = await Promise.all([
       mintWidgetSession(claims),

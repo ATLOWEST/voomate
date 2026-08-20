@@ -81,7 +81,7 @@ export default function OverviewPage() {
 
   const conversations = conversationsQuery.data?.conversations ?? [];
   const sources = knowledgeQuery.data?.sources ?? [];
-  const activeAgents = agents.filter((agent) => agent.status === 'published').length;
+  const activeAgents = agents.filter((agent) => agent.status === 'active').length;
   const activeConnections = (connectionsQuery.data?.connections ?? []).filter(
     (connection) => connection.status === 'active',
   ).length;
@@ -119,7 +119,7 @@ export default function OverviewPage() {
       title: 'Test and publish',
       detail: 'Try a customer question before adding the agent to your site.',
       href: primaryAgent ? agentPath + '/playground' : '/agents',
-      complete: primaryAgent?.status === 'published',
+      complete: primaryAgent?.status === 'active',
       icon: Radio,
     },
   ];
@@ -418,7 +418,7 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
 }
 
 function AgentRow({ agent }: { agent: Agent }) {
-  const live = agent.status === 'published';
+  const live = agent.status === 'active';
   return (
     <Link
       href={'/agents/' + agent.id}
@@ -437,7 +437,7 @@ function AgentRow({ agent }: { agent: Agent }) {
           ) : (
             <Circle className="size-2.5" />
           )}
-          {live ? 'Live' : agent.status === 'paused' ? 'Paused' : 'Not published'}
+          {live ? 'Live' : agent.status === 'paused' ? 'Paused' : 'Not active'}
           {agent.voiceEnabled && ' · Chat and voice'}
         </span>
       </span>

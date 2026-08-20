@@ -46,8 +46,10 @@ export class StorageStack extends Stack {
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
-      removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
+      // Production widget assets are part of an incident recovery path. Retain them instead of
+      // allowing a stack deletion to erase the only known-good embed bundle.
+      removalPolicy,
+      autoDeleteObjects: !props.config.retainData,
     });
 
     // Bucket names are generated, so without these the only way to fill CRAWL_ARCHIVE_BUCKET is

@@ -78,12 +78,8 @@
           "name": "agent_active_tools_organization_id_organizations_id_fk",
           "tableFrom": "agent_active_tools",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -91,12 +87,8 @@
           "name": "agent_active_tools_agent_id_agents_id_fk",
           "tableFrom": "agent_active_tools",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -104,10 +96,7 @@
       "compositePrimaryKeys": {
         "agent_active_tools_agent_id_tool_name_pk": {
           "name": "agent_active_tools_agent_id_tool_name_pk",
-          "columns": [
-            "agent_id",
-            "tool_name"
-          ]
+          "columns": ["agent_id", "tool_name"]
         }
       },
       "uniqueConstraints": {},
@@ -204,12 +193,8 @@
           "name": "agent_connections_organization_id_organizations_id_fk",
           "tableFrom": "agent_connections",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -217,12 +202,8 @@
           "name": "agent_connections_source_agent_id_agents_id_fk",
           "tableFrom": "agent_connections",
           "tableTo": "agents",
-          "columnsFrom": [
-            "source_agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -230,12 +211,8 @@
           "name": "agent_connections_target_agent_id_agents_id_fk",
           "tableFrom": "agent_connections",
           "tableTo": "agents",
-          "columnsFrom": [
-            "target_agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["target_agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -243,10 +220,7 @@
       "compositePrimaryKeys": {
         "agent_connections_source_agent_id_target_agent_id_pk": {
           "name": "agent_connections_source_agent_id_target_agent_id_pk",
-          "columns": [
-            "source_agent_id",
-            "target_agent_id"
-          ]
+          "columns": ["source_agent_id", "target_agent_id"]
         }
       },
       "uniqueConstraints": {},
@@ -371,12 +345,8 @@
           "name": "agent_run_events_organization_id_organizations_id_fk",
           "tableFrom": "agent_run_events",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -384,12 +354,8 @@
           "name": "agent_run_events_agent_id_agents_id_fk",
           "tableFrom": "agent_run_events",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -397,12 +363,8 @@
           "name": "agent_run_events_conversation_id_conversations_id_fk",
           "tableFrom": "agent_run_events",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -569,12 +531,8 @@
           "name": "agent_turn_evaluations_organization_id_organizations_id_fk",
           "tableFrom": "agent_turn_evaluations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -582,12 +540,8 @@
           "name": "agent_turn_evaluations_agent_id_agents_id_fk",
           "tableFrom": "agent_turn_evaluations",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -595,12 +549,8 @@
           "name": "agent_turn_evaluations_conversation_id_conversations_id_fk",
           "tableFrom": "agent_turn_evaluations",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -608,12 +558,8 @@
           "name": "agent_turn_evaluations_message_id_messages_id_fk",
           "tableFrom": "agent_turn_evaluations",
           "tableTo": "messages",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -771,12 +717,8 @@
           "name": "agents_organization_id_organizations_id_fk",
           "tableFrom": "agents",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -926,12 +868,8 @@
           "name": "api_keys_organization_id_organizations_id_fk",
           "tableFrom": "api_keys",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -939,12 +877,8 @@
           "name": "api_keys_agent_id_agents_id_fk",
           "tableFrom": "api_keys",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -952,12 +886,8 @@
           "name": "api_keys_created_by_users_id_fk",
           "tableFrom": "api_keys",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1087,12 +1017,8 @@
           "name": "approval_requests_organization_id_organizations_id_fk",
           "tableFrom": "approval_requests",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1100,12 +1026,8 @@
           "name": "approval_requests_agent_id_agents_id_fk",
           "tableFrom": "approval_requests",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1113,12 +1035,8 @@
           "name": "approval_requests_conversation_id_conversations_id_fk",
           "tableFrom": "approval_requests",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1126,12 +1044,8 @@
           "name": "approval_requests_resolved_by_users_id_fk",
           "tableFrom": "approval_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "resolved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resolved_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1231,12 +1145,8 @@
           "name": "audit_logs_organization_id_organizations_id_fk",
           "tableFrom": "audit_logs",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1244,12 +1154,8 @@
           "name": "audit_logs_actor_id_users_id_fk",
           "tableFrom": "audit_logs",
           "tableTo": "users",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1414,12 +1320,8 @@
           "name": "conversations_organization_id_organizations_id_fk",
           "tableFrom": "conversations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1427,12 +1329,8 @@
           "name": "conversations_agent_id_agents_id_fk",
           "tableFrom": "conversations",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1595,12 +1493,8 @@
           "name": "knowledge_chunks_organization_id_organizations_id_fk",
           "tableFrom": "knowledge_chunks",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1608,12 +1502,8 @@
           "name": "knowledge_chunks_agent_id_agents_id_fk",
           "tableFrom": "knowledge_chunks",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1621,12 +1511,8 @@
           "name": "knowledge_chunks_document_id_knowledge_documents_id_fk",
           "tableFrom": "knowledge_chunks",
           "tableTo": "knowledge_documents",
-          "columnsFrom": [
-            "document_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["document_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1837,12 +1723,8 @@
           "name": "knowledge_documents_organization_id_organizations_id_fk",
           "tableFrom": "knowledge_documents",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1850,12 +1732,8 @@
           "name": "knowledge_documents_agent_id_agents_id_fk",
           "tableFrom": "knowledge_documents",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1863,12 +1741,8 @@
           "name": "knowledge_documents_source_id_knowledge_sources_id_fk",
           "tableFrom": "knowledge_documents",
           "tableTo": "knowledge_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2018,12 +1892,8 @@
           "name": "knowledge_gaps_organization_id_organizations_id_fk",
           "tableFrom": "knowledge_gaps",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2031,12 +1901,8 @@
           "name": "knowledge_gaps_agent_id_agents_id_fk",
           "tableFrom": "knowledge_gaps",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2044,12 +1910,8 @@
           "name": "knowledge_gaps_resolved_document_id_knowledge_documents_id_fk",
           "tableFrom": "knowledge_gaps",
           "tableTo": "knowledge_documents",
-          "columnsFrom": [
-            "resolved_document_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resolved_document_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2232,12 +2094,8 @@
           "name": "knowledge_sources_organization_id_organizations_id_fk",
           "tableFrom": "knowledge_sources",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2245,12 +2103,8 @@
           "name": "knowledge_sources_agent_id_agents_id_fk",
           "tableFrom": "knowledge_sources",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2424,12 +2278,8 @@
           "name": "message_feedback_organization_id_organizations_id_fk",
           "tableFrom": "message_feedback",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2437,12 +2287,8 @@
           "name": "message_feedback_agent_id_agents_id_fk",
           "tableFrom": "message_feedback",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2450,12 +2296,8 @@
           "name": "message_feedback_conversation_id_conversations_id_fk",
           "tableFrom": "message_feedback",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2463,12 +2305,8 @@
           "name": "message_feedback_message_id_messages_id_fk",
           "tableFrom": "message_feedback",
           "tableTo": "messages",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2597,12 +2435,8 @@
           "name": "messages_organization_id_organizations_id_fk",
           "tableFrom": "messages",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2610,12 +2444,8 @@
           "name": "messages_conversation_id_conversations_id_fk",
           "tableFrom": "messages",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2721,12 +2551,8 @@
           "name": "organization_integrations_organization_id_organizations_id_fk",
           "tableFrom": "organization_integrations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2798,12 +2624,8 @@
           "name": "organization_members_organization_id_organizations_id_fk",
           "tableFrom": "organization_members",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2811,12 +2633,8 @@
           "name": "organization_members_user_id_users_id_fk",
           "tableFrom": "organization_members",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2824,10 +2642,7 @@
       "compositePrimaryKeys": {
         "organization_members_organization_id_user_id_pk": {
           "name": "organization_members_organization_id_user_id_pk",
-          "columns": [
-            "organization_id",
-            "user_id"
-          ]
+          "columns": ["organization_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -3010,12 +2825,8 @@
           "name": "tool_audit_logs_organization_id_organizations_id_fk",
           "tableFrom": "tool_audit_logs",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3023,12 +2834,8 @@
           "name": "tool_audit_logs_agent_id_agents_id_fk",
           "tableFrom": "tool_audit_logs",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3036,12 +2843,8 @@
           "name": "tool_audit_logs_conversation_id_conversations_id_fk",
           "tableFrom": "tool_audit_logs",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3151,12 +2954,8 @@
           "name": "usage_records_organization_id_organizations_id_fk",
           "tableFrom": "usage_records",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3164,12 +2963,8 @@
           "name": "usage_records_agent_id_agents_id_fk",
           "tableFrom": "usage_records",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3177,12 +2972,8 @@
           "name": "usage_records_conversation_id_conversations_id_fk",
           "tableFrom": "usage_records",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3471,12 +3262,8 @@
           "name": "web_agent_image_uploads_organization_id_organizations_id_fk",
           "tableFrom": "web_agent_image_uploads",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3484,12 +3271,8 @@
           "name": "web_agent_image_uploads_agent_id_agents_id_fk",
           "tableFrom": "web_agent_image_uploads",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3497,12 +3280,8 @@
           "name": "web_agent_image_uploads_conversation_id_conversations_id_fk",
           "tableFrom": "web_agent_image_uploads",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3510,12 +3289,8 @@
           "name": "web_agent_image_uploads_message_id_messages_id_fk",
           "tableFrom": "web_agent_image_uploads",
           "tableTo": "messages",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3655,12 +3430,8 @@
           "name": "web_agent_orders_organization_id_organizations_id_fk",
           "tableFrom": "web_agent_orders",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3676,134 +3447,72 @@
     "public.agent_status": {
       "name": "agent_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "published",
-        "paused"
-      ]
+      "values": ["draft", "published", "paused"]
     },
     "public.approval_status": {
       "name": "approval_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "denied"
-      ]
+      "values": ["pending", "approved", "denied"]
     },
     "public.conversation_channel": {
       "name": "conversation_channel",
       "schema": "public",
-      "values": [
-        "voice",
-        "text"
-      ]
+      "values": ["voice", "text"]
     },
     "public.conversation_status": {
       "name": "conversation_status",
       "schema": "public",
-      "values": [
-        "active",
-        "ended",
-        "escalated",
-        "abandoned"
-      ]
+      "values": ["active", "ended", "escalated", "abandoned"]
     },
     "public.ingestion_status": {
       "name": "ingestion_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "crawling",
-        "processing",
-        "indexing",
-        "ready",
-        "failed",
-        "excluded"
-      ]
+      "values": ["pending", "crawling", "processing", "indexing", "ready", "failed", "excluded"]
     },
     "public.integration_status": {
       "name": "integration_status",
       "schema": "public",
-      "values": [
-        "active",
-        "disconnected"
-      ]
+      "values": ["active", "disconnected"]
     },
     "public.knowledge_gap_status": {
       "name": "knowledge_gap_status",
       "schema": "public",
-      "values": [
-        "open",
-        "drafted",
-        "answered",
-        "dismissed"
-      ]
+      "values": ["open", "drafted", "answered", "dismissed"]
     },
     "public.knowledge_source_type": {
       "name": "knowledge_source_type",
       "schema": "public",
-      "values": [
-        "website",
-        "document",
-        "qa_pair",
-        "manual_text",
-        "api_sync"
-      ]
+      "values": ["website", "document", "qa_pair", "manual_text", "api_sync"]
     },
     "public.message_feedback_rating": {
       "name": "message_feedback_rating",
       "schema": "public",
-      "values": [
-        "helpful",
-        "unhelpful"
-      ]
+      "values": ["helpful", "unhelpful"]
     },
     "public.message_role": {
       "name": "message_role",
       "schema": "public",
-      "values": [
-        "visitor",
-        "agent",
-        "system"
-      ]
+      "values": ["visitor", "agent", "system"]
     },
     "public.org_role": {
       "name": "org_role",
       "schema": "public",
-      "values": [
-        "viewer",
-        "developer",
-        "admin",
-        "owner"
-      ]
+      "values": ["viewer", "developer", "admin", "owner"]
     },
     "public.plan_tier": {
       "name": "plan_tier",
       "schema": "public",
-      "values": [
-        "free",
-        "starter",
-        "growth",
-        "enterprise"
-      ]
+      "values": ["free", "starter", "growth", "enterprise"]
     },
     "public.tool_audit_status": {
       "name": "tool_audit_status",
       "schema": "public",
-      "values": [
-        "success",
-        "error",
-        "gated"
-      ]
+      "values": ["success", "error", "gated"]
     },
     "public.tool_status": {
       "name": "tool_status",
       "schema": "public",
-      "values": [
-        "active",
-        "paused"
-      ]
+      "values": ["active", "paused"]
     },
     "public.usage_kind": {
       "name": "usage_kind",
@@ -3823,13 +3532,7 @@
     "public.web_agent_image_status": {
       "name": "web_agent_image_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "processed",
-        "consumed",
-        "rejected",
-        "deleted"
-      ]
+      "values": ["pending", "processed", "consumed", "rejected", "deleted"]
     }
   },
   "schemas": {},

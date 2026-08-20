@@ -25,23 +25,46 @@ const csv = z
 
 // --- Core server -----------------------------------------------------------------------
 
-export const serverEnvSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+export const serverEnvSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 
-  API_PORT: z.coerce.number().int().positive().default(4000),
-  API_HOST: z.string().default('0.0.0.0'),
-  API_CORS_ORIGINS: csv.default('http://localhost:3000,http://localhost:3001'),
-  API_TRUST_PROXY_CIDRS: z
-    .string()
-    .default('')
-    .transform((value) =>
-      value
-        .split(',')
-        .map((entry) => entry.trim())
-        .filter(Boolean),
-    ),
-});
+    API_PORT: z.coerce.number().int().positive().default(4000),
+    API_HOST: z.string().default('0.0.0.0'),
+    API_CORS_ORIGINS: csv.default('http://localhost:3000,http://localhost:3001'),
+    API_TRUST_PROXY_CIDRS: z
+      .string()
+      .default('')
+      .transform((value) =>
+        value
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter(Boolean),
+      ),
+    UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.NODE_ENV !== 'production') return;
+    if (!value.UPSTASH_REDIS_REST_URL || !value.UPSTASH_REDIS_REST_TOKEN) {
+      context.addIssue({
+        code: 'custom',
+        path: ['UPSTASH_REDIS_REST_URL'],
+        message: 'Production requires Upstash Redis for distributed rate limiting.',
+      });
+    }
+    if (
+      value.API_CORS_ORIGINS.length === 0 ||
+      value.API_CORS_ORIGINS.some((origin) => !origin.startsWith('https://'))
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['API_CORS_ORIGINS'],
+        message: 'Production API CORS origins must be explicit HTTPS origins.',
+      });
+    }
+  });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 

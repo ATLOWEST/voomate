@@ -1,3 +1,5 @@
+import asyncio
+
 from voomate_voice.bridge import VoomateAgentBridge, latest_user_text, voice_turn_payload
 
 
@@ -48,3 +50,21 @@ def test_live_voice_context_update_is_origin_bound():
     pricing = {"url": "https://app.example/pricing", "title": "Pricing"}
     assert bridge.update_page_context(pricing["url"], pricing) is True
     assert bridge.update_page_context("https://evil.example/pricing", pricing) is False
+
+
+def test_first_model_text_callback_can_be_registered_without_changing_voice_payloads():
+    calls = []
+
+    async def record_first_text():
+        calls.append("first-text")
+
+    bridge = VoomateAgentBridge(
+        backend_origin="https://backend.example",
+        token="secret",
+        widget_origin="https://app.example",
+        conversation_id=None,
+        page_url="https://app.example/",
+    )
+    bridge.set_first_model_text_callback(record_first_text)
+    asyncio.run(bridge._on_first_model_text())
+    assert calls == ["first-text"]

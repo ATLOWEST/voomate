@@ -95,35 +95,58 @@ export function LaunchStudio() {
         <div className="launch-studio__visual" data-mode={active.visual} aria-hidden="true">
           {active.visual === 'code' ? (
             <div className="launch-code">
-              <div><i /><i /><i /><span>YOUR WEBSITE</span></div>
+              <div>
+                <i />
+                <i />
+                <i />
+                <span>YOUR WEBSITE</span>
+              </div>
               <code>&lt;script src=&quot;widget.voomate.com/embed.js&quot;</code>
               <code>&nbsp;&nbsp;data-agent=&quot;pk_live_••••&quot;&gt;&lt;/script&gt;</code>
-              <span><Check size={15} /> Web Agent mounted</span>
+              <span>
+                <Check size={15} /> Web Agent mounted
+              </span>
             </div>
           ) : null}
 
           {active.visual === 'connect' ? (
             <div className="launch-connect">
-              <span><BookOpenText size={19} /> Knowledge</span>
+              <span>
+                <BookOpenText size={19} /> Knowledge
+              </span>
               <i />
               <strong>Integration Agent</strong>
               <i />
-              <span><PlugZap size={19} /> Live tools</span>
+              <span>
+                <PlugZap size={19} /> Live tools
+              </span>
               <small>Scoped permissions</small>
             </div>
           ) : null}
 
           {active.visual === 'launch' ? (
             <div className="launch-thread">
-              <span><MessageSquareText size={16} /> Customer asks</span>
+              <span>
+                <MessageSquareText size={16} /> Customer asks
+              </span>
               <p>Can you check my order and change the delivery slot?</p>
               <div>
-                <i><Check size={13} /></i>
-                <span><strong>Order checked</strong><small>Public-safe status returned</small></span>
+                <i>
+                  <Check size={13} />
+                </i>
+                <span>
+                  <strong>Order checked</strong>
+                  <small>Public-safe status returned</small>
+                </span>
               </div>
               <div>
-                <i><Check size={13} /></i>
-                <span><strong>Change confirmed</strong><small>Approved tool action logged</small></span>
+                <i>
+                  <Check size={13} />
+                </i>
+                <span>
+                  <strong>Change confirmed</strong>
+                  <small>Approved tool action logged</small>
+                </span>
               </div>
             </div>
           ) : null}

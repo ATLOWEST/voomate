@@ -27,7 +27,9 @@ async function run() {
     organizationId: orgId,
     name: 'Web Frontline Agent',
     websiteUrl: 'https://example.com',
-    status: 'published',
+    status: 'active',
+    executionLeaseId: randomUUID(),
+    executionLeaseExpiresAt: new Date(Date.now() + 20 * 60 * 1_000),
     language: { languages: ['en-US'], primaryLanguage: 'en-US', codeSwitching: true },
     persona: {
       displayName: 'WebBot',
@@ -46,7 +48,9 @@ async function run() {
     organizationId: orgId,
     name: 'Integration Backend Agent',
     websiteUrl: 'https://example.com',
-    status: 'published',
+    status: 'active',
+    executionLeaseId: randomUUID(),
+    executionLeaseExpiresAt: new Date(Date.now() + 20 * 60 * 1_000),
     language: { languages: ['en-US'], primaryLanguage: 'en-US', codeSwitching: true },
     persona: {
       displayName: 'IntegrationBot',

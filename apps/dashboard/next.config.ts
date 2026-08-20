@@ -78,6 +78,14 @@ const config: NextConfig = {
       '../../node_modules/@cedar-policy/cedar-wasm/nodejs/cedar_wasm_bg.wasm',
     ],
   },
+  async rewrites() {
+    // In production the browser only sees app.atlowest.in/api. This keeps the Fastify
+    // control plane inside the ECS private namespace and lets the API security group reject
+    // every connection except the dashboard tasks.
+    if (process.env.NODE_ENV !== 'production') return [];
+    const apiOrigin = process.env.INTERNAL_API_URL ?? 'http://api.voomate-prod.internal:4000';
+    return [{ source: '/api/:path*', destination: `${apiOrigin}/:path*` }];
+  },
   async headers() {
     return [
       {

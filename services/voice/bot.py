@@ -120,6 +120,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         state=telemetry_state,
         mode="output",
     )
+    bridge.set_first_model_text_callback(telemetry_in.record_first_model_text)
     context = LLMContext()
     user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
         context,

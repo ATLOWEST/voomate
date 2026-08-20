@@ -79,7 +79,7 @@ function NavLink({
         active
           ? 'bg-white text-foreground shadow-[0_1px_0_rgba(20,20,18,0.035),0_7px_18px_rgba(20,20,18,0.04)] dark:bg-white/[0.075] dark:shadow-none font-semibold'
           : 'text-muted-foreground hover:translate-x-0.5 hover:bg-white/75 hover:text-foreground dark:hover:bg-white/[0.05]',
-        isCollapsed && 'justify-center px-0 hover:translate-x-0'
+        isCollapsed && 'justify-center px-0 hover:translate-x-0',
       )}
       title={isCollapsed ? item.title : undefined}
     >
@@ -88,7 +88,7 @@ function NavLink({
           'grid size-7 shrink-0 place-items-center rounded-md transition-colors duration-300',
           active
             ? 'bg-accent-100 text-accent-700 dark:bg-accent-950/60 dark:text-accent-200'
-            : 'text-muted-foreground group-hover:bg-[var(--surface-sunken)] group-hover:text-foreground'
+            : 'text-muted-foreground group-hover:bg-[var(--surface-sunken)] group-hover:text-foreground',
         )}
       >
         <item.icon className="size-4 shrink-0" strokeWidth={2} />
@@ -154,7 +154,7 @@ export function SuperAdminSidebarNav({
     <aside
       className={cn(
         'dashboard-sidebar flex h-full flex-col bg-[var(--surface-navigation)] px-3 py-4',
-        className
+        className,
       )}
     >
       {/* Brand Header with Super Admin Badge */}
@@ -216,7 +216,7 @@ export function SuperAdminSidebarNav({
           title={isCollapsed ? 'Merchant App' : undefined}
           className={cn(
             'flex min-h-10 items-center justify-between rounded-lg px-2.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-white/70 hover:text-foreground dark:hover:bg-white/[0.045]',
-            isCollapsed && 'justify-center px-0'
+            isCollapsed && 'justify-center px-0',
           )}
         >
           <span className={cn(isCollapsed && 'hidden')}>Switch to Merchant Dashboard</span>

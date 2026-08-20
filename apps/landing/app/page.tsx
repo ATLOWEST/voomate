@@ -25,8 +25,9 @@ import { UseCaseAccordion } from '@/components/ui/use-case-accordion';
 import { IntegrationExplorer } from '@/components/ui/integration-explorer';
 import { OutcomeCarousel } from '@/components/ui/outcome-carousel';
 import { TryNowButton } from '@/components/ui/try-now-button';
+import { SITE_URL } from '@/lib/site-url';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
 
 export const metadata: Metadata = {
   title: 'Voomate — One AI team for every customer conversation',
@@ -46,12 +47,13 @@ export const metadata: Metadata = {
     title: 'Voomate — One AI team for every customer conversation',
     description: 'Answer, understand, and act across chat, voice, and connected business tools.',
     siteName: 'Voomate',
-    url: 'https://voomate.ai',
+    url: SITE_URL,
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Voomate — One AI team for every customer conversation',
-    description: 'AI operating system connecting web, voice, and integration agents for customer conversations.',
+    description:
+      'AI operating system connecting web, voice, and integration agents for customer conversations.',
   },
   robots: { index: true, follow: true },
   alternates: {
@@ -100,7 +102,6 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-
       </section>
 
       <div className="signal-marquee" aria-label="Voomate capabilities">
@@ -142,9 +143,13 @@ export default function HomePage() {
               actions without sending a customer somewhere else.
             </p>
             <div className="web-agent-demo" aria-hidden="true">
-              <div className="demo-message demo-message--customer">Hi, where is my order #5821?</div>
+              <div className="demo-message demo-message--customer">
+                Hi, where is my order #5821?
+              </div>
               <div className="demo-thinking">
-                <span /><span /><span /> Looking up your order
+                <span />
+                <span />
+                <span /> Looking up your order
               </div>
               <div className="demo-message demo-message--agent">
                 Order #5821 has been picked up by Delhivery and is out for delivery today — expected
@@ -154,7 +159,9 @@ export default function HomePage() {
                 Can you change the delivery address?
               </div>
               <div className="demo-thinking">
-                <span /><span /><span /> Checking update eligibility
+                <span />
+                <span />
+                <span /> Checking update eligibility
               </div>
               <div className="demo-message demo-message--agent">
                 Done! Address updated. You&apos;ll receive a confirmation SMS shortly. Anything else
@@ -193,12 +200,42 @@ export default function HomePage() {
             </p>
             {/* Standalone logos — no circles, no text */}
             <div className="integration-logo-grid" aria-hidden="true">
-              <Image src="/logos/whatsapp.svg" alt="WhatsApp" width={36} height={36} title="WhatsApp" />
+              <Image
+                src="/logos/whatsapp.svg"
+                alt="WhatsApp"
+                width={36}
+                height={36}
+                title="WhatsApp"
+              />
               <Image src="/logos/gmail.svg" alt="Gmail" width={36} height={36} title="Gmail" />
-              <Image src="/logos/delhivery.svg" alt="Delhivery" width={36} height={36} title="Delhivery" />
-              <Image src="/logos/razorpay.svg" alt="Razorpay" width={36} height={36} title="Razorpay" />
-              <Image src="/logos/google-calendar.svg" alt="Google Calendar" width={36} height={36} title="Google Calendar" />
-              <Image src="/logos/instagram.svg" alt="Instagram" width={36} height={36} title="Instagram" />
+              <Image
+                src="/logos/delhivery.svg"
+                alt="Delhivery"
+                width={36}
+                height={36}
+                title="Delhivery"
+              />
+              <Image
+                src="/logos/razorpay.svg"
+                alt="Razorpay"
+                width={36}
+                height={36}
+                title="Razorpay"
+              />
+              <Image
+                src="/logos/google-calendar.svg"
+                alt="Google Calendar"
+                width={36}
+                height={36}
+                title="Google Calendar"
+              />
+              <Image
+                src="/logos/instagram.svg"
+                alt="Instagram"
+                width={36}
+                height={36}
+                title="Instagram"
+              />
               <Image src="/logos/slack.svg" alt="Slack" width={36} height={36} title="Slack" />
               <Image src="/logos/notion.svg" alt="Notion" width={36} height={36} title="Notion" />
               <Link href="/product" className="integration-logo--more" title="See all integrations">
@@ -217,7 +254,6 @@ export default function HomePage() {
       <div id="working-loop">
         <OperatingFlow />
       </div>
-
 
       <section className="use-cases-section" aria-labelledby="use-cases-title">
         <div className="section-heading">

@@ -4,10 +4,15 @@
  * Every query here goes through `tenantScope`. Read `packages/db/README.md` before adding
  * one that doesn't — there is no legitimate case.
  */
+import { randomUUID } from 'node:crypto';
 import {
+  AGENT_CATALOG,
   AgentStatus,
   OrgRole,
+  conflict,
   createAgentSchema,
+  getAgentCatalogDefinition,
+  isReleasedAgentType,
   notFound,
   updateAgentSchema,
   uuidSchema,
@@ -15,14 +20,15 @@ import {
   type AgentLanguageConfig,
   type AgentPersona,
 } from '@voomate/core';
-import { agents, knowledgeChunks, tenantScope } from '@voomate/db';
+import { agents, auditLogs, tenantScope } from '@voomate/db';
 import { DEFAULT_LANGUAGE_CODES, resolveVoice, validateLanguageSet } from '@voomate/i18n';
-import { and, count, desc, eq } from 'drizzle-orm';
-import type { FastifyPluginAsync } from 'fastify';
+import { and, desc, eq } from 'drizzle-orm';
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { generateEmbedKey } from '../../lib/keys.js';
 import { getDb } from '../../lib/db.js';
 import { tenantOf } from '../../plugins/auth.js';
+import { transitionAgentLifecycle } from './lifecycle.js';
 
 const paramsSchema = z.object({ id: uuidSchema });
 
@@ -48,6 +54,10 @@ const DEFAULT_APPEARANCE: AgentAppearance = {
 };
 
 export const agentRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/catalog', { preHandler: app.requireTenant(OrgRole.VIEWER) }, async () => ({
+    catalog: AGENT_CATALOG,
+  }));
+
   app.get('/', { preHandler: app.requireTenant(OrgRole.VIEWER) }, async (request) => {
     const tenant = tenantOf(request);
     const rows = await getDb()
@@ -76,6 +86,13 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
   app.post('/', { preHandler: app.requireTenant(OrgRole.DEVELOPER) }, async (request, reply) => {
     const tenant = tenantOf(request);
     const input = createAgentSchema.parse(request.body);
+    if (!isReleasedAgentType(input.catalogType)) {
+      const definition = getAgentCatalogDefinition(input.catalogType);
+      throw conflict(
+        `${definition.name} is visible in the catalog but cannot be created until its runtime, policy and evaluation packs are released.`,
+      );
+    }
+    const catalog = getAgentCatalogDefinition(input.catalogType);
 
     const language = { ...DEFAULT_LANGUAGE, ...input.language };
 
@@ -96,6 +113,8 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       .values({
         organizationId: tenant.organizationId,
         name: input.name,
+        catalogType: catalog.id,
+        catalogVersion: catalog.version,
         websiteUrl: input.websiteUrl,
         status: AgentStatus.DRAFT,
         language,
@@ -117,91 +136,81 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     const { id } = paramsSchema.parse(request.params);
     const input = updateAgentSchema.parse(request.body);
 
-    const [agent] = await getDb()
-      .update(agents)
-      .set({ ...input, updatedAt: new Date() })
-      .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
-      .returning();
-
-    if (agent === undefined) throw notFound('Agent', id);
-    return { agent };
-  });
-
-  /**
-   * Publish. Gated on the agent being genuinely ready — publishing an agent with no
-   * knowledge base produces an agent that confidently knows nothing, which is worse for the
-   * merchant than a clear error here.
-   */
-  app.post(
-    '/:id/publish',
-    { preHandler: app.requireTenant(OrgRole.DEVELOPER) },
-    async (request, reply) => {
-      const tenant = tenantOf(request);
-      const { id } = paramsSchema.parse(request.params);
-      const db = getDb();
-
-      const [existing] = await db
+    const agent = await getDb().transaction(async (tx) => {
+      const [existing] = await tx
         .select()
         .from(agents)
         .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
         .limit(1);
+      if (!existing) throw notFound('Agent', id);
 
-      if (existing === undefined) throw notFound('Agent', id);
-
-      // Readiness is "can this agent actually retrieve something", so ask the retrieval
-      // corpus directly rather than trusting a status column. A source can be marked ready
-      // while producing zero usable chunks — an empty page, a JS-only site, everything
-      // stripped as boilerplate — and publishing that ships an agent that knows nothing.
-      const [indexed] = await db
-        .select({ chunks: count() })
-        .from(knowledgeChunks)
-        .where(
-          and(tenantScope(knowledgeChunks, tenant.organizationId), eq(knowledgeChunks.agentId, id)),
-        );
-
-      // A count aggregate always yields a row, but treating a missing one as "not ready"
-      // keeps the failure on the safe side of the publish gate rather than asserting.
-      if (indexed === undefined || indexed.chunks === 0) {
-        return reply.status(422).send({
-          error: {
-            code: 'knowledge_not_indexed',
-            message: 'Add and index at least one knowledge source before publishing.',
-          },
-        });
-      }
-
-      const [agent] = await db
+      const active = existing.status === AgentStatus.ACTIVE;
+      const nextRevision = existing.desiredStateRevision + 1;
+      const [updated] = await tx
         .update(agents)
         .set({
-          status: AgentStatus.PUBLISHED,
-          publishedAt: new Date(),
+          ...input,
+          ...(input.persona
+            ? { persona: { ...(existing.persona as object), ...input.persona } }
+            : {}),
+          ...(input.appearance
+            ? { appearance: { ...(existing.appearance as object), ...input.appearance } }
+            : {}),
+          desiredStateRevision: nextRevision,
+          observedStateRevision: nextRevision,
+          executionLeaseId: active ? randomUUID() : null,
+          executionLeaseExpiresAt: active ? new Date(Date.now() + 20 * 60 * 1_000) : null,
           updatedAt: new Date(),
         })
         .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
         .returning();
+      if (!updated) throw notFound('Agent', id);
+      await tx.insert(auditLogs).values({
+        organizationId: tenant.organizationId,
+        actorId: tenant.userId,
+        action: 'agent.configuration_updated',
+        resourceType: 'agent',
+        resourceId: id,
+        metadata: {
+          changedFields: Object.keys(input).sort(),
+          desiredStateRevision: nextRevision,
+          activeLeaseRotated: active,
+        },
+      });
+      return updated;
+    });
 
-      return { agent };
-    },
-  );
-
-  /**
-   * Pause is a server-side execution control, not a dashboard preference. Widget token issuance
-   * and voice session setup already require `published`, so this transition stops all new public
-   * work as soon as the database update commits. Calling it twice is intentionally idempotent.
-   */
-  app.post('/:id/pause', { preHandler: app.requireTenant(OrgRole.DEVELOPER) }, async (request) => {
-    const tenant = tenantOf(request);
-    const { id } = paramsSchema.parse(request.params);
-
-    const [agent] = await getDb()
-      .update(agents)
-      .set({ status: AgentStatus.PAUSED, updatedAt: new Date() })
-      .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
-      .returning();
-
-    if (agent === undefined) throw notFound('Agent', id);
     return { agent };
   });
+
+  const lifecycle = async (
+    request: FastifyRequest,
+    command: 'activate' | 'pause' | 'archive' | 'restore',
+  ) => {
+    const tenant = tenantOf(request);
+    const { id } = paramsSchema.parse(request.params);
+    return transitionAgentLifecycle({ agentId: id, command, tenant });
+  };
+
+  app.post('/:id/activate', { preHandler: app.requireTenant(OrgRole.DEVELOPER) }, (request) =>
+    lifecycle(request, 'activate'),
+  );
+  // Compatibility path for installed dashboard/SDK clients. It uses the same governed command.
+  app.post('/:id/publish', { preHandler: app.requireTenant(OrgRole.DEVELOPER) }, (request) =>
+    lifecycle(request, 'activate'),
+  );
+  app.post('/:id/resume', { preHandler: app.requireTenant(OrgRole.DEVELOPER) }, (request) =>
+    lifecycle(request, 'activate'),
+  );
+  app.post('/:id/pause', { preHandler: app.requireTenant(OrgRole.DEVELOPER) }, (request) =>
+    lifecycle(request, 'pause'),
+  );
+  app.post('/:id/archive', { preHandler: app.requireTenant(OrgRole.ADMIN) }, (request) =>
+    lifecycle(request, 'archive'),
+  );
+  app.post('/:id/restore', { preHandler: app.requireTenant(OrgRole.ADMIN) }, (request) =>
+    lifecycle(request, 'restore'),
+  );
 
   /**
    * The voice configuration the agent will actually use, per language.
@@ -237,21 +246,11 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  app.delete('/:id', { preHandler: app.requireTenant(OrgRole.ADMIN) }, async (request, reply) => {
+  app.delete('/:id', { preHandler: app.requireTenant(OrgRole.ADMIN) }, async (request) => {
     const tenant = tenantOf(request);
     const { id } = paramsSchema.parse(request.params);
-
-    const [deleted] = await getDb()
-      .delete(agents)
-      .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
-      .returning({ id: agents.id });
-
-    if (deleted === undefined) throw notFound('Agent', id);
-
-    // Chunks, documents and sources go with the agent via ON DELETE CASCADE — vectors are
-    // rows now, so there is no external index to keep in step.
-    // TODO(phase-2): the agent's S3 crawl-archive prefix is still ours to delete; object
-    // storage has no foreign key, so the objects outlive the row until we sweep them.
-    reply.status(204);
+    // Delete is a compatibility name for safe retirement. Physical erasure is a separate,
+    // retention-governed operation; audit and configuration evidence are never cascaded here.
+    return transitionAgentLifecycle({ agentId: id, command: 'archive', tenant });
   });
 };

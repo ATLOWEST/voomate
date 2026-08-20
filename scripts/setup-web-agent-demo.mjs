@@ -15,8 +15,12 @@ const agentId = '00000000-0000-0000-0000-000000000001';
 await db.begin(async (transaction) => {
   const [agent] = await transaction`
     update agents
-    set status = 'published',
+    set status = 'active',
         allowed_origins = array['http://localhost:3000', 'http://localhost:3001'],
+        desired_state_revision = desired_state_revision + 1,
+        observed_state_revision = desired_state_revision + 1,
+        execution_lease_id = gen_random_uuid(),
+        execution_lease_expires_at = now() + interval '20 minutes',
         published_at = coalesce(published_at, now()),
         updated_at = now()
     where id = ${agentId}
@@ -55,6 +59,8 @@ await db.begin(async (transaction) => {
 
 const [ready] = await db`
   select a.status,
+         a.desired_state_revision,
+         a.execution_lease_expires_at,
          a.allowed_origins,
          (select status from agent_active_tools
           where agent_id = a.id and tool_name = 'check_order_status') as tool_status,

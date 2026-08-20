@@ -13,6 +13,21 @@ Three surfaces, one backend:
 | **Widget** (`apps/widget`) | End visitors on merchant sites | Talk (or type) to the agent |
 | **Control plane** (`apps/api`) | Neither — it's the machinery | Tenancy, auth, ingestion, voice orchestration, guardrails, billing |
 
+## Governed agent control plane
+
+Every tenant agent is an instance of a versioned shared catalog type. Its enforced lifecycle is
+`draft -> active <-> paused -> archived`. A monotonic desired-state revision and revocable,
+short-lived execution lease bind sessions and tool work to the current configuration. Pause,
+archive, configuration update, or approved Business Operating Profile promotion invalidates stale
+tokens. Dashboard Delete is a compatibility name for safe archival; physical erasure is a separate
+retention workflow.
+
+The tenant-level Business Operating Profile is structured and versioned. Evidence includes source,
+confidence, observation time, inference version, and review state. Only an approved profile is
+pinned to agents and used in production guidance; turn-level inference remains advisory.
+
+See [ADR 0008](adr/0008-governed-control-plane-and-business-profile.md).
+
 ## System diagram
 
 ```

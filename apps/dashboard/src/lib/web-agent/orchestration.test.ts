@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LiveReadCapability } from './live-data';
 import type { WebAgentPageContext } from './page-context';
-import { planWebAgentTurn } from './orchestration';
+import { planWebAgentTurn, repairPlatformTranscription } from './orchestration';
 
 function capability(name: string, description: string): LiveReadCapability {
   return {
@@ -74,6 +74,15 @@ function dashboardContext(total: number, active = 0, draft = 0): WebAgentPageCon
 }
 
 describe('web agent orchestration', () => {
+  it('repairs known speech substitutions only for the Voomate control plane', () => {
+    expect(repairPlatformTranscription('What is his roommate and how do I set it up?', true)).toBe(
+      'What is Voomate and how do I set it up?',
+    );
+    expect(repairPlatformTranscription('What is his roommate?', false)).toBe(
+      'What is his roommate?',
+    );
+  });
+
   it('exposes only capabilities relevant to the current turn', () => {
     const result = planWebAgentTurn({
       message: 'Where is order A-100?',
@@ -144,7 +153,18 @@ describe('web agent orchestration', () => {
     expect(result.route).toBe('web_multi_source');
     expect(result.usePageContext).toBe(true);
     expect(result.useKnowledge).toBe(true);
-    expect(result.directReply).toContain('Start with Agents');
+    expect(result.directReply).toContain('Available here:');
+  });
+
+  it('treats a speech-like request about an unseen overview as page assistance', () => {
+    const result = planWebAgentTurn({
+      message: "Vy overview, I can't see any overview panel.",
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.directReply).toContain('Overview is A live operating overview of Voomate.');
+    expect(result.directReply).toContain('Available here:');
   });
 
   it('guides setup from the public site without claiming private workspace access', () => {

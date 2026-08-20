@@ -4,7 +4,15 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Agent } from '@voomate/core';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Book, Bot, ChevronLeft, FlaskConical, Globe2, LayoutDashboard, Settings } from 'lucide-react';
+import {
+  Book,
+  Bot,
+  ChevronLeft,
+  FlaskConical,
+  Globe2,
+  LayoutDashboard,
+  Settings,
+} from 'lucide-react';
 import { api } from '@/lib/api';
 import { messageFor, useApiQuery } from '@/lib/hooks';
 import { useApiAuth, useSession } from '@/lib/session';
@@ -199,11 +207,11 @@ function AgentHeader({
     setProblem(undefined);
     try {
       const { accessToken, organizationId } = await auth();
-      await api.post('/v1/agents/' + agent.id + '/publish', undefined, {
+      await api.post('/v1/agents/' + agent.id + '/activate', undefined, {
         accessToken,
         organizationId,
       });
-      setOptimisticStatus('published');
+      setOptimisticStatus('active');
       onChanged();
     } catch (caught) {
       setProblem(messageFor(caught));
@@ -218,11 +226,11 @@ function AgentHeader({
     try {
       const { accessToken, organizationId } = await auth();
       const resuming = optimisticStatus === 'paused';
-      await api.post('/v1/agents/' + agent.id + '/' + (resuming ? 'publish' : 'pause'), undefined, {
+      await api.post('/v1/agents/' + agent.id + '/' + (resuming ? 'resume' : 'pause'), undefined, {
         accessToken,
         organizationId,
       });
-      setOptimisticStatus(resuming ? 'published' : 'paused');
+      setOptimisticStatus(resuming ? 'active' : 'paused');
       onChanged();
     } catch (caught) {
       setProblem(messageFor(caught));
@@ -252,7 +260,13 @@ function AgentHeader({
   };
 
   const statusLabel =
-    optimisticStatus === 'published' ? 'Live' : optimisticStatus === 'paused' ? 'Paused' : 'Draft';
+    optimisticStatus === 'active'
+      ? 'Live'
+      : optimisticStatus === 'paused'
+        ? 'Paused'
+        : optimisticStatus === 'archived'
+          ? 'Archived'
+          : 'Draft';
 
   return (
     <header className="mx-auto w-full max-w-[1240px] px-5 pb-6 pt-4 sm:px-8 sm:pt-7 lg:px-10">
@@ -288,7 +302,7 @@ function AgentHeader({
                     onClick={() => !isPlaceholder && setIsEditingName(true)}
                     className={cn(
                       'truncate text-left text-[18px] font-semibold text-foreground transition-opacity',
-                      !isPlaceholder && 'hover:opacity-70'
+                      !isPlaceholder && 'hover:opacity-70',
                     )}
                     title={isPlaceholder ? undefined : 'Rename agent'}
                     disabled={isPlaceholder}
@@ -300,7 +314,7 @@ function AgentHeader({
                   <span
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10.5px] font-semibold',
-                      optimisticStatus === 'published'
+                      optimisticStatus === 'active'
                         ? 'bg-positive-soft text-positive dark:bg-emerald-950/35'
                         : optimisticStatus === 'paused'
                           ? 'bg-caution-soft text-caution dark:bg-amber-950/35'
@@ -310,7 +324,7 @@ function AgentHeader({
                     <span
                       className={cn(
                         'size-1.5 rounded-full',
-                        optimisticStatus === 'published'
+                        optimisticStatus === 'active'
                           ? 'bg-positive'
                           : optimisticStatus === 'paused'
                             ? 'bg-caution'
@@ -325,7 +339,8 @@ function AgentHeader({
             </div>
           </div>
 
-          {isPlaceholder ? null : optimisticStatus === 'draft' ? (
+          {isPlaceholder || optimisticStatus === 'archived' ? null : optimisticStatus ===
+            'draft' ? (
             <button
               type="button"
               disabled={busy}

@@ -76,7 +76,7 @@ export async function POST(request: Request): Promise<Response> {
           });
           await flushRunEvents(result.context);
         } catch (error) {
-          console.error("WEB AGENT ERROR:", error);
+          console.error('WEB AGENT ERROR:', error);
           if (context) {
             await logRunEvent(context, 'request', 'error', {
               error: error instanceof Error ? error.message : 'Unknown error',

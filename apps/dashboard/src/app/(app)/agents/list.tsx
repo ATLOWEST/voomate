@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { Agent } from '@voomate/core';
-import { DatabaseZap, Globe2, PhoneCall, Plus, Search } from 'lucide-react';
+import { AGENT_CATALOG, type Agent, type AgentCatalogType } from '@voomate/core';
+import { DatabaseZap, Globe2, PhoneCall, Plus, Search, type LucideIcon } from 'lucide-react';
 import { PageBody, PageHeader } from '@/components/shell/page-header';
 import { Badge, StatusDot } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -83,13 +83,13 @@ export function AgentsList() {
                       href={`/agents/${agent.id}`}
                       className="flex min-h-24 items-center gap-4 rounded-lg bg-[var(--surface-soft)] px-5 py-4 transition-[background-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[var(--surface-sunken)] active:translate-y-px"
                     >
-                      <StatusDot tone={agent.status === 'published' ? 'positive' : 'caution'} />
+                      <StatusDot tone={agent.status === 'active' ? 'positive' : 'caution'} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-medium">{agent.name}</div>
                         <div className="truncate text-[12.5px] text-muted">{agent.websiteUrl}</div>
                       </div>
                       {agent.voiceEnabled && <Badge tone="accent">Voice</Badge>}
-                      <Badge tone={agent.status === 'published' ? 'positive' : 'caution'}>
+                      <Badge tone={agent.status === 'active' ? 'positive' : 'caution'}>
                         {agent.status}
                       </Badge>
                     </Link>
@@ -124,40 +124,24 @@ export function AgentsList() {
   );
 }
 
-const agentCatalog = [
-  {
-    id: 'web',
-    name: 'Web Agent',
-    description: 'Customer chat and voice for websites and applications.',
-    status: 'Available',
-    icon: Globe2,
-    available: true,
-  },
-  {
-    id: 'crm',
-    name: 'CRM Tool Agent',
-    description: 'Coordinates approved customer records, follow-ups, and CRM workflows.',
-    status: 'In design',
-    icon: DatabaseZap,
-    available: false,
-  },
-  {
-    id: 'seo',
-    name: 'SEO Agent',
-    description: 'Planned after CRM for governed search visibility and content workflows.',
-    status: 'Planned next',
-    icon: Search,
-    available: false,
-  },
-  {
-    id: 'calling',
-    name: 'Calling Agent',
-    description: 'Planned voice calling workflows after the SEO Agent milestone.',
-    status: 'Planned',
-    icon: PhoneCall,
-    available: false,
-  },
-] as const;
+const catalogIcons: Record<AgentCatalogType, LucideIcon> = {
+  web: Globe2,
+  crm: DatabaseZap,
+  seo: Search,
+  calling: PhoneCall,
+};
+
+const agentCatalog = AGENT_CATALOG.map((definition) => ({
+  ...definition,
+  icon: catalogIcons[definition.id],
+  available: definition.releaseState === 'released',
+  status:
+    definition.releaseState === 'released'
+      ? 'Available'
+      : definition.releaseState === 'design'
+        ? 'In design'
+        : 'Planned',
+}));
 
 function AgentCatalogDialog({
   onClose,

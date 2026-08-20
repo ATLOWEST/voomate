@@ -155,35 +155,47 @@ const UI_MANIFEST = serializeUiManifest(
         id: 'admin-merchants',
         title: 'Merchants & Workspaces',
         path: '/admin/merchants',
-        description: 'Provision customer workspaces, assign plan tiers, and manage client storefront quotas.',
+        description:
+          'Provision customer workspaces, assign plan tiers, and manage client storefront quotas.',
         aliases: ['merchants', 'customers', 'workspaces', 'super admin merchants', 'merchants tab'],
       },
       {
         id: 'admin-agents',
         title: 'Agent Fleet & LLMs',
         path: '/admin/agents',
-        description: 'Global inventory of all active customer agents, tool orchestration, and AWS Bedrock model routing.',
-        aliases: ['agent fleet', 'llm fleet', 'agents fleet', 'agent fellet', 'model routing', 'super admin agents'],
+        description:
+          'Global inventory of all active customer agents, tool orchestration, and AWS Bedrock model routing.',
+        aliases: [
+          'agent fleet',
+          'llm fleet',
+          'agents fleet',
+          'agent fellet',
+          'model routing',
+          'super admin agents',
+        ],
       },
       {
         id: 'admin-voice-studio',
         title: 'Voice Edge Studio',
         path: '/admin/voice-studio',
-        description: 'Direct WebRTC speech playground and real-time audio tester powered by Pipecat on port 7860.',
+        description:
+          'Direct WebRTC speech playground and real-time audio tester powered by Pipecat on port 7860.',
         aliases: ['voice studio', 'pipecat studio', 'voice playground', 'audio tester'],
       },
       {
         id: 'admin-telephony',
         title: 'Telephony & Streams',
         path: '/admin/telephony',
-        description: 'Active WebRTC live audio rooms, SIP trunk connections, and Opus stream quality.',
+        description:
+          'Active WebRTC live audio rooms, SIP trunk connections, and Opus stream quality.',
         aliases: ['telephony', 'streams', 'webrtc rooms', 'sip trunks'],
       },
       {
         id: 'admin-health',
         title: 'Cluster Health & Audit Trace',
         path: '/admin/health',
-        description: 'Operational health matrix for all edge and backend microservices along with real-time audit logs.',
+        description:
+          'Operational health matrix for all edge and backend microservices along with real-time audit logs.',
         aliases: ['cluster health', 'system health', 'logs', 'audit trace', 'microservices status'],
       },
     ],

@@ -1,0 +1,3 @@
+CREATE UNIQUE INDEX "business_profile_versions_one_approved_idx" ON "business_profile_versions" USING btree ("organization_id") WHERE "business_profile_versions"."status" = 'approved';--> statement-breakpoint
+ALTER TABLE "agents" ADD CONSTRAINT "agents_catalog_type_known" CHECK ("agents"."catalog_type" IN ('web', 'crm', 'seo', 'calling'));--> statement-breakpoint
+ALTER TABLE "agents" ADD CONSTRAINT "agents_catalog_version_positive" CHECK ("agents"."catalog_version" > 0);

@@ -16,7 +16,14 @@ import { type ErrorResponse } from '@voomate/core';
  * which this helper deliberately does not expose (every other endpoint returns JSON, and a
  * client that sometimes returns a stream is a client nobody can type).
  */
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+// Browser requests stay on the dashboard's own HTTPS origin (`/api`). Next.js forwards them
+// to the private ECS service, so there is no public `api.atlowest.in` hostname to attack or
+// maintain. Server components can use the private DNS name directly and avoid an unnecessary
+// trip through the public load balancer.
+export const API_BASE_URL =
+  typeof window === 'undefined'
+    ? (process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000')
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000');
 
 const BASE_URL = API_BASE_URL;
 

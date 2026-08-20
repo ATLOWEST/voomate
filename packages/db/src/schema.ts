@@ -17,6 +17,7 @@
 import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -45,7 +46,25 @@ export const EMBEDDING_DIMENSIONS = 1024;
 
 export const orgRoleEnum = pgEnum('org_role', ['viewer', 'developer', 'admin', 'owner']);
 export const planTierEnum = pgEnum('plan_tier', ['free', 'starter', 'growth', 'enterprise']);
-export const agentStatusEnum = pgEnum('agent_status', ['draft', 'published', 'paused']);
+export const agentStatusEnum = pgEnum('agent_status', ['draft', 'active', 'paused', 'archived']);
+export const agentConnectionStatusEnum = pgEnum('agent_connection_status', [
+  'active',
+  'paused',
+  'revoked',
+]);
+export const businessProfileStatusEnum = pgEnum('business_profile_status', [
+  'proposed',
+  'approved',
+  'rejected',
+  'retired',
+]);
+export const businessProfileReviewStateEnum = pgEnum('business_profile_review_state', [
+  'observed',
+  'proposed',
+  'approved',
+  'rejected',
+  'retired',
+]);
 export const toolStatusEnum = pgEnum('tool_status', ['active', 'paused']);
 export const toolAuditStatusEnum = pgEnum('tool_audit_status', ['success', 'error', 'gated']);
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'denied']);
@@ -140,6 +159,18 @@ export const users = pgTable('users', {
   ...timestamps,
 });
 
+/**
+ * Platform operators are deliberately separate from organization roles. Being an owner of one
+ * merchant workspace must never grant visibility into another merchant's records. This table
+ * is an explicit, auditable allowlist for the private Voomate control plane.
+ */
+export const platformAdministrators = pgTable('platform_administrators', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const organizations = pgTable(
   'organizations',
   {
@@ -172,6 +203,69 @@ export const organizationMembers = pgTable(
 
 // --- Agents ------------------------------------------------------------------------------------
 
+export const businessProfileVersions = pgTable(
+  'business_profile_versions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    revision: integer('revision').notNull(),
+    status: businessProfileStatusEnum('status').notNull().default('proposed'),
+    profile: jsonb('profile').notNull(),
+    changeSummary: text('change_summary').notNull(),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('business_profile_versions_org_revision_idx').on(
+      table.organizationId,
+      table.revision,
+    ),
+    uniqueIndex('business_profile_versions_one_approved_idx')
+      .on(table.organizationId)
+      .where(sql`${table.status} = 'approved'`),
+    index('business_profile_versions_org_status_idx').on(table.organizationId, table.status),
+    check('business_profile_versions_revision_positive', sql`${table.revision} > 0`),
+    check(
+      'business_profile_versions_approval_complete',
+      sql`${table.status} <> 'approved' OR (${table.approvedBy} IS NOT NULL AND ${table.approvedAt} IS NOT NULL)`,
+    ),
+  ],
+);
+
+export const businessProfileEvidence = pgTable(
+  'business_profile_evidence',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    profileVersionId: uuid('profile_version_id')
+      .notNull()
+      .references(() => businessProfileVersions.id, { onDelete: 'cascade' }),
+    section: text('section').notNull(),
+    sourceType: text('source_type').notNull(),
+    sourceReference: text('source_reference').notNull(),
+    confidence: real('confidence').notNull(),
+    inferenceVersion: text('inference_version').notNull(),
+    reviewState: businessProfileReviewStateEnum('review_state').notNull().default('proposed'),
+    observedAt: timestamp('observed_at', { withTimezone: true }).notNull(),
+    data: jsonb('data').notNull().default({}),
+    ...timestamps,
+  },
+  (table) => [
+    index('business_profile_evidence_org_idx').on(table.organizationId),
+    index('business_profile_evidence_version_idx').on(table.profileVersionId),
+    check(
+      'business_profile_evidence_confidence_range',
+      sql`${table.confidence} >= 0 AND ${table.confidence} <= 1`,
+    ),
+  ],
+);
+
 /**
  * Config is stored as jsonb rather than columns because it's read as a unit, evolves fast
  * during Phases 2–4, and is validated by zod at the API boundary. The shapes are
@@ -185,8 +279,18 @@ export const agents = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    catalogType: text('catalog_type').notNull().default('web'),
+    catalogVersion: integer('catalog_version').notNull().default(1),
     websiteUrl: text('website_url').notNull(),
     status: agentStatusEnum('status').notNull().default('draft'),
+    desiredStateRevision: integer('desired_state_revision').notNull().default(1),
+    observedStateRevision: integer('observed_state_revision').notNull().default(1),
+    executionLeaseId: uuid('execution_lease_id'),
+    executionLeaseExpiresAt: timestamp('execution_lease_expires_at', { withTimezone: true }),
+    businessProfileVersionId: uuid('business_profile_version_id').references(
+      () => businessProfileVersions.id,
+      { onDelete: 'set null' },
+    ),
 
     language: jsonb('language').notNull(),
     persona: jsonb('persona').notNull(),
@@ -207,11 +311,26 @@ export const agents = pgTable(
     transcriptRetentionDays: integer('transcript_retention_days').notNull().default(90),
 
     publishedAt: timestamp('published_at', { withTimezone: true }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     ...timestamps,
   },
   (table) => [
     index('agents_organization_idx').on(table.organizationId),
     uniqueIndex('agents_embed_key_idx').on(table.embedKey),
+    check(
+      'agents_catalog_type_known',
+      sql`${table.catalogType} IN ('web', 'crm', 'seo', 'calling')`,
+    ),
+    check('agents_catalog_version_positive', sql`${table.catalogVersion} > 0`),
+    check('agents_desired_revision_positive', sql`${table.desiredStateRevision} > 0`),
+    check(
+      'agents_observed_revision_valid',
+      sql`${table.observedStateRevision} >= 0 AND ${table.observedStateRevision} <= ${table.desiredStateRevision}`,
+    ),
+    check(
+      'agents_execution_lease_matches_state',
+      sql`(${table.status} = 'active' AND ${table.executionLeaseId} IS NOT NULL AND ${table.executionLeaseExpiresAt} IS NOT NULL) OR (${table.status} <> 'active' AND ${table.executionLeaseId} IS NULL AND ${table.executionLeaseExpiresAt} IS NULL)`,
+    ),
   ],
 );
 
@@ -231,7 +350,7 @@ export const agentConnections = pgTable(
      * Type of connection, e.g. "handoff", "knowledge_sync", "tool_delegation"
      */
     connectionType: text('connection_type').notNull().default('handoff'),
-    status: agentStatusEnum('status').notNull().default('published'),
+    status: agentConnectionStatusEnum('status').notNull().default('active'),
     ...timestamps,
   },
   (table) => [
@@ -1022,6 +1141,10 @@ export const agentsRelations = relations(agents, ({ one, many }) => ({
     fields: [agents.organizationId],
     references: [organizations.id],
   }),
+  businessProfileVersion: one(businessProfileVersions, {
+    fields: [agents.businessProfileVersionId],
+    references: [businessProfileVersions.id],
+  }),
   knowledgeSources: many(knowledgeSources),
   conversations: many(conversations),
 }));
@@ -1046,6 +1169,18 @@ export const knowledgeChunksRelations = relations(knowledgeChunks, ({ one }) => 
     references: [knowledgeDocuments.id],
   }),
   agent: one(agents, { fields: [knowledgeChunks.agentId], references: [agents.id] }),
+}));
+
+export const businessProfileVersionsRelations = relations(businessProfileVersions, ({ many }) => ({
+  evidence: many(businessProfileEvidence),
+  agents: many(agents),
+}));
+
+export const businessProfileEvidenceRelations = relations(businessProfileEvidence, ({ one }) => ({
+  profileVersion: one(businessProfileVersions, {
+    fields: [businessProfileEvidence.profileVersionId],
+    references: [businessProfileVersions.id],
+  }),
 }));
 
 export const conversationsRelations = relations(conversations, ({ one, many }) => ({
@@ -1099,6 +1234,8 @@ export const webAgentImageUploadsRelations = relations(webAgentImageUploads, ({ 
  */
 export const TENANT_SCOPED_TABLES = [
   'agents',
+  'business_profile_versions',
+  'business_profile_evidence',
   'knowledge_sources',
   'knowledge_documents',
   'knowledge_chunks',

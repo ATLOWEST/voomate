@@ -15,7 +15,7 @@ function serialize(value: unknown): string {
  */
 export function VoomateOperatingContext({ agents }: { agents: readonly Agent[] | undefined }) {
   if (!agents) return null;
-  const active = agents.filter(({ status }) => status === 'published').length;
+  const active = agents.filter(({ status }) => status === 'active').length;
   const draft = agents.filter(({ status }) => status === 'draft').length;
   const paused = agents.filter(({ status }) => status === 'paused').length;
 

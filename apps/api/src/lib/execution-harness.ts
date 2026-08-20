@@ -1,5 +1,5 @@
 import { agentActiveTools, agents, conversations, toolAuditLogs, type Database } from '@voomate/db';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { getTool, type VoomateToolContext } from './tools/registry.js';
 
@@ -110,7 +110,9 @@ export const executeToolHarness = async (params: ExecuteToolParams): Promise<Exe
       and(
         eq(agents.id, agentId),
         eq(agents.organizationId, organizationId),
-        eq(agents.status, 'published'),
+        eq(agents.status, 'active'),
+        isNotNull(agents.executionLeaseId),
+        gt(agents.executionLeaseExpiresAt, new Date()),
       ),
     )
     .limit(1);

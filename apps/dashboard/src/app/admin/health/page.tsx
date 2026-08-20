@@ -8,7 +8,7 @@ export default function SuperAdminHealthPage() {
     <>
       <PageHeader
         title="Cluster Health & Audit Trace"
-        description="Operational health matrix for all edge and backend microservices along with real-time audit logs."
+        description="AWS monitoring will appear here only after the application runtime is deployed."
       />
       <PageBody>
         <ClusterHealthTab />

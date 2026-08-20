@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "voomate-landing-edge",
+  "compatibility_date": "2026-08-20",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "atlowest.in/*",
+      "zone_id": "9de13a844fb168214ec8774b3ea1156b"
+    },
+    {
+      "pattern": "www.atlowest.in/*",
+      "zone_id": "9de13a844fb168214ec8774b3ea1156b"
+    }
+  ],
+  "assets": {
+    "directory": "../../../apps/landing/out",
+    "not_found_handling": "404-page"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

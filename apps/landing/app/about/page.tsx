@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { BreadcrumbJsonLd, WebPageJsonLd } from '@/components/seo/json-ld';
+import { siteUrl } from '@/lib/site-url';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -12,15 +13,16 @@ import {
   Workflow,
 } from 'lucide-react';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
 
 export const metadata: Metadata = {
   title: 'About — The Voomate Principles',
-  description: 'Why Voomate is building one connected AI operating team for businesses. Discover our principles: grounded answers, useful actions, and private context.',
+  description:
+    'Why Voomate is building one connected AI operating team for businesses. Discover our principles: grounded answers, useful actions, and private context.',
   openGraph: {
     title: 'About — The Voomate Principles',
     description: 'Building one connected AI operating team for businesses.',
-    url: 'https://voomate.ai/about',
+    url: siteUrl('/about'),
     siteName: 'Voomate',
     type: 'website',
   },
@@ -72,8 +74,17 @@ const STACK = [
 export default function AboutPage() {
   return (
     <main className="marketing-main subpage overflow-x-hidden w-full max-w-full">
-      <BreadcrumbJsonLd items={[{ name: 'Home', href: '/' }, { name: 'About', href: '/about' }]} />
-      <WebPageJsonLd name="About — The Voomate Principles" description="Why Voomate is building one connected AI operating team for businesses." url="/about" />
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', href: '/' },
+          { name: 'About', href: '/about' },
+        ]}
+      />
+      <WebPageJsonLd
+        name="About — The Voomate Principles"
+        description="Why Voomate is building one connected AI operating team for businesses."
+        url="/about"
+      />
       <section className="subpage-hero subpage-hero--about" aria-labelledby="about-title">
         <div className="subpage-hero__aside" data-reveal>
           A small-business operation should not stop when the team is busy

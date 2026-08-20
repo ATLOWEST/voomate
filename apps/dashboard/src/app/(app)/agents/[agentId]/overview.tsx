@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import type { KnowledgeSource } from '@voomate/core';
 import Link from 'next/link';
 import {
@@ -76,7 +76,7 @@ export function AgentOverview() {
   const websiteReady = Boolean(agent.websiteUrl);
   const domainsReady = (agent.allowedOrigins?.length ?? 0) > 0;
   const knowledgeReady = readySources.length > 0;
-  const published = agent.status === 'published';
+  const published = agent.status === 'active';
   const readinessChecks = [websiteReady, knowledgeReady, domainsReady, published];
   const readiness = Math.round(
     (readinessChecks.filter(Boolean).length / readinessChecks.length) * 100,
@@ -454,8 +454,9 @@ function CreateFirstState() {
               Build the agent around your real business.
             </h2>
             <p className="mt-4 max-w-xl text-[15px] leading-6 text-muted-foreground">
-              Install our web agent in your platform and follow the steps as we build. Voomate creates one tenant-scoped agent that you can teach,
-              test, install and operate from this workspace.
+              Install our web agent in your platform and follow the steps as we build. Voomate
+              creates one tenant-scoped agent that you can teach, test, install and operate from
+              this workspace.
             </p>
             <div className="mt-7">
               <button
@@ -669,7 +670,7 @@ function SmallLabel({
 }
 
 function StatusLabel({ status }: { status: string }) {
-  const live = status === 'published';
+  const live = status === 'active';
   const paused = status === 'paused';
   return (
     <span

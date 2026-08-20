@@ -23,8 +23,33 @@ if (existsSync(rootEnv)) {
   }
 }
 
+const staticExport = process.env.LANDING_STATIC_EXPORT === 'true';
+
+const securityHeaders = [
+  // The marketing site never needs to be framed; deny clickjacking by default.
+  { key: 'X-Frame-Options', value: 'DENY' },
+  {
+    key: 'Content-Security-Policy',
+    value: "base-uri 'self'; frame-ancestors 'none'; object-src 'none'",
+  },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), geolocation=(), microphone=()' },
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+];
+
 const config: NextConfig = {
   reactStrictMode: true,
+  // Cloudflare Pages serves the marketing site from static assets. Dashboard and API requests
+  // are intentionally kept outside this build: they carry authenticated, tenant-scoped traffic.
+  ...(staticExport ? { output: 'export' as const, images: { unoptimized: true } } : {}),
+  ...(staticExport
+    ? {}
+    : {
+        async headers() {
+          return [{ source: '/:path*', headers: securityHeaders }];
+        },
+      }),
 };
 
 export default config;

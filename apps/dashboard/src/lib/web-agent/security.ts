@@ -44,6 +44,7 @@ export const voiceEventRequestSchema = z.object({
     'transcribe_partial',
     'transcribe_final',
     'transcribe_discarded',
+    'llm_first_text',
     'tts_first_audio',
     'voice_interrupted',
     'voice_turn_complete',
@@ -81,6 +82,9 @@ export interface WidgetClaims {
   keyFingerprint: string;
   /** Stable opaque browser session ID. It contains no identity or tenant information. */
   visitorSessionId: string;
+  /** Monotonic configuration revision and lease bind this token to current desired state. */
+  configurationRevision: number;
+  executionLeaseId: string;
 }
 
 function tokenSecret(): Uint8Array {
@@ -154,6 +158,8 @@ export async function verifyWidgetSession(token: string, origin: string): Promis
       origin: z.string(),
       keyFingerprint: z.string().length(16),
       visitorSessionId: z.string().uuid(),
+      configurationRevision: z.number().int().positive(),
+      executionLeaseId: z.string().uuid(),
     })
     .parse(payload);
   if (claims.origin !== origin) throw new Error('Widget token origin mismatch.');
@@ -175,6 +181,8 @@ export async function verifyWidgetContinuation(
       origin: z.string(),
       keyFingerprint: z.string().length(16),
       visitorSessionId: z.string().uuid(),
+      configurationRevision: z.number().int().positive(),
+      executionLeaseId: z.string().uuid(),
       purpose: z.literal('conversation-continuation'),
     })
     .parse(payload);

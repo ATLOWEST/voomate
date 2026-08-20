@@ -48,6 +48,7 @@ def should_accept_transcript(
 class VoiceTelemetryState:
     run_id: str = ""
     turn_started: float | None = None
+    first_model_text_logged: bool = False
     first_audio_logged: bool = False
     speech_started: float | None = None
 
@@ -108,6 +109,17 @@ class VoiceTelemetryProcessor(FrameProcessor):
         except httpx.HTTPError:
             logger.warning("Voice telemetry delivery failed")
 
+    async def record_first_model_text(self):
+        """Record model time-to-first-text once, without recording generated text."""
+        if self._state.first_model_text_logged:
+            return
+        self._state.first_model_text_logged = True
+        now = time.monotonic()
+        latency = (
+            int((now - self._state.turn_started) * 1000) if self._state.turn_started else None
+        )
+        await self._emit("llm_first_text", latency)
+
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
         now = time.monotonic()
@@ -139,6 +151,7 @@ class VoiceTelemetryProcessor(FrameProcessor):
                 return
             self._state.run_id = str(uuid.uuid4())
             self._state.turn_started = now
+            self._state.first_model_text_logged = False
             self._state.first_audio_logged = False
             latency = (
                 int((now - self._state.speech_started) * 1000)

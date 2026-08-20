@@ -18,10 +18,10 @@ try {
   const [agent] = await db`
     select id, organization_id
     from agents
-    where id = ${agentId}::uuid and status = 'published'
+    where id = ${agentId}::uuid and status = 'active'
     limit 1
   `;
-  if (!agent) throw new Error('Published Voomate dogfood agent was not found.');
+  if (!agent) throw new Error('Active Voomate dogfood agent was not found.');
 
   // Remove only the two known SDK smoke-test fixtures from the production dogfood agent. They
   // were useful for validating Connect, but allowing fake merchant facts into Voomate's own

@@ -1,0 +1,174 @@
+{
+  "info": {
+    "name": "Voomate – Safe Production Checks",
+    "description": "Read-only production checks. Import the paired environment, then set accessToken, organizationId, widgetEmbedKey, and widgetOrigin locally in Postman. Never paste service-role, AWS, database, or widget-token signing secrets into this collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "apiBaseUrl", "value": "http://localhost:4000" },
+    { "key": "dashboardBaseUrl", "value": "http://localhost:3001" },
+    { "key": "accessToken", "value": "" },
+    { "key": "organizationId", "value": "" },
+    { "key": "widgetEmbedKey", "value": "" },
+    { "key": "widgetOrigin", "value": "http://localhost:3000" }
+  ],
+  "item": [
+    {
+      "name": "Platform readiness",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": { "method": "GET", "url": "{{apiBaseUrl}}/health" },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('process is alive', () => pm.response.to.have.status(200));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Readiness",
+          "request": { "method": "GET", "url": "{{apiBaseUrl}}/health/ready" },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('dependencies are ready', () => pm.expect(pm.response.code).to.be.oneOf([200, 503]));",
+                  "pm.test('production-ready only when 200', () => { if (pm.response.code === 200) pm.expect(pm.response.json().ready).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Authenticated tenant boundary",
+      "item": [
+        {
+          "name": "List my organizations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{apiBaseUrl}}/v1/organizations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('valid user can list only their organizations', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject unscoped agent request",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{apiBaseUrl}}/v1/agents"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('organization header is mandatory', () => pm.expect(pm.response.code).to.be.oneOf([400, 403]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List agents in selected organization",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "X-Organization-Id", "value": "{{organizationId}}" }
+            ],
+            "url": "{{apiBaseUrl}}/v1/agents"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('tenant-scoped agent list is available', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Public widget boundary",
+      "item": [
+        {
+          "name": "Create origin-bound widget session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Origin", "value": "{{widgetOrigin}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"embedKey\": \"{{widgetEmbedKey}}\",\n  \"channel\": \"text\"\n}"
+            },
+            "url": "{{apiBaseUrl}}/v1/widget/session"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('allowed origin receives a short-lived session', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json(); pm.expect(body.session.expiresIn).to.be.below(3601);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject widget session from wrong origin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Origin", "value": "https://not-your-domain.invalid" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"embedKey\": \"{{widgetEmbedKey}}\",\n  \"channel\": \"text\"\n}"
+            },
+            "url": "{{apiBaseUrl}}/v1/widget/session"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('wrong origin is denied', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

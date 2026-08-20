@@ -1,5 +1,28 @@
 import { z } from 'zod';
 
+export type PortalRole = 'super_admin' | 'merchant_admin' | 'end_user';
+
+/**
+ * A portal is a UI boundary, not an authorization decision. It prevents the assistant from
+ * advertising sibling dashboards while the host's real authorization still decides who may
+ * open a route.
+ */
+export function portalScopeForUrl(value: string): string {
+  try {
+    const [segment] = new URL(value).pathname.split('/').filter(Boolean);
+    if (!segment) return '/';
+    return ['admin', 'app', 'store', 'account'].includes(segment) ? `/${segment}` : '/';
+  } catch {
+    return '/';
+  }
+}
+
+export function portalRoleForScope(scope: string): PortalRole {
+  if (scope === '/admin') return 'super_admin';
+  if (scope === '/store' || scope === '/account') return 'end_user';
+  return 'merchant_admin';
+}
+
 const nativeDestinationSchema = z
   .object({
     url: z.string().url().max(2_048),
@@ -12,6 +35,11 @@ export const pageContextSchema = z
     url: z.string().url().max(2_048),
     title: z.string().trim().max(200).default(''),
     description: z.string().trim().max(800).default(''),
+    portalScope: z
+      .string()
+      .regex(/^\/(?:[a-z0-9_-]+)?$/)
+      .optional(),
+    activeRole: z.enum(['super_admin', 'merchant_admin', 'end_user']).optional(),
     headings: z.array(z.string().trim().min(1).max(160)).max(12).default([]),
     navigation: z
       .array(
@@ -22,6 +50,10 @@ export const pageContextSchema = z
             description: z.string().trim().max(600).optional(),
             aliases: z.array(z.string().trim().min(1).max(80)).max(16).optional(),
             facts: z.array(z.string().trim().min(1).max(300)).max(24).optional(),
+            portalScope: z
+              .string()
+              .regex(/^\/(?:[a-z0-9_-]+)?$/)
+              .optional(),
             native: z
               .object({
                 ios: nativeDestinationSchema.optional(),
@@ -73,6 +105,27 @@ export const pageContextSchema = z
   });
 
 export type WebAgentPageContext = z.infer<typeof pageContextSchema>;
+
+export function pageContextRoleGuidance(context: WebAgentPageContext | undefined): string {
+  if (!context) return '';
+  const portalScope = context.portalScope ?? portalScopeForUrl(context.url);
+  const activeRole = context.activeRole ?? portalRoleForScope(portalScope);
+  const destinations = context.navigation
+    .map(({ label }) => label)
+    .slice(0, 16)
+    .join(', ');
+  const roleFocus =
+    activeRole === 'super_admin'
+      ? 'You are assisting a platform operator with infrastructure and workspace administration.'
+      : activeRole === 'end_user'
+        ? 'You are assisting a customer with the public storefront or account experience.'
+        : 'You are assisting a workspace operator with business agents and settings.';
+  return [
+    `Active portal boundary: ${portalScope}. ${roleFocus}`,
+    `Use the exact visible UI labels from this portal only: ${destinations || 'no verified destinations'}.`,
+    'Do not mention, suggest, or navigate to sibling portals. Page context never grants access to private data or actions.',
+  ].join(' ');
+}
 
 export interface NavigateClientCommand {
   type: 'navigate';
@@ -134,9 +187,17 @@ export function sanitizePageContext(
       {
         ...item,
         url: itemUrl,
+        portalScope: portalScopeForUrl(itemUrl),
         ...(Object.keys(native).length ? { native } : {}),
       },
     ];
   });
-  return { ...input, url, navigation };
+  const portalScope = portalScopeForUrl(url);
+  return {
+    ...input,
+    url,
+    portalScope,
+    activeRole: portalRoleForScope(portalScope),
+    navigation,
+  };
 }

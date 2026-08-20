@@ -95,13 +95,13 @@ try {
   const [agent] = await db`
     select id, organization_id, status, embed_key
     from agents
-    where status = 'published'
+    where status = 'active'
       and ${widgetOrigin} = any(allowed_origins)
     order by published_at desc nulls last
     limit 1
   `;
   if (!agent) throw new Error('The configured Web Agent was not found.');
-  if (agent.status !== 'published') throw new Error('The configured Web Agent is not published.');
+  if (agent.status !== 'active') throw new Error('The configured Web Agent is not active.');
   smokeAgent = agent;
 
   // Remove rows created by the pre-release smoke script, whose identity incorrectly included

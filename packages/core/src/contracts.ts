@@ -7,6 +7,7 @@
  */
 import { MAX_CANDIDATE_LANGUAGES, isKnownLanguage, validateLanguageSet } from '@voomate/i18n';
 import { z } from 'zod';
+import { AgentCatalogType } from './agent-catalog.js';
 
 // --- Primitives --------------------------------------------------------------------------
 
@@ -123,6 +124,14 @@ export const agentAppearanceSchema = z.object({
 });
 
 export const createAgentSchema = z.object({
+  catalogType: z
+    .enum([
+      AgentCatalogType.WEB,
+      AgentCatalogType.CRM,
+      AgentCatalogType.SEO,
+      AgentCatalogType.CALLING,
+    ])
+    .default(AgentCatalogType.WEB),
   name: z.string().min(1).max(80),
   websiteUrl: websiteUrlSchema,
   language: agentLanguageConfigSchema.optional(),

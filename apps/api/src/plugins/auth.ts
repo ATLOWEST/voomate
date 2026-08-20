@@ -19,7 +19,7 @@ import {
   type TenantContext,
   type UserId,
 } from '@voomate/core';
-import { organizationMembers, schema } from '@voomate/db';
+import { organizationMembers, platformAdministrators, schema } from '@voomate/db';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
@@ -37,6 +37,8 @@ declare module 'fastify' {
 
   interface FastifyInstance {
     requireAuth: (request: FastifyRequest) => Promise<void>;
+    /** Private control-plane check. This is intentionally separate from tenant membership. */
+    requirePlatformAdmin: (request: FastifyRequest) => Promise<void>;
     /** Curried so routes can declare a minimum role: `app.requireTenant('admin')`. */
     requireTenant: (minimumRole?: OrgRole) => (request: FastifyRequest) => Promise<void>;
   }
@@ -134,6 +136,23 @@ export const authPlugin = fp(async (app: FastifyInstance) => {
       // "bad signature", which is more than an unauthenticated caller should learn.
       request.log.info({ err: cause }, 'JWT verification failed');
       throw unauthenticated('Invalid or expired token.');
+    }
+  });
+
+  app.decorate('requirePlatformAdmin', async (request: FastifyRequest): Promise<void> => {
+    if (request.userId === undefined) {
+      await app.requireAuth(request);
+    }
+
+    const [administrator] = await getDb()
+      .select({ userId: platformAdministrators.userId })
+      .from(platformAdministrators)
+      .where(eq(platformAdministrators.userId, request.userId!))
+      .limit(1);
+
+    // Use the same generic forbidden response for every non-admin. Do not leak who is an admin.
+    if (administrator === undefined) {
+      throw forbidden('This area is restricted.');
     }
   });
 

@@ -104,8 +104,12 @@ if (found) {
   });
   userId = created.id;
   console.log(`created user: ${email} (${userId})`);
-  console.log(`password: ${password}`);
-  console.log('\nSave that password now — it is not stored anywhere.');
+  if (!providedPassword) {
+    console.log(`password: ${password}`);
+    console.log('\nSave that generated password now — it is not stored anywhere.');
+  } else {
+    console.log('password accepted without printing it.');
+  }
 }
 
 const sql = postgres(databaseUrl, { prepare: false, max: 1, onnotice: () => {} });

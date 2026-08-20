@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { AgentStatus } from '@voomate/core';
 import { agents } from '@voomate/db';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt, isNotNull } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { getDb } from '../../lib/db.js';
@@ -76,7 +76,9 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
           and(
             eq(agents.id, payload.agentId),
             eq(agents.organizationId, payload.organizationId),
-            eq(agents.status, AgentStatus.PUBLISHED),
+            eq(agents.status, AgentStatus.ACTIVE),
+            isNotNull(agents.executionLeaseId),
+            gt(agents.executionLeaseExpiresAt, new Date()),
           ),
         )
         .limit(1);

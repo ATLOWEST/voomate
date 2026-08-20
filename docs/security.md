@@ -114,6 +114,11 @@ markets.
 - Reverse-proxy headers are trusted only from CIDRs listed in `API_TRUST_PROXY_CIDRS`.
 - WhatsApp webhook bodies require `WHATSAPP_WEBHOOK_SECRET` HMAC verification before parsing.
 - The tool harness records authorization intent before execution and a receipt afterward.
+- Widget and voice tokens carry the agent configuration revision and execution-lease identity.
+  Runtime gates re-check active lifecycle state, revision, lease ID, and lease expiry, so pause,
+  archive, configuration changes, and approved profile promotion revoke stale work.
+- Dashboard deletion archives first: leases, tool grants, connection routes, and live-read secret
+  material are revoked while audit evidence remains available for retention and incident review.
 
 ## Pre-launch checklist
 

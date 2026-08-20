@@ -16,7 +16,7 @@ import {
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
 
 const PRODUCT_ITEMS = [
   {
@@ -89,11 +89,7 @@ export function Navbar() {
         {/* Brand Lockup (Always full logo mark + text) */}
         <Link href="/" className="brand-lockup" aria-label="Voomate home">
           <div className="brand-logo-container">
-            <img
-              src="/voomate-logo.png"
-              alt="Voomate"
-              className="brand-logo-mark"
-            />
+            <img src="/voomate-logo.png" alt="Voomate" className="brand-logo-mark" />
             <div className="brand-logo-letters brand-logo-letters--visible">
               {[...Array(7)].map((_, i) => (
                 <img
@@ -120,7 +116,7 @@ export function Navbar() {
               type="button"
               className={cn(
                 'nav-link nav-dropdown__trigger',
-                (productOpen || pathname.startsWith('/product')) && 'nav-link--active'
+                (productOpen || pathname.startsWith('/product')) && 'nav-link--active',
               )}
               onClick={() => setProductOpen((prev) => !prev)}
               aria-expanded={productOpen}
@@ -131,7 +127,7 @@ export function Navbar() {
                 size={13}
                 className={cn(
                   'nav-dropdown__chevron transition-transform duration-200',
-                  productOpen && 'rotate-180 text-[var(--marketing-ink)]'
+                  productOpen && 'rotate-180 text-[var(--marketing-ink)]',
                 )}
               />
             </button>
@@ -141,7 +137,11 @@ export function Navbar() {
               <div className="nav-dropdown__menu animate-in fade-in zoom-in-95 duration-150">
                 <div className="nav-dropdown__header">
                   <span className="nav-dropdown__category">The Voomate System</span>
-                  <Link href="/product" className="nav-dropdown__all-link" onClick={() => setProductOpen(false)}>
+                  <Link
+                    href="/product"
+                    className="nav-dropdown__all-link"
+                    onClick={() => setProductOpen(false)}
+                  >
                     Overview <ArrowRight size={11} />
                   </Link>
                 </div>
@@ -226,7 +226,9 @@ export function Navbar() {
                 onClick={() => setOpen(false)}
               >
                 <span>{item.title}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--marketing-line)] text-[var(--marketing-ink-soft)] font-bold">{item.tag}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--marketing-line)] text-[var(--marketing-ink-soft)] font-bold">
+                  {item.tag}
+                </span>
               </Link>
             ))}
           </div>
@@ -266,4 +268,3 @@ export function Navbar() {
     </header>
   );
 }
-

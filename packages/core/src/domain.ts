@@ -15,6 +15,7 @@ import type {
   OrganizationId,
   UserId,
 } from './ids.js';
+import type { AgentCatalogType } from './agent-catalog.js';
 
 // --- Tenancy ---------------------------------------------------------------------------
 
@@ -74,12 +75,16 @@ export interface TenantContext {
 // --- Agent -----------------------------------------------------------------------------
 
 export const AgentStatus = {
-  /** Created but never published. Not reachable by the widget. */
+  /** Created but not activated. It may be configured and tested in an isolated playground. */
   DRAFT: 'draft',
   /** Live and serving visitors. */
-  PUBLISHED: 'published',
+  ACTIVE: 'active',
+  /** Compatibility name for older SDK consumers. The persisted value is still `active`. */
+  PUBLISHED: 'active',
   /** Temporarily disabled by the merchant; widget returns a friendly closed state. */
   PAUSED: 'paused',
+  /** Safely retired. Triggers, leases and credentials are revoked; audit evidence is retained. */
+  ARCHIVED: 'archived',
 } as const;
 export type AgentStatus = (typeof AgentStatus)[keyof typeof AgentStatus];
 
@@ -123,9 +128,19 @@ export interface Agent {
   id: AgentId;
   organizationId: OrganizationId;
   name: string;
+  catalogType: AgentCatalogType;
+  catalogVersion: number;
   /** The site this agent represents. Also seeds the crawl. */
   websiteUrl: string;
   status: AgentStatus;
+  /** Monotonic desired-state revision used to invalidate stale runtime configuration. */
+  desiredStateRevision: number;
+  /** Last revision acknowledged by the runtime. Equal to desired for control-plane-hosted agents. */
+  observedStateRevision: number;
+  /** Opaque, revocable lease identity. Never exposed as a provider credential. */
+  executionLeaseId?: string;
+  executionLeaseExpiresAt?: string;
+  businessProfileVersionId?: string;
   language: AgentLanguageConfig;
   persona: AgentPersona;
   appearance: AgentAppearance;
@@ -140,6 +155,7 @@ export interface Agent {
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
+  archivedAt?: string;
 }
 
 // --- Knowledge --------------------------------------------------------------------------

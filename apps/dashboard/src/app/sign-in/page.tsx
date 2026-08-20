@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getUser } from '@/lib/supabase/server';
 import { SignInForm } from './form';
@@ -14,11 +15,7 @@ export default async function SignInPage() {
     <main className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex items-center justify-center">
-          <img
-            src="/voomate-logo.png"
-            alt="Voomate"
-            className="h-10 w-auto dark:invert"
-          />
+          <img src="/voomate-logo.png" alt="Voomate" className="h-10 w-auto dark:invert" />
         </div>
 
         <h1 className="text-xl font-semibold tracking-[-0.02em]">Sign in</h1>
@@ -27,6 +24,15 @@ export default async function SignInPage() {
         </p>
 
         <SignInForm />
+        <p className="mt-5 text-center text-[13px] text-secondary">
+          New to Voomate?{' '}
+          <Link
+            href="/sign-up"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Create an account
+          </Link>
+        </p>
       </div>
     </main>
   );

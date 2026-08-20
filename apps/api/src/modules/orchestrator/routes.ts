@@ -5,9 +5,9 @@
  * It intercepts incoming queries and determines which connected agent
  * should handle the request based on the agent's persona and tools.
  */
-import { OrgRole, notFound, uuidSchema } from '@voomate/core';
+import { AgentStatus, OrgRole, notFound, uuidSchema } from '@voomate/core';
 import { agentConnections, agents, tenantScope } from '@voomate/db';
-import { and, eq, or, inArray } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNotNull } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { getDb } from '../../lib/db.js';
@@ -27,7 +27,7 @@ const orchestratorRequestSchema = z.object({
 });
 
 export const orchestratorRoutes: FastifyPluginAsync = async (app) => {
-  app.post('/route', { preHandler: app.requireTenant(OrgRole.VIEWER) }, async (request, reply) => {
+  app.post('/route', { preHandler: app.requireTenant(OrgRole.VIEWER) }, async (request) => {
     const tenant = tenantOf(request);
     const input = orchestratorRequestSchema.parse(request.body);
     const db = getDb();
@@ -36,7 +36,15 @@ export const orchestratorRoutes: FastifyPluginAsync = async (app) => {
     const [sourceAgent] = await db
       .select()
       .from(agents)
-      .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, input.sourceAgentId)))
+      .where(
+        and(
+          tenantScope(agents, tenant.organizationId),
+          eq(agents.id, input.sourceAgentId),
+          eq(agents.status, AgentStatus.ACTIVE),
+          isNotNull(agents.executionLeaseId),
+          gt(agents.executionLeaseExpiresAt, new Date()),
+        ),
+      )
       .limit(1);
 
     if (!sourceAgent) throw notFound('Source Agent', input.sourceAgentId);
@@ -52,6 +60,7 @@ export const orchestratorRoutes: FastifyPluginAsync = async (app) => {
         and(
           tenantScope(agentConnections, tenant.organizationId),
           eq(agentConnections.sourceAgentId, input.sourceAgentId),
+          eq(agentConnections.status, 'active'),
         ),
       );
 
@@ -75,7 +84,13 @@ export const orchestratorRoutes: FastifyPluginAsync = async (app) => {
       })
       .from(agents)
       .where(
-        and(tenantScope(agents, tenant.organizationId), inArray(agents.id, connectedAgentIds)),
+        and(
+          tenantScope(agents, tenant.organizationId),
+          inArray(agents.id, connectedAgentIds),
+          eq(agents.status, AgentStatus.ACTIVE),
+          isNotNull(agents.executionLeaseId),
+          gt(agents.executionLeaseExpiresAt, new Date()),
+        ),
       );
 
     // Simple keyword heuristic acting as the "Brain" for immediate value.

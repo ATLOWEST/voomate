@@ -4,15 +4,17 @@ import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
 import websocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { isDevelopment, serverConfig } from './config.js';
+import { isDevelopment, isProduction, serverConfig } from './config.js';
 import { askRoutes } from './modules/agents/ask.js';
 import { agentRoutes } from './modules/agents/routes.js';
+import { businessProfileRoutes } from './modules/business-profile/routes.js';
 import { conversationRoutes } from './modules/conversations/routes.js';
 import { connectRoutes } from './modules/connect/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { languageRoutes } from './modules/languages/routes.js';
 import { organizationRoutes } from './modules/organizations/routes.js';
+import { platformRoutes } from './modules/platform/routes.js';
 import { orchestratorRoutes } from './modules/orchestrator/routes.js';
 import { usageRoutes } from './modules/usage/routes.js';
 import { widgetRoutes } from './modules/widget/routes.js';
@@ -20,6 +22,7 @@ import { voiceSocketRoutes } from './modules/widget/voice-socket.js';
 import { webhookRoutes } from './modules/webhooks/routes.js';
 import { authPlugin } from './plugins/auth.js';
 import { errorHandler } from './plugins/error-handler.js';
+import { UpstashRateLimitStore } from './lib/upstash-rate-limit-store.js';
 
 export const buildServer = async (): Promise<FastifyInstance> => {
   const app = Fastify({
@@ -66,6 +69,9 @@ export const buildServer = async (): Promise<FastifyInstance> => {
   await app.register(rateLimit, {
     max: 300,
     timeWindow: '1 minute',
+    // A production request can land on any instance, so only a shared counter is meaningful.
+    // Keep the low-overhead memory store for local development and isolated test processes.
+    ...(isProduction ? { store: UpstashRateLimitStore, cache: 0, skipOnError: false } : {}),
     // Per-tenant where we know the tenant, per-IP otherwise. Without the tenant key, one
     // busy merchant's visitors would exhaust the limit for everyone behind a shared NAT.
     keyGenerator: (request) => request.tenant?.organizationId ?? request.ip,
@@ -87,8 +93,10 @@ export const buildServer = async (): Promise<FastifyInstance> => {
   await app.register(healthRoutes, { prefix: '/health' });
   await app.register(languageRoutes, { prefix: '/v1/languages' });
   await app.register(organizationRoutes, { prefix: '/v1/organizations' });
+  await app.register(platformRoutes, { prefix: '/v1/platform' });
   await app.register(orchestratorRoutes, { prefix: '/v1/orchestrator' });
   await app.register(agentRoutes, { prefix: '/v1/agents' });
+  await app.register(businessProfileRoutes, { prefix: '/v1/business-profile' });
   await app.register(askRoutes, { prefix: '/v1/agents' });
   await app.register(knowledgeRoutes, { prefix: '/v1/agents' });
   await app.register(conversationRoutes, { prefix: '/v1/conversations' });

@@ -50,7 +50,7 @@ export async function POST(request: Request): Promise<Response> {
         and(
           eq(agents.organizationId, claims.organizationId),
           eq(agents.id, claims.agentId),
-          eq(agents.status, 'published'),
+          eq(agents.status, 'active'),
         ),
       )
       .limit(1);

@@ -1,0 +1,16 @@
+.git
+.codebase-memory
+.env
+.env.*
+!.env.example
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/out
+**/.venv
+**/__pycache__
+coverage
+cdk.out
+*.log
+evals/web-agent/results

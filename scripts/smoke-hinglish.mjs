@@ -187,7 +187,7 @@ try {
     token,
     organizationId,
   });
-  check('published', published.status === 'published');
+  check('active', published.status === 'active');
 
   // ─── 2. Hindi turn ──────────────────────────────────────────────────────────
   step('2. Hindi question');

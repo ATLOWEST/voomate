@@ -164,7 +164,14 @@ export const voiceSocketRoutes: FastifyPluginAsync = async (app) => {
         fail('not_found', 'This assistant is not available.');
         return;
       }
-      if (agent.status !== AgentStatus.PUBLISHED || !agent.voiceEnabled) {
+      if (
+        agent.status !== AgentStatus.ACTIVE ||
+        !agent.voiceEnabled ||
+        agent.desiredStateRevision !== claims.configurationRevision ||
+        agent.executionLeaseId !== claims.executionLeaseId ||
+        !agent.executionLeaseExpiresAt ||
+        agent.executionLeaseExpiresAt <= new Date()
+      ) {
         fail('unavailable', 'This assistant is not available right now.');
         return;
       }

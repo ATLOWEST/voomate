@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { BreadcrumbJsonLd, WebPageJsonLd } from '@/components/seo/json-ld';
+import { siteUrl } from '@/lib/site-url';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react';
 import { IntegrationExplorer } from '@/components/ui/integration-explorer';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
 
 export const metadata: Metadata = {
   title: 'Integrations — Connected Business Tools',
@@ -22,15 +23,17 @@ export const metadata: Metadata = {
     'How Voomate connects approved business knowledge, live systems, and controlled action tools — including WhatsApp, Gmail, Razorpay, Shopify, and more.',
   openGraph: {
     title: 'Integrations — Connected Business Tools',
-    description: 'Connect WhatsApp, Gmail, Razorpay, Shopify, and more through controlled, approved action tools.',
-    url: 'https://voomate.ai/integrations',
+    description:
+      'Connect WhatsApp, Gmail, Razorpay, Shopify, and more through controlled, approved action tools.',
+    url: siteUrl('/integrations'),
     siteName: 'Voomate',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Integrations — Connected Business Tools',
-    description: 'Connect WhatsApp, Gmail, Razorpay, Shopify, and more through controlled, approved action tools.',
+    description:
+      'Connect WhatsApp, Gmail, Razorpay, Shopify, and more through controlled, approved action tools.',
   },
   alternates: {
     canonical: '/integrations',
@@ -40,8 +43,17 @@ export const metadata: Metadata = {
 export default function IntegrationsPage() {
   return (
     <main className="marketing-main subpage integrations-page">
-      <BreadcrumbJsonLd items={[{ name: 'Home', href: '/' }, { name: 'Integrations', href: '/integrations' }]} />
-      <WebPageJsonLd name="Integrations — Connected Business Tools" description="How Voomate connects approved business knowledge, live systems, and controlled action tools." url="/integrations" />
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', href: '/' },
+          { name: 'Integrations', href: '/integrations' },
+        ]}
+      />
+      <WebPageJsonLd
+        name="Integrations — Connected Business Tools"
+        description="How Voomate connects approved business knowledge, live systems, and controlled action tools."
+        url="/integrations"
+      />
       <section className="subpage-hero integrations-hero" aria-labelledby="integrations-title">
         <div className="subpage-hero__aside" data-reveal>
           Connect the systems where the work already lives

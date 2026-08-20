@@ -8,7 +8,7 @@ export default function SuperAdminAgentsPage() {
     <>
       <PageHeader
         title="Agent Fleet & Multimodal LLMs"
-        description="Global inventory of all active customer agents, tool orchestration, and AWS Bedrock model routing."
+        description="Protected global inventory of real customer agents. Model changes remain inside each workspace."
       />
       <PageBody>
         <AgentFleetTab />

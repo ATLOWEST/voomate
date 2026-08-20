@@ -22,10 +22,9 @@ import { useApiAction } from '@/lib/hooks';
  * `data-agent` is a domain-bound public key; it is safe to appear in page source. The backend
  * resolves the tenant and rejects origins that are not on the agent's allowlist.
  */
-const WIDGET_ORIGIN = (process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? 'https://widget.voomate.com').replace(
-  /\/$/,
-  '',
-);
+const WIDGET_ORIGIN = (
+  process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? 'https://widget.voomate.com'
+).replace(/\/$/, '');
 
 export function InstallPanels() {
   const { agent, refresh } = useAgent();
@@ -38,7 +37,7 @@ export function InstallPanels() {
 
   return (
     <PageBody>
-      {agent.status !== 'published' && (
+      {agent.status !== 'active' && (
         <div className="mb-4">
           <Callout tone="caution" title="This agent is still a draft">
             The snippet below will load, but the agent will not answer visitors until you press

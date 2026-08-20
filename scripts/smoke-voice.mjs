@@ -166,7 +166,7 @@ const streamSilence = async (socket, ms) => {
 
 // --- 1. Set up an agent with something to say --------------------------------------------------
 
-step('1. A published agent');
+step('1. An active agent');
 
 const signIn = await fetch(new URL('/auth/v1/token?grant_type=password', supabaseUrl), {
   method: 'POST',
@@ -229,7 +229,7 @@ try {
     token,
     organizationId,
   });
-  check('agent published', published.agent.status === 'published');
+  check('agent active', published.agent.status === 'active');
 
   // --- 2. The widget handshake ----------------------------------------------------------------
 

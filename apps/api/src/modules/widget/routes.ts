@@ -24,10 +24,12 @@ import {
 } from '@voomate/core';
 import { agents } from '@voomate/db';
 import { buildTranscribeConfig, findBilingualVoice, resolveVoice } from '@voomate/i18n';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { getDb } from '../../lib/db.js';
+import { isProduction } from '../../config.js';
 import { normalizeOrigin } from '../../lib/keys.js';
+import { UpstashRateLimitStore } from '../../lib/upstash-rate-limit-store.js';
 import { mintWidgetToken } from './token.js';
 
 /**
@@ -53,6 +55,7 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
     await scope.register(import('@fastify/rate-limit'), {
       max: 30,
       timeWindow: '1 minute',
+      ...(isProduction ? { store: UpstashRateLimitStore, cache: 0, skipOnError: false } : {}),
       keyGenerator: (request) => `${request.ip}:${originOf(request) ?? 'unknown'}`,
     });
 
@@ -94,11 +97,37 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
 
       if (!allowed.includes(origin)) denied();
 
-      if (agent!.status !== AgentStatus.PUBLISHED) {
+      if (agent!.status !== AgentStatus.ACTIVE) {
         throw new AppError(
           ErrorCode.AGENT_NOT_PUBLISHED,
           'This assistant is not available right now.',
         );
+      }
+      if (!agent!.executionLeaseId) {
+        throw new AppError(
+          ErrorCode.AGENT_NOT_PUBLISHED,
+          'This assistant is not available right now.',
+        );
+      }
+      if (
+        !agent!.executionLeaseExpiresAt ||
+        agent!.executionLeaseExpiresAt.getTime() < Date.now() + 5 * 60 * 1_000
+      ) {
+        await getDb()
+          .update(agents)
+          .set({
+            executionLeaseExpiresAt: new Date(Date.now() + 20 * 60 * 1_000),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(agents.organizationId, agent!.organizationId),
+              eq(agents.id, agent!.id),
+              eq(agents.status, AgentStatus.ACTIVE),
+              eq(agents.executionLeaseId, agent!.executionLeaseId),
+              eq(agents.desiredStateRevision, agent!.desiredStateRevision),
+            ),
+          );
       }
 
       const language = agent!.language as AgentLanguageConfig;
@@ -114,6 +143,8 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
         organizationId: agent!.organizationId as OrganizationId,
         origin,
         channel: input.channel,
+        configurationRevision: agent!.desiredStateRevision,
+        executionLeaseId: agent!.executionLeaseId,
       });
 
       reply.status(201);

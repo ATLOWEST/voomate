@@ -47,8 +47,16 @@ export const createClient = async () => {
  * cookie is attacker-writable, a verified token is not.
  */
 export const getUser = async () => {
-  // Bypassing Auth for local testing
-  return { id: 'mock-user-id', email: 'admin@voomate.local' } as any;
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  // Treat every Auth failure as an anonymous request. The caller must never learn whether a
+  // session cookie was expired, forged, or revoked; protected layouts redirect uniformly.
+  if (error !== null || user === null) return null;
+  return user;
 };
 
 /** The access token to forward to the API as a bearer credential. */

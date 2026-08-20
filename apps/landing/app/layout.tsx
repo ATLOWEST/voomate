@@ -11,6 +11,7 @@ import { Footer } from '@/components/layout/footer';
 import { MarketingMotion } from '@/components/ui/marketing-motion';
 import { ShaderBackground } from '@/components/ui/shader-bg';
 import { VoomateNavigationBridge } from '@/components/voomate-navigation-bridge';
+import { SITE_URL } from '@/lib/site-url';
 
 const geist = Geist({ subsets: ['latin'], display: 'swap', variable: '--font-sans' });
 const displayFont = Plus_Jakarta_Sans({
@@ -21,7 +22,7 @@ const displayFont = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://voomate.ai'),
+  metadataBase: new URL(SITE_URL),
   title: { default: 'Voomate — One connected AI team', template: '%s | Voomate' },
   description:
     'Voomate connects a Web Agent, Voice Calling Agent, and Integration Agent for customer conversations and approved business actions.',
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
     description:
       'A Web Agent, Voice Calling Agent, and Integration Agent working from one shared business context.',
     siteName: 'Voomate',
-    url: 'https://voomate.ai',
+    url: SITE_URL,
   },
   twitter: {
     card: 'summary_large_image',
@@ -118,7 +119,10 @@ const UI_MANIFEST = serializeUiManifest(
 );
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const widgetOrigin = (process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? '').replace(/\/$/, '');
+  const configuredWidgetOrigin = (process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? '').replace(/\/$/, '');
+  // A public landing page must never try to load an agent bundle from a developer machine.
+  // Keep the widget absent until its production HTTPS origin is deployed in AWS.
+  const widgetOrigin = /^https:\/\//.test(configuredWidgetOrigin) ? configuredWidgetOrigin : '';
   const dogfoodAgentKey = process.env.NEXT_PUBLIC_VOOMATE_DOGFOOD_AGENT_KEY;
 
   return (

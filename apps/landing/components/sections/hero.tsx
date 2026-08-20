@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3001';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
 
 export function HeroSection() {
   return (

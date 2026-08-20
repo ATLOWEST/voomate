@@ -10,6 +10,8 @@ const CLAIMS: WidgetSessionClaims = {
   organizationId: 'org-456' as OrganizationId,
   origin: 'https://shop.example.com',
   channel: 'voice',
+  configurationRevision: 7,
+  executionLeaseId: 'lease-789',
 };
 
 const mint = (over: Partial<WidgetSessionClaims> = {}, ttlSeconds = 900): Promise<string> =>
@@ -44,8 +46,10 @@ describe('mintWidgetToken', () => {
       'exp',
       'iat',
       'iss',
+      'lease',
       'org',
       'origin',
+      'rev',
       'sub',
     ]);
   });

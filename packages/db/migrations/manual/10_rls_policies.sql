@@ -167,8 +167,36 @@ create policy agents_update on public.agents
   for update using (public.user_has_role(organization_id, 'developer'))
   with check (public.user_has_role(organization_id, 'developer'));
 
-create policy agents_delete on public.agents
-  for delete using (public.user_has_role(organization_id, 'admin'));
+-- Deliberately no agent DELETE policy. Customer-facing removal is archival; physical erasure is
+-- a separately governed retention operation performed by the service role after policy checks.
+
+-- Business Operating Profile versions are immutable proposals promoted by an explicit admin
+-- review. There is deliberately no delete policy: evidence and prior decisions remain auditable.
+alter table public.business_profile_versions enable row level security;
+alter table public.business_profile_versions force row level security;
+
+create policy business_profile_versions_select on public.business_profile_versions
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy business_profile_versions_insert on public.business_profile_versions
+  for insert with check (public.user_has_role(organization_id, 'developer'));
+
+create policy business_profile_versions_update on public.business_profile_versions
+  for update using (public.user_has_role(organization_id, 'admin'))
+  with check (public.user_has_role(organization_id, 'admin'));
+
+alter table public.business_profile_evidence enable row level security;
+alter table public.business_profile_evidence force row level security;
+
+create policy business_profile_evidence_select on public.business_profile_evidence
+  for select using (organization_id in (select public.user_organization_ids()));
+
+create policy business_profile_evidence_insert on public.business_profile_evidence
+  for insert with check (public.user_has_role(organization_id, 'developer'));
+
+create policy business_profile_evidence_update on public.business_profile_evidence
+  for update using (public.user_has_role(organization_id, 'admin'))
+  with check (public.user_has_role(organization_id, 'admin'));
 
 -- agent_connections — members can inspect topology; developers may change routing.
 alter table public.agent_connections enable row level security;

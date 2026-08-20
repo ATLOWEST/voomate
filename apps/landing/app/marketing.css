@@ -132,7 +132,9 @@ summary:focus-visible {
   width: 100%;
   height: 2px;
   background: var(--marketing-ink);
-  transition: background 200ms ease, height 200ms ease;
+  transition:
+    background 200ms ease,
+    height 200ms ease;
 }
 .btn-ember:hover {
   color: var(--marketing-ember);
@@ -171,7 +173,9 @@ summary:focus-visible {
   height: 1.5px;
   background: var(--marketing-ink-soft);
   opacity: 0.4;
-  transition: opacity 200ms ease, background 200ms ease;
+  transition:
+    opacity 200ms ease,
+    background 200ms ease;
 }
 .btn-quiet:hover {
   color: var(--marketing-ink);
@@ -182,7 +186,9 @@ summary:focus-visible {
   background: var(--marketing-ink);
 }
 .btn-quiet svg {
-  transition: transform 200ms ease, color 200ms ease;
+  transition:
+    transform 200ms ease,
+    color 200ms ease;
   color: var(--marketing-ink-soft);
 }
 .btn-quiet:hover svg {
@@ -343,7 +349,9 @@ summary:focus-visible {
 
 .nav-dropdown__chevron {
   color: var(--marketing-ink-faint);
-  transition: transform 200ms ease, color 200ms ease;
+  transition:
+    transform 200ms ease,
+    color 200ms ease;
 }
 
 .nav-dropdown__menu {
@@ -498,7 +506,9 @@ summary:focus-visible {
   background: transparent;
   border: none;
   box-shadow: none;
-  transition: color 180ms ease, transform 180ms ease;
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
 }
 .site-nav__sign-up:hover {
   color: var(--marketing-ember);
@@ -532,7 +542,9 @@ summary:focus-visible {
   box-shadow: none;
   padding: 0.25rem 0;
   cursor: pointer;
-  transition: color 200ms ease, transform 200ms ease;
+  transition:
+    color 200ms ease,
+    transform 200ms ease;
 }
 .hero-action-primary span {
   position: relative;
@@ -546,7 +558,9 @@ summary:focus-visible {
   width: 100%;
   height: 2px;
   background: var(--marketing-ink);
-  transition: background 200ms ease, height 200ms ease;
+  transition:
+    background 200ms ease,
+    height 200ms ease;
 }
 .hero-action-primary:hover {
   color: var(--marketing-ember);
@@ -576,7 +590,9 @@ summary:focus-visible {
   box-shadow: none;
   padding: 0.25rem 0;
   cursor: pointer;
-  transition: color 200ms ease, transform 200ms ease;
+  transition:
+    color 200ms ease,
+    transform 200ms ease;
 }
 .hero-action-secondary span {
   position: relative;
@@ -591,7 +607,9 @@ summary:focus-visible {
   height: 1.5px;
   background: var(--marketing-ink-soft);
   opacity: 0.4;
-  transition: opacity 200ms ease, background 200ms ease;
+  transition:
+    opacity 200ms ease,
+    background 200ms ease;
 }
 .hero-action-secondary:hover {
   color: var(--marketing-ink);
@@ -602,7 +620,9 @@ summary:focus-visible {
   background: var(--marketing-ink);
 }
 .hero-action-secondary svg {
-  transition: transform 200ms ease, color 200ms ease;
+  transition:
+    transform 200ms ease,
+    color 200ms ease;
   color: var(--marketing-ink-soft);
 }
 .hero-action-secondary:hover svg {
@@ -742,7 +762,13 @@ summary:focus-visible {
   align-items: flex-start;
   width: 100%;
   max-width: 72rem;
-  font-family: var(--font-display), 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
+  font-family:
+    var(--font-display),
+    'Plus Jakarta Sans',
+    'Outfit',
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: clamp(3.25rem, 6.2vw, 5.75rem);
   font-weight: 800;
   line-height: 1.02;
@@ -762,8 +788,8 @@ summary:focus-visible {
 }
 
 .hero-copy h1 .hero-ember-shiny {
-  color: #E8590C;
-  background: linear-gradient(135deg, #FF6224 0%, #E8590C 50%, #C43800 100%);
+  color: #e8590c;
+  background: linear-gradient(135deg, #ff6224 0%, #e8590c 50%, #c43800 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
@@ -1299,7 +1325,10 @@ summary:focus-visible {
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  transition: transform 260ms ease, background 200ms ease, box-shadow 260ms ease;
+  transition:
+    transform 260ms ease,
+    background 200ms ease,
+    box-shadow 260ms ease;
   cursor: pointer;
   border: none;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -1401,7 +1430,9 @@ summary:focus-visible {
   font-weight: 650;
   white-space: nowrap;
   backdrop-filter: blur(8px);
-  transition: border-color 200ms ease, background 200ms ease;
+  transition:
+    border-color 200ms ease,
+    background 200ms ease;
 }
 
 .integration-tool-chip svg {
@@ -1471,7 +1502,9 @@ summary:focus-visible {
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  transition: transform 260ms ease, background 200ms ease;
+  transition:
+    transform 260ms ease,
+    background 200ms ease;
 }
 
 .integration-logo--more:hover {
@@ -2784,8 +2817,6 @@ summary:focus-visible {
   max-width: 74rem;
   font-size: clamp(3.15rem, 5.7vw, 5.35rem);
 }
-
-
 
 .btn-quiet {
   border-color: rgba(45, 36, 30, 0.22);
@@ -4256,8 +4287,6 @@ summary:focus-visible {
   background: rgba(239, 107, 46, 0.09);
 }
 
-
-
 .hero-operation,
 .flow-card,
 .use-case-accordion,
@@ -5365,8 +5394,6 @@ body {
     linear-gradient(180deg, rgba(255, 250, 244, 0.02), rgba(255, 250, 244, 0.08));
 }
 
-
-
 /* Soft chapter transitions keep the fixed shader visible throughout long pages. */
 .home-integration-section,
 .integration-library,
@@ -5519,7 +5546,6 @@ body {
   border-color: rgba(238, 91, 19, 0.4);
   color: var(--marketing-ember);
 }
-
 
 .demo-message--customer {
   background: rgba(35, 26, 21, 0.94);
@@ -5787,8 +5813,6 @@ body {
   color: var(--glass-ink);
 }
 
-
-
 .closing-cta,
 .subpage-cta {
   text-align: center;
@@ -5924,9 +5948,13 @@ body {
   color: var(--marketing-ink);
   font-size: 0.9rem;
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.5);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(12px);
-  transition: transform 0.3s ease, border-color 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .arch-node:hover {
@@ -5944,7 +5972,9 @@ body {
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid var(--marketing-line-strong);
   border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(239, 107, 46, 0.1), inset 0 1px 0 rgba(255,255,255,1);
+  box-shadow:
+    0 12px 32px rgba(239, 107, 46, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
   backdrop-filter: blur(20px);
 }
 
@@ -5987,8 +6017,8 @@ body {
 .arch-tag {
   font-size: 0.75rem;
   padding: 0.35rem 0.75rem;
-  background: rgba(0,0,0,0.04);
-  border: 1px solid rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 20px;
   color: var(--marketing-ink-soft);
   font-weight: 500;
@@ -6008,8 +6038,12 @@ body {
 }
 
 @keyframes archMoveDots {
-  0% { background-position: 0 0; }
-  100% { background-position: 20px 0; }
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 20px 0;
+  }
 }
 
 @media (max-width: 900px) {
@@ -6088,7 +6122,9 @@ body {
   border: 1px solid rgba(89, 56, 37, 0.12);
   border-radius: 9999px;
   backdrop-filter: blur(16px);
-  box-shadow: 0 4px 20px rgba(65, 41, 27, 0.06), inset 0 1px 0 #fff;
+  box-shadow:
+    0 4px 20px rgba(65, 41, 27, 0.06),
+    inset 0 1px 0 #fff;
 }
 
 .agent-tab {
@@ -6134,16 +6170,22 @@ body {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(89, 56, 37, 0.1);
   border-radius: 16px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 8px 24px rgba(65, 41, 27, 0.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 8px 24px rgba(65, 41, 27, 0.04);
   backdrop-filter: blur(16px);
   min-height: 220px;
   justify-content: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .stage-block:hover {
   transform: translateY(-2px);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 12px 32px rgba(65, 41, 27, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 12px 32px rgba(65, 41, 27, 0.08);
 }
 
 .stage-block h4 {
@@ -6191,12 +6233,591 @@ body {
 .stage-block--brain {
   background: #ffffff;
   border-color: rgba(239, 107, 46, 0.3);
-  box-shadow: 0 12px 36px rgba(239, 107, 46, 0.12), inset 0 1px 0 #fff;
+  box-shadow:
+    0 12px 36px rgba(239, 107, 46, 0.12),
+    inset 0 1px 0 #fff;
   transform: scale(1.04);
   z-index: 2;
 }
 .stage-block--brain:hover {
   transform: scale(1.06) translateY(-2px);
+}
+
+/* Governed operating-flow cockpit --------------------------------------------------------------- */
+.workflow-shell {
+  overflow: hidden;
+}
+
+.operating-flow-container .workflow-heading {
+  max-width: 64rem;
+  margin-bottom: clamp(2rem, 4vw, 3.5rem);
+}
+
+.operating-flow-container .workflow-heading h2 {
+  max-width: 60rem;
+  margin-inline: auto;
+  text-wrap: balance;
+}
+
+.workflow-cockpit-frame {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(234, 217, 196, 0.2);
+  border-radius: 1.65rem;
+  background:
+    radial-gradient(circle at 13% 3%, rgba(232, 89, 12, 0.2), transparent 26rem),
+    radial-gradient(circle at 82% 100%, rgba(113, 170, 156, 0.16), transparent 28rem),
+    rgba(14, 18, 22, 0.95);
+  box-shadow:
+    0 30px 80px rgba(61, 35, 18, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px);
+  padding: clamp(1rem, 2.4vw, 2.1rem);
+  color: #f9f5ee;
+}
+
+.workflow-cockpit-frame::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  content: '';
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
+}
+
+.workflow-topline {
+  display: flex;
+  align-items: center;
+  gap: 0.58rem;
+  border-bottom: 1px solid rgba(234, 217, 196, 0.14);
+  padding: 0 0 0.85rem;
+  color: rgba(255, 249, 241, 0.94);
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.workflow-live-mark {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #83d1b8;
+  box-shadow:
+    0 0 0 0.28rem rgba(131, 209, 184, 0.12),
+    0 0 1.2rem rgba(131, 209, 184, 0.78);
+}
+
+.workflow-topline-detail {
+  margin-left: auto;
+  color: rgba(249, 245, 238, 0.46);
+}
+
+.workflow-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: clamp(1.3rem, 3vw, 2rem) 0;
+}
+
+.workflow-tab,
+.workflow-simulate,
+.workflow-inspector-toggle {
+  border: 1px solid rgba(234, 217, 196, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 249, 241, 0.78);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    border-color 220ms ease,
+    background-color 220ms ease,
+    color 220ms ease,
+    transform 220ms ease;
+}
+
+.workflow-tab {
+  min-height: 2.35rem;
+  padding: 0 0.85rem;
+}
+
+.workflow-tab:hover,
+.workflow-tab:focus-visible,
+.workflow-inspector-toggle:hover,
+.workflow-inspector-toggle:focus-visible {
+  border-color: rgba(240, 141, 84, 0.8);
+  background: rgba(232, 89, 12, 0.16);
+  color: #fffaf3;
+}
+
+.workflow-tab.is-active {
+  border-color: rgba(240, 141, 84, 0.88);
+  background: #e8590c;
+  color: #fffdf9;
+  box-shadow: 0 10px 24px rgba(232, 89, 12, 0.26);
+}
+
+.workflow-tab:focus-visible,
+.workflow-simulate:focus-visible,
+.workflow-inspector-toggle:focus-visible {
+  outline: 3px solid rgba(249, 245, 238, 0.8);
+  outline-offset: 3px;
+}
+
+.workflow-grid {
+  display: grid;
+  grid-auto-flow: dense;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0.8rem;
+}
+
+.workflow-panel {
+  position: relative;
+  overflow: hidden;
+  min-height: 21rem;
+  border: 1px solid rgba(234, 217, 196, 0.14);
+  border-radius: 1.05rem;
+  background: rgba(255, 255, 255, 0.045);
+  padding: clamp(1rem, 1.8vw, 1.35rem);
+  transition:
+    transform 500ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 500ms ease,
+    background-color 500ms ease;
+}
+
+.workflow-panel:hover {
+  transform: translateY(-0.22rem) scale(1.008);
+  border-color: rgba(240, 141, 84, 0.42);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.workflow-inputs,
+.workflow-brain,
+.workflow-flywheel,
+.workflow-impact {
+  grid-column: span 3;
+}
+
+.workflow-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #eeb287;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.workflow-panel p {
+  margin: 1rem 0 0;
+  color: rgba(249, 245, 238, 0.62);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.workflow-input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 1.25rem;
+}
+
+.workflow-input {
+  display: grid;
+  min-height: 4rem;
+  align-content: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(234, 217, 196, 0.12);
+  border-radius: 0.7rem;
+  background: rgba(0, 0, 0, 0.14);
+  padding: 0.6rem;
+  color: rgba(255, 249, 241, 0.84);
+  font-size: 0.72rem;
+  transition:
+    background-color 240ms ease,
+    transform 240ms ease;
+}
+
+.workflow-input:hover {
+  background: rgba(232, 89, 12, 0.16);
+  transform: translateY(-2px);
+}
+
+.workflow-input svg {
+  color: #eeb287;
+}
+
+.workflow-brain {
+  display: flex;
+  flex-direction: column;
+}
+
+.workflow-lattice {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  width: 8.4rem;
+  margin: auto;
+  padding: 1.2rem;
+  transform: rotate(45deg);
+}
+
+.workflow-lattice i {
+  aspect-ratio: 1;
+  border: 1px solid rgba(131, 209, 184, 0.75);
+  border-radius: 0.22rem;
+  background: rgba(131, 209, 184, 0.12);
+  box-shadow: 0 0 1rem rgba(131, 209, 184, 0.14);
+  animation: workflow-lattice-pulse 2.8s ease-in-out infinite;
+}
+
+.workflow-lattice i:nth-child(3n) {
+  animation-delay: -0.75s;
+}
+
+.workflow-lattice i:nth-child(4n) {
+  background: rgba(240, 141, 84, 0.22);
+  border-color: rgba(240, 141, 84, 0.8);
+  animation-delay: -1.4s;
+}
+
+.workflow-brain strong {
+  max-width: 13rem;
+  color: #fffaf3;
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.workflow-flywheel {
+  display: flex;
+  flex-direction: column;
+}
+
+.workflow-orbit {
+  position: relative;
+  width: 100%;
+  min-height: 12rem;
+  margin: 0.6rem auto 0;
+}
+
+.workflow-orbit svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.workflow-orbit-ring {
+  fill: none;
+  stroke: rgba(234, 217, 196, 0.22);
+  stroke-width: 1.2;
+}
+
+.workflow-orbit-dash {
+  fill: none;
+  stroke: #eeb287;
+  stroke-dasharray: 8 10;
+  stroke-width: 2.1;
+}
+
+.workflow-orbit-node {
+  position: absolute;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(240, 141, 84, 0.72);
+  border-radius: 999px;
+  background: #1d2227;
+  color: #f6c29d;
+  box-shadow: 0 0 1.5rem rgba(232, 89, 12, 0.2);
+}
+
+.workflow-orbit-node--top {
+  top: 0.55rem;
+  left: calc(50% - 1rem);
+}
+.workflow-orbit-node--right {
+  top: calc(50% - 1rem);
+  right: 0.65rem;
+}
+.workflow-orbit-node--bottom {
+  bottom: 0.55rem;
+  left: calc(50% - 1rem);
+}
+.workflow-orbit-node--left {
+  top: calc(50% - 1rem);
+  left: 0.65rem;
+}
+
+.workflow-orbit-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: min(8.5rem, 58%);
+  min-height: 4rem;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(131, 209, 184, 0.4);
+  border-radius: 0.85rem;
+  background: rgba(18, 31, 33, 0.92);
+  box-shadow: 0 0 2.5rem rgba(131, 209, 184, 0.1);
+  padding: 0.5rem;
+  color: #d8fbef;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.22;
+  text-align: center;
+}
+
+.workflow-impact {
+  display: flex;
+  flex-direction: column;
+}
+
+.workflow-metrics {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1.25rem;
+}
+
+.workflow-metric {
+  border-left: 2px solid #e8590c;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.55rem 0.65rem;
+}
+
+.workflow-metric span,
+.workflow-metric small {
+  display: block;
+  color: rgba(249, 245, 238, 0.53);
+  font-size: 0.65rem;
+}
+
+.workflow-metric strong {
+  display: block;
+  margin: 0.15rem 0;
+  color: #fffaf3;
+  font-size: 0.86rem;
+  letter-spacing: -0.025em;
+}
+
+.workflow-stage-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.workflow-stage {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  min-height: 5.2rem;
+  border: 1px solid rgba(234, 217, 196, 0.12);
+  border-radius: 0.8rem;
+  background: rgba(0, 0, 0, 0.12);
+  padding: 0.75rem;
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease;
+}
+
+.workflow-stage.is-running {
+  border-color: rgba(131, 209, 184, 0.8);
+  background: rgba(131, 209, 184, 0.11);
+}
+
+.workflow-stage-number {
+  color: #eeb287;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.67rem;
+}
+
+.workflow-stage strong {
+  color: #fffaf3;
+  font-size: 0.78rem;
+}
+
+.workflow-stage p {
+  margin: 0.16rem 0 0;
+  color: rgba(249, 245, 238, 0.55);
+  font-size: 0.67rem;
+  line-height: 1.35;
+}
+
+.workflow-stage svg {
+  color: #eeb287;
+}
+
+.workflow-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 1.2rem;
+}
+
+.workflow-simulate,
+.workflow-inspector-toggle {
+  min-height: 2.65rem;
+  padding: 0 1rem;
+}
+
+.workflow-simulate {
+  border-color: #e8590c;
+  background: #e8590c;
+  color: #fffdf9;
+  box-shadow: 0 12px 28px rgba(232, 89, 12, 0.28);
+}
+
+.workflow-simulate:hover,
+.workflow-simulate:focus-visible {
+  transform: translateY(-2px);
+  background: #fa6a1a;
+}
+
+.workflow-inspector {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.6fr) minmax(0, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+  border: 1px solid rgba(131, 209, 184, 0.3);
+  border-radius: 0.9rem;
+  background: rgba(4, 9, 11, 0.62);
+  padding: 1rem;
+}
+
+.workflow-inspector > div span,
+.workflow-inspector > div strong {
+  display: block;
+}
+
+.workflow-inspector > div span {
+  color: #8fd5bf;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.workflow-inspector > div strong {
+  margin-top: 0.45rem;
+  color: #fffaf3;
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.workflow-inspector pre {
+  overflow: auto;
+  margin: 0;
+  border: 1px solid rgba(234, 217, 196, 0.1);
+  border-radius: 0.65rem;
+  background: rgba(0, 0, 0, 0.28);
+  padding: 0.75rem;
+  color: #cfebe0;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.workflow-inspector p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: rgba(249, 245, 238, 0.48);
+  font-size: 0.68rem;
+}
+
+@keyframes workflow-lattice-pulse {
+  0%,
+  100% {
+    opacity: 0.46;
+    transform: scale(0.78);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@media (max-width: 1100px) {
+  .workflow-inputs,
+  .workflow-brain,
+  .workflow-flywheel,
+  .workflow-impact {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 700px) {
+  .workflow-cockpit-frame {
+    border-radius: 1.15rem;
+    padding: 0.85rem;
+  }
+
+  .workflow-topline-detail {
+    display: none;
+  }
+
+  .workflow-tabs {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-inline: 0.1rem;
+  }
+
+  .workflow-tab {
+    flex: 0 0 auto;
+  }
+
+  .workflow-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.35rem;
+  }
+
+  .workflow-panel {
+    flex: 0 0 min(82vw, 21rem);
+    min-height: 20rem;
+    scroll-snap-align: start;
+  }
+
+  .workflow-stage-list {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-inspector {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workflow-lattice i {
+    animation: none;
+  }
+
+  .workflow-panel,
+  .workflow-tab,
+  .workflow-simulate,
+  .workflow-inspector-toggle,
+  .workflow-stage {
+    transition: none;
+  }
 }
 
 .brain-orb {
@@ -6209,7 +6830,9 @@ body {
   justify-content: center;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #fff, #fff4ed);
-  box-shadow: inset 0 0 16px rgba(239, 107, 46, 0.2), 0 0 0 6px rgba(239, 107, 46, 0.06);
+  box-shadow:
+    inset 0 0 16px rgba(239, 107, 46, 0.2),
+    0 0 0 6px rgba(239, 107, 46, 0.06);
 }
 
 .brain-particles {
@@ -6226,7 +6849,9 @@ body {
 }
 
 @keyframes spinSlow {
-  100% { transform: rotate(360deg); }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .act-branches {
@@ -6314,8 +6939,14 @@ body {
 
 /* Pricing Inline Form */
 @keyframes pricing-form-in {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .pricing-inline-form {
@@ -6380,7 +7011,9 @@ body {
   background: transparent;
   color: var(--marketing-ink-soft);
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 .pricing-inline-form__close:hover {
   background: rgba(0, 0, 0, 0.05);
@@ -6406,7 +7039,9 @@ body {
   background: #fff;
   font-size: 0.8rem;
   color: var(--marketing-ink);
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .pricing-inline-form input:focus {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAgent } from '@/components/agent/shell';
-import { AlertCircle, Trash2, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Archive, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -27,7 +27,7 @@ export default function ConfigurationPage() {
     busy: deleting,
     error: deleteError,
   } = useApiAction(async (auth) => {
-    await api.delete(`/v1/agents/${agent.id}`, auth);
+    await api.post(`/v1/agents/${agent.id}/archive`, undefined, auth);
     router.replace('/agents');
   });
 
@@ -151,8 +151,8 @@ export default function ConfigurationPage() {
           </div>
           <div className="p-6">
             <p className="text-[13px] text-red-600/80 dark:text-red-400/80 mb-4">
-              Deleting this agent will permanently remove all its configurations and logs. This
-              action cannot be undone.
+              Archiving immediately revokes sessions, tools, connections, and credentials while
+              retaining the audit evidence required for recovery and compliance.
             </p>
             {deleteError !== undefined && (
               <p className="mb-4 text-[13px] font-medium text-red-700 dark:text-red-300">
@@ -172,7 +172,7 @@ export default function ConfigurationPage() {
                 onClick={() => void deleteAgent()}
                 className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[13.5px] font-bold transition-colors shadow-sm disabled:opacity-50"
               >
-                <Trash2 className="w-4 h-4" /> {deleting ? 'Deleting...' : 'Delete Agent'}
+                <Archive className="w-4 h-4" /> {deleting ? 'Archiving...' : 'Archive Agent'}
               </button>
             </div>
           </div>

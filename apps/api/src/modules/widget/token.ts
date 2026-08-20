@@ -27,6 +27,8 @@ export interface WidgetSessionClaims {
   /** Normalised origin this token is valid from. */
   origin: string;
   channel: 'voice' | 'text';
+  configurationRevision: number;
+  executionLeaseId: string;
 }
 
 /** Overrides exist so tests can run without a configured environment. */
@@ -48,6 +50,8 @@ export const mintWidgetToken = async (
     org: claims.organizationId,
     origin: claims.origin,
     channel: claims.channel,
+    rev: claims.configurationRevision,
+    lease: claims.executionLeaseId,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(claims.agentId)
@@ -93,9 +97,17 @@ export const verifyWidgetToken = async (
     return reject(error instanceof Error ? error.name : 'invalid');
   }
 
-  const { sub, org, origin, channel } = payload as JWTPayload & Record<string, unknown>;
+  const { sub, org, origin, channel, rev, lease } = payload as JWTPayload & Record<string, unknown>;
 
-  if (typeof sub !== 'string' || typeof org !== 'string' || typeof origin !== 'string') {
+  if (
+    typeof sub !== 'string' ||
+    typeof org !== 'string' ||
+    typeof origin !== 'string' ||
+    typeof rev !== 'number' ||
+    !Number.isInteger(rev) ||
+    rev < 1 ||
+    typeof lease !== 'string'
+  ) {
     return reject('malformed');
   }
   if (!isChannel(channel)) return reject('malformed');
@@ -108,5 +120,7 @@ export const verifyWidgetToken = async (
     organizationId: org as OrganizationId,
     origin,
     channel,
+    configurationRevision: rev,
+    executionLeaseId: lease,
   };
 };

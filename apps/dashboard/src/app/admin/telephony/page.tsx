@@ -8,7 +8,7 @@ export default function SuperAdminTelephonyPage() {
     <>
       <PageHeader
         title="Telephony & Streams"
-        description="Active WebRTC live audio rooms, SIP trunk connections, and Opus stream quality."
+        description="Live voice sessions will appear after the AWS voice edge is deployed."
       />
       <PageBody>
         <TelephonyTab />

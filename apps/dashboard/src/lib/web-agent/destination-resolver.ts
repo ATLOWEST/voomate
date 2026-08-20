@@ -1,4 +1,4 @@
-import type { WebAgentPageContext } from './page-context';
+import { portalScopeForUrl, type WebAgentPageContext } from './page-context';
 
 type Destination = WebAgentPageContext['navigation'][number];
 
@@ -129,25 +129,39 @@ function canonicalToken(value: string): string {
   ) {
     return 'agent';
   }
-  if (norm === 'fellet' || norm === 'fleat' || norm === 'fllet' || norm === 'fleet' || norm === 'fleets') {
+  if (
+    norm === 'fellet' ||
+    norm === 'fleat' ||
+    norm === 'fllet' ||
+    norm === 'fleet' ||
+    norm === 'fleets'
+  ) {
     return 'fleet';
   }
   if (norm === 'marchant' || norm === 'merchent' || norm === 'merchant' || norm === 'merchants') {
     return 'merchant';
   }
+  if (norm === 'telefoni' || norm === 'telephony') return 'telephony';
   if (norm === 'supr' || norm === 'super') {
     return 'super';
   }
   if (norm === 'admn' || norm === 'admin' || norm === 'admins') {
     return 'admin';
   }
-  if (norm === 'conection' || norm === 'conections' || norm === 'connection' || norm === 'connections') {
+  if (
+    norm === 'conection' ||
+    norm === 'conections' ||
+    norm === 'connection' ||
+    norm === 'connections'
+  ) {
     return 'connection';
   }
   if (
     norm === 'inbox' ||
     norm === 'conversation' ||
     norm === 'conversations' ||
+    norm === 'converstion' ||
+    norm === 'converstions' ||
     norm === 'message' ||
     norm === 'messages'
   ) {
@@ -267,17 +281,14 @@ export function resolveDestination(
   const queryPhrase = queryTokens.join(' ');
   if (!queryPhrase) return { kind: 'none', reason: 'no_query' };
 
-  let currentPortal = '';
-  try {
-    if (pageContext?.url) {
-      const path = new URL(pageContext.url).pathname;
-      if (path.startsWith('/admin')) currentPortal = '/admin';
-      else if (path.startsWith('/store')) currentPortal = '/store';
-      else if (path.startsWith('/app')) currentPortal = '/app';
-    }
-  } catch {}
+  const currentPortal = pageContext.portalScope || portalScopeForUrl(pageContext.url);
+  const portalDestinations = pageContext.navigation.filter(
+    (destination) =>
+      (destination.portalScope ?? portalScopeForUrl(destination.url)) === currentPortal,
+  );
+  if (portalDestinations.length === 0) return { kind: 'none', reason: 'no_destinations' };
 
-  const scored = pageContext.navigation
+  const scored = portalDestinations
     .map((destination) => {
       const terms: Array<{ value: string; source: Exclude<MatchKind, 'fuzzy'> }> = [
         { value: destination.label, source: 'title' },
@@ -292,13 +303,7 @@ export function resolveDestination(
         match: 'title' as const,
       };
 
-      let bonus = 0;
-      try {
-        const destPath = new URL(destination.url).pathname;
-        if (currentPortal && destPath.startsWith(currentPortal)) {
-          bonus = 15;
-        }
-      } catch {}
+      const bonus = currentPortal === '/' ? 0 : 15;
 
       return { destination, score: best.score + (best.score > 0 ? bonus : 0), match: best.match };
     })

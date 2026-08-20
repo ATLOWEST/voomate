@@ -18,10 +18,8 @@ import { Suspense } from 'react';
  * is not signed in.
  */
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  let user = await getUser();
-  if (!user) {
-    user = { id: 'mock-id', email: 'admin@voomate.local' } as any;
-  }
+  const user = await getUser();
+  if (!user) redirect('/sign-in');
 
   const accessToken = await getAccessToken();
 

@@ -8,7 +8,7 @@ export default function SuperAdminVoiceStudioPage() {
     <>
       <PageHeader
         title="Voice Edge Studio"
-        description="Direct WebRTC speech playground and real-time audio tester powered by the Pipecat cluster on port 7860."
+        description="Production voice testing will use a short-lived session from the AWS voice edge."
       />
       <PageBody>
         <VoiceStudioTab />

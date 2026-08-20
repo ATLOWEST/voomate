@@ -16,8 +16,16 @@ export function Footer() {
         <div className="site-footer__lead">
           <Link href="/" className="brand-lockup" aria-label="Voomate home">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <img src="/voomate-logo.png" alt="Voomate" style={{ height: '32px', width: 'auto', display: 'block' }} />
-              <img src="/voomate-text-logo.png" alt="Voomate" style={{ height: '24px', width: 'auto', display: 'block' }} />
+              <img
+                src="/voomate-logo.png"
+                alt="Voomate"
+                style={{ height: '32px', width: 'auto', display: 'block' }}
+              />
+              <img
+                src="/voomate-text-logo.png"
+                alt="Voomate"
+                style={{ height: '24px', width: 'auto', display: 'block' }}
+              />
             </div>
           </Link>
           <p>One connected AI team for customer conversations and the work that follows.</p>

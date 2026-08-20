@@ -238,7 +238,9 @@ function clearJourney(publicKey) {
 
 function getMerchantPrivacyUrl() {
   try {
-    const hostPrivacyAnchor = document.querySelector('a[href*="privacy"], a[href*="policies/privacy"]');
+    const hostPrivacyAnchor = document.querySelector(
+      'a[href*="privacy"], a[href*="policies/privacy"]',
+    );
     if (hostPrivacyAnchor && hostPrivacyAnchor.href) {
       return hostPrivacyAnchor.href;
     }
@@ -267,6 +269,32 @@ function mobilePlatform() {
   return 'web';
 }
 
+function portalScopeForUrl(value) {
+  try {
+    const [segment] = new URL(value, window.location.href).pathname.split('/').filter(Boolean);
+    return ['admin', 'app', 'store', 'account'].includes(segment) ? `/${segment}` : '/';
+  } catch {
+    return '/';
+  }
+}
+
+function activePortalScope() {
+  const declared =
+    document.documentElement.dataset.voomatePortalScope ||
+    document.body?.dataset.voomatePortalScope;
+  if (/^\/(?:[a-z0-9_-]+)?$/i.test(declared || '')) return declared;
+  return portalScopeForUrl(window.location.href);
+}
+
+function activePortalRole(scope) {
+  const declared =
+    document.documentElement.dataset.voomateActiveRole || document.body?.dataset.voomateActiveRole;
+  if (['super_admin', 'merchant_admin', 'end_user'].includes(declared)) return declared;
+  if (scope === '/admin') return 'super_admin';
+  if (scope === '/store' || scope === '/account') return 'end_user';
+  return 'merchant_admin';
+}
+
 function collectPageContext() {
   const manifest = readUiManifest();
   const operatingState = readOperatingState();
@@ -278,6 +306,7 @@ function collectPageContext() {
     .filter(Boolean)
     .slice(0, 12);
   const navigation = [];
+  const portalScope = activePortalScope();
   const seen = new Set();
   const addNavigation = (label, value, pageDescription, aliases, facts, native) => {
     try {
@@ -290,6 +319,7 @@ function collectPageContext() {
       navigation.push({
         label: normalizedLabel,
         url: url.href,
+        portalScope: portalScopeForUrl(url.href),
         ...(pageDescription ? { description: compactText(pageDescription, 600) } : {}),
         ...(Array.isArray(aliases)
           ? {
@@ -316,7 +346,11 @@ function collectPageContext() {
   for (const page of manifest?.pages ?? []) {
     addNavigation(page.title, page.path, page.description, page.aliases, page.facts, page.native);
   }
-  for (const anchor of document.querySelectorAll('a[href]')) {
+  const semanticAnchors = document.querySelectorAll(
+    'aside nav a[href], header nav a[href], [role="navigation"] a[href], [data-sidebar] a[href]',
+  );
+  const anchors = semanticAnchors.length ? semanticAnchors : document.querySelectorAll('a[href]');
+  for (const anchor of anchors) {
     if (anchor.closest('voomate-widget')) continue;
     const anchorUrl = new URL(anchor.href, window.location.href);
     if (
@@ -336,6 +370,8 @@ function collectPageContext() {
     url: window.location.href,
     title: compactText(document.title, 200),
     description: compactText(description, 800),
+    portalScope,
+    activeRole: activePortalRole(portalScope),
     headings,
     navigation,
     ...(surface
@@ -376,6 +412,7 @@ function resolveClientNavigation(commands, pageContext) {
   if (!navigation) return undefined;
   try {
     const target = new URL(navigation.url, window.location.origin);
+    if (portalScopeForUrl(target.href) !== pageContext.portalScope) return undefined;
     const advertised = pageContext.navigation.find((item) => {
       if (item.url === target.href) return true;
       try {
