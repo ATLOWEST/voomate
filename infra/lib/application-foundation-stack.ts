@@ -241,7 +241,7 @@ export class ApplicationFoundationStack extends Stack {
     this.runtimeSecret.grantRead(dashboardTaskDef.obtainExecutionRole());
 
     dashboardTaskDef.addContainer('dashboard', {
-      image: ecs.ContainerImage.fromEcrRepository(this.repositories.dashboard, 'candidate'),
+      image: ecs.ContainerImage.fromEcrRepository(this.repositories.dashboard, 'ad36f65'),
       logging: ecs.LogDrivers.awsLogs({
         logGroup: logGroups.dashboard,
         streamPrefix: 'dashboard',
