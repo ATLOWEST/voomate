@@ -17,7 +17,7 @@ import { OutcomeCarousel } from '@/components/ui/outcome-carousel';
 import { TryNowButton } from '@/components/ui/try-now-button';
 import { SITE_URL } from '@/lib/site-url';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://dashboard.atlowest.in';
 
 export const metadata: Metadata = {
   title: 'Voomate — One AI team for every customer conversation',

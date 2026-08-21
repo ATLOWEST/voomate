@@ -23,7 +23,7 @@ import { useApiAction } from '@/lib/hooks';
  * resolves the tenant and rejects origins that are not on the agent's allowlist.
  */
 const WIDGET_ORIGIN = (
-  process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? 'https://widget.voomate.com'
+  process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? 'https://widget.atlowest.in'
 ).replace(/\/$/, '');
 
 export function InstallPanels() {

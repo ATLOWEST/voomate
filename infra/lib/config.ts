@@ -35,7 +35,7 @@ export const STAGES: Record<string, StageConfig> = {
   prod: {
     stage: 'prod',
     region: 'us-east-1',
-    widgetDomain: 'widget.voomate.example',
+    widgetDomain: 'widget.atlowest.in',
     retainData: true,
   },
 };

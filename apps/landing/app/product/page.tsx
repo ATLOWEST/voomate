@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { ProductTabs } from '@/components/ui/product-tabs';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://dashboard.atlowest.in';
 
 export const metadata: Metadata = {
   title: 'Product — How Voomate Works',

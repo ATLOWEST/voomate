@@ -79,7 +79,7 @@ const config: NextConfig = {
     ],
   },
   async rewrites() {
-    // In production the browser only sees app.atlowest.in/api. This keeps the Fastify
+    // In production the browser only sees dashboard.atlowest.in/api. This keeps the Fastify
     // control plane inside the ECS private namespace and lets the API security group reject
     // every connection except the dashboard tasks.
     if (process.env.NODE_ENV !== 'production') return [];

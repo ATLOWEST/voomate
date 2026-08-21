@@ -1,7 +1,9 @@
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
@@ -17,10 +19,8 @@ interface ApplicationFoundationStackProps extends StackProps {
 /**
  * Shared runtime resources for every AWS-hosted Voomate application service.
  *
- * There is intentionally no public ingress rule in this stack. Containers can reach the
- * internet for Supabase, Upstash and AWS APIs, but nobody can reach a container directly.
- * Cloudflare is connected later as the single controlled ingress once its tunnel/DNS permission
- * and the database isolation gate have both passed.
+ * Application containers accept traffic only from the production load balancer. The load
+ * balancer terminates TLS for the public service hostnames and keeps task addresses private.
  */
 export class ApplicationFoundationStack extends Stack {
   readonly cluster: ecs.Cluster;
@@ -44,8 +44,7 @@ export class ApplicationFoundationStack extends Stack {
     this.taskSecurityGroup = new ec2.SecurityGroup(this, 'ApplicationTasksSecurityGroup', {
       vpc,
       allowAllOutbound: true,
-      description:
-        'Voomate application tasks: outbound only until private Cloudflare ingress is attached',
+      description: 'Voomate application tasks: inbound only from the production load balancer',
     });
 
     this.cluster = new ecs.Cluster(this, 'Cluster', {
@@ -281,6 +280,11 @@ export class ApplicationFoundationStack extends Stack {
           this.runtimeSecret,
           'NEXT_PUBLIC_API_URL',
         ),
+        INTERNAL_API_URL: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'INTERNAL_API_URL'),
+        VOICE_SERVICE_ORIGIN: ecs.Secret.fromSecretsManager(
+          this.runtimeSecret,
+          'VOICE_SERVICE_ORIGIN',
+        ),
       },
       portMappings: [{ containerPort: 3001 }],
     });
@@ -356,6 +360,134 @@ export class ApplicationFoundationStack extends Stack {
       },
     });
 
+    // Public Application Load Balancer for Direct Browser and Edge Ingress
+    const albSecurityGroup = new ec2.SecurityGroup(this, 'AlbSecurityGroup', {
+      vpc,
+      allowAllOutbound: true,
+      description: 'Public ingress for Voomate Application Load Balancer',
+    });
+    albSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'Allow public HTTP');
+    albSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow public HTTPS');
+
+    this.taskSecurityGroup.addIngressRule(
+      albSecurityGroup,
+      ec2.Port.tcp(3001),
+      'Allow ALB to Dashboard',
+    );
+    this.taskSecurityGroup.addIngressRule(albSecurityGroup, ec2.Port.tcp(4000), 'Allow ALB to API');
+    this.taskSecurityGroup.addIngressRule(
+      albSecurityGroup,
+      ec2.Port.tcp(7860),
+      'Allow ALB to Voice Edge',
+    );
+
+    const alb = new elbv2.ApplicationLoadBalancer(this, 'ApplicationLoadBalancer', {
+      vpc,
+      internetFacing: true,
+      securityGroup: albSecurityGroup,
+      loadBalancerName: `voomate-${props.config.stage}-alb`,
+    });
+
+    const dashboardTargetGroup = new elbv2.ApplicationTargetGroup(this, 'DashboardTargetGroup', {
+      vpc,
+      port: 3001,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      targetType: elbv2.TargetType.IP,
+      targets: [
+        dashboardService.loadBalancerTarget({
+          containerName: 'dashboard',
+          containerPort: 3001,
+        }),
+      ],
+      healthCheck: {
+        path: '/sign-in',
+        healthyHttpCodes: '200,307,308',
+        interval: Duration.seconds(30),
+        timeout: Duration.seconds(5),
+        healthyThresholdCount: 2,
+        unhealthyThresholdCount: 3,
+      },
+    });
+
+    const apiTargetGroup = new elbv2.ApplicationTargetGroup(this, 'ApiTargetGroup', {
+      vpc,
+      port: 4000,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      targetType: elbv2.TargetType.IP,
+      targets: [
+        apiService.loadBalancerTarget({
+          containerName: 'api',
+          containerPort: 4000,
+        }),
+      ],
+      healthCheck: {
+        path: '/health',
+        healthyHttpCodes: '200',
+        interval: Duration.seconds(30),
+        timeout: Duration.seconds(5),
+        healthyThresholdCount: 2,
+        unhealthyThresholdCount: 3,
+      },
+    });
+
+    const voiceTargetGroup = new elbv2.ApplicationTargetGroup(this, 'VoiceTargetGroup', {
+      vpc,
+      port: 7860,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      targetType: elbv2.TargetType.IP,
+      targets: [
+        voiceService.loadBalancerTarget({
+          containerName: 'voice',
+          containerPort: 7860,
+        }),
+      ],
+      healthCheck: {
+        path: '/',
+        healthyHttpCodes: '200,307,308',
+        interval: Duration.seconds(30),
+        timeout: Duration.seconds(5),
+        healthyThresholdCount: 2,
+        unhealthyThresholdCount: 3,
+      },
+    });
+
+    // Plain HTTP never serves application traffic.
+    alb.addListener('HttpListener', {
+      port: 80,
+      open: true,
+      defaultAction: elbv2.ListenerAction.redirect({
+        protocol: 'HTTPS',
+        port: '443',
+        permanent: true,
+      }),
+    });
+
+    // The wildcard certificate is DNS-validated in the authoritative Vercel zone.
+    const albCertificate = acm.Certificate.fromCertificateArn(
+      this,
+      'AlbCertificate',
+      'arn:aws:acm:us-east-1:424999960818:certificate/6c534b6a-8979-4bff-8592-ce67f19a767f',
+    );
+
+    const httpsListener = alb.addListener('HttpsListener', {
+      port: 443,
+      open: true,
+      certificates: [albCertificate],
+      defaultTargetGroups: [dashboardTargetGroup],
+    });
+
+    httpsListener.addAction('ApiRoutingHttps', {
+      priority: 10,
+      conditions: [elbv2.ListenerCondition.hostHeaders(['api.atlowest.in'])],
+      action: elbv2.ListenerAction.forward([apiTargetGroup]),
+    });
+
+    httpsListener.addAction('VoiceRoutingHttps', {
+      priority: 20,
+      conditions: [elbv2.ListenerCondition.hostHeaders(['voice.atlowest.in'])],
+      action: elbv2.ListenerAction.forward([voiceTargetGroup]),
+    });
+
     new CfnOutput(this, 'ClusterName', { value: this.cluster.clusterName });
     new CfnOutput(this, 'PrivateNamespaceName', { value: this.namespace.namespaceName });
     new CfnOutput(this, 'RuntimeSecretArn', {
@@ -368,5 +500,13 @@ export class ApplicationFoundationStack extends Stack {
     new CfnOutput(this, 'ApiServiceArn', { value: apiService.serviceArn });
     new CfnOutput(this, 'DashboardServiceArn', { value: dashboardService.serviceArn });
     new CfnOutput(this, 'VoiceServiceArn', { value: voiceService.serviceArn });
+    new CfnOutput(this, 'LoadBalancerDnsName', {
+      value: alb.loadBalancerDnsName,
+      description: 'Public AWS DNS name for the Application Load Balancer',
+    });
+    new CfnOutput(this, 'DashboardUrl', {
+      value: 'https://dashboard.atlowest.in',
+      description: 'Production dashboard URL',
+    });
   }
 }

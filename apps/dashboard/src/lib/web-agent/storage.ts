@@ -5,7 +5,7 @@ let client: SupabaseClient | undefined;
 
 /** Server-only Supabase client. The service key must never enter Next public env or widget code. */
 export function webAgentStorage(): SupabaseClient {
-  const url = process.env.SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceKey) {
     throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for image uploads.');

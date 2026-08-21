@@ -1,6 +1,6 @@
 import { SplineScene } from '@/components/ui/splite';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://dashboard.atlowest.in';
 
 const GUARANTEES = [
   { label: 'No credit card', sub: 'Start with 100 free conversations' },

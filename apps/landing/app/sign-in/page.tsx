@@ -8,7 +8,9 @@ export const metadata = {
 export default function SignInPage() {
   const dashboardUrl =
     process.env.NEXT_PUBLIC_DASHBOARD_URL ||
-    (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'http://localhost:3001');
+    (process.env.NODE_ENV === 'development'
+      ? 'http://localhost:3001'
+      : 'https://dashboard.atlowest.in');
 
   return (
     <main className="marketing-main">

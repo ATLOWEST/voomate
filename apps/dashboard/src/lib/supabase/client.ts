@@ -8,8 +8,24 @@
  */
 import { createBrowserClient } from '@supabase/ssr';
 
-export const createClient = () =>
-  createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+declare global {
+  interface Window {
+    __VOOMATE_ENV__?: {
+      supabaseUrl?: string;
+      supabaseAnonKey?: string;
+    };
+  }
+}
+
+export const createClient = () => {
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    (typeof window !== 'undefined' ? window.__VOOMATE_ENV__?.supabaseUrl : undefined) ||
+    '';
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    (typeof window !== 'undefined' ? window.__VOOMATE_ENV__?.supabaseAnonKey : undefined) ||
+    '';
+
+  return createBrowserClient(url, anonKey);
+};

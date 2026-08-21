@@ -22,8 +22,13 @@ import { type ErrorResponse } from '@voomate/core';
 // trip through the public load balancer.
 export const API_BASE_URL =
   typeof window === 'undefined'
-    ? (process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000')
-    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000');
+    ? (process.env.INTERNAL_API_URL ??
+      process.env.NEXT_PUBLIC_API_URL ??
+      (process.env.NODE_ENV === 'production'
+        ? 'http://api.voomate-prod.internal:4000'
+        : 'http://localhost:4000'))
+    : (process.env.NEXT_PUBLIC_API_URL ??
+      (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:4000'));
 
 const BASE_URL = API_BASE_URL;
 

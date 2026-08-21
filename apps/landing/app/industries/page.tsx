@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { WORKFLOW_USE_CASES, UseCaseAccordion } from '@/components/ui/use-case-accordion';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://atlowest.in';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://dashboard.atlowest.in';
 
 export const metadata: Metadata = {
   title: 'Industries — Voomate Use Cases',
