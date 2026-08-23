@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, TextInput } from '@/components/ui/field';
 import { createClient } from '@/lib/supabase/client';
@@ -17,11 +17,22 @@ export function SignUpForm() {
   const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    try {
+      const remembered = localStorage.getItem('voomate_last_email');
+      if (remembered) setEmail(remembered);
+    } catch {}
+  }, []);
+
   const sendCode = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError(undefined);
     setNotice(undefined);
+
+    try {
+      localStorage.setItem('voomate_last_email', email.trim());
+    } catch {}
 
     try {
       const supabase = createClient();
