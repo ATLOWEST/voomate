@@ -645,6 +645,38 @@ export class ApplicationFoundationStack extends Stack {
       defaultTargetGroups: [dashboardTargetGroup],
     });
 
+    // Keep the public product topology to the landing site, merchant app, and super-admin
+    // portal. Resolve canonical host redirects at the edge so they work even before Next.js
+    // middleware receives a forwarded host header.
+    httpsListener.addAction('LegacyDashboardHostRedirect', {
+      priority: 5,
+      conditions: [elbv2.ListenerCondition.hostHeaders(['dashboard.atlowest.in'])],
+      action: elbv2.ListenerAction.redirect({
+        protocol: 'HTTPS',
+        port: '443',
+        host: 'app.atlowest.in',
+        path: '/#{path}',
+        query: '#{query}',
+        permanent: true,
+      }),
+    });
+
+    httpsListener.addAction('AdminRootRedirect', {
+      priority: 6,
+      conditions: [
+        elbv2.ListenerCondition.hostHeaders(['admin.atlowest.in']),
+        elbv2.ListenerCondition.pathPatterns(['/']),
+      ],
+      action: elbv2.ListenerAction.redirect({
+        protocol: 'HTTPS',
+        port: '443',
+        host: 'admin.atlowest.in',
+        path: '/admin',
+        query: '#{query}',
+        permanent: true,
+      }),
+    });
+
     httpsListener.addAction('ApiRoutingHttpsPath', {
       priority: 10,
       conditions: [elbv2.ListenerCondition.pathPatterns(['/health', '/health/*', '/v1', '/v1/*'])],
@@ -682,8 +714,8 @@ export class ApplicationFoundationStack extends Stack {
       description: 'Public AWS DNS name for the Application Load Balancer',
     });
     new CfnOutput(this, 'DashboardUrl', {
-      value: 'https://atlowest.in',
-      description: 'Production dashboard URL',
+      value: 'https://app.atlowest.in',
+      description: 'Production merchant dashboard URL',
     });
   }
 }
