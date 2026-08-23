@@ -74,6 +74,12 @@ try {
   });
   await Promise.all(buildIds.map(waitForBuild));
 
+  // Clean cdk.out to prevent stale CLI lock collisions
+  try {
+    rmSync(new URL('../infra/cdk.out', import.meta.url), { recursive: true, force: true });
+    rmSync(new URL('../cdk.out', import.meta.url), { recursive: true, force: true });
+  } catch {}
+
   // CloudFormation, rather than an imperative ECS update, owns the promoted task definitions.
   // That preserves rollback history and prevents the next infra deploy from silently undoing a
   // release. The tag is immutable because every image is tied to this exact git commit.
@@ -87,6 +93,8 @@ try {
       'stage=prod',
       '-c',
       `imageTag=${releaseTag}`,
+      '-c',
+      'deployDataPlane=false',
       '--require-approval',
       'never',
     ],
