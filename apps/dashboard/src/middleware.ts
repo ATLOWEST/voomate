@@ -15,6 +15,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 const APP_HOST = 'app.atlowest.in';
 const ADMIN_HOST = 'admin.atlowest.in';
 const LEGACY_DASHBOARD_HOST = 'dashboard.atlowest.in';
+const MARKETING_HOST = 'atlowest.in';
+const DUPLICATE_MARKETING_PATHS = new Set(['/about', '/industries', '/pricing', '/product']);
 
 const portalRedirect = (request: NextRequest): NextResponse | undefined => {
   const forwardedHost = request.headers.get('x-forwarded-host');
@@ -30,6 +32,17 @@ const portalRedirect = (request: NextRequest): NextResponse | undefined => {
 
   if (host === APP_HOST && pathname.startsWith('/admin')) {
     return NextResponse.redirect(new URL(`https://${ADMIN_HOST}${suffix}`), 308);
+  }
+
+  // The dashboard source still contains the old marketing route group for historical builds.
+  // Never let it render on the app host: the public site owns marketing, while the app host
+  // starts at the sign-in screen and only serves the authenticated operating panel.
+  if (host === APP_HOST && (pathname === '/' || pathname === '')) {
+    return NextResponse.redirect(new URL(`https://${APP_HOST}/sign-in${search}`), 308);
+  }
+
+  if (host === APP_HOST && DUPLICATE_MARKETING_PATHS.has(pathname)) {
+    return NextResponse.redirect(new URL(`https://${MARKETING_HOST}${suffix}`), 308);
   }
 
   if (host !== ADMIN_HOST) return undefined;
@@ -54,22 +67,18 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  const supabase = createServerClient(
-    url,
-    anonKey,
-    {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (toSet) => {
-          for (const { name, value } of toSet) request.cookies.set(name, value);
-          response = NextResponse.next({ request });
-          for (const { name, value, options } of toSet) {
-            response.cookies.set(name, value, options);
-          }
-        },
+  const supabase = createServerClient(url, anonKey, {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll: (toSet) => {
+        for (const { name, value } of toSet) request.cookies.set(name, value);
+        response = NextResponse.next({ request });
+        for (const { name, value, options } of toSet) {
+          response.cookies.set(name, value, options);
+        }
       },
     },
-  );
+  });
 
   // The call itself is the point: it triggers the refresh and the cookie write above.
   await supabase.auth.getUser();

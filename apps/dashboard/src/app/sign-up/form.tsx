@@ -24,32 +24,6 @@ export function SignUpForm() {
     } catch {}
   }, []);
 
-  const quickEnter = async () => {
-    setBusy(true);
-    setError(undefined);
-    try {
-      const supabase = createClient();
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: 'yugpatelrvp1964@gmail.com',
-        password: '@yugpatel011',
-      });
-
-      if (signInError) {
-        setError(signInError.message);
-        return;
-      }
-
-      if (data.session) {
-        router.refresh();
-        router.replace('/');
-      }
-    } catch {
-      setError('Quick workspace access is temporarily unavailable.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const sendCode = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -168,27 +142,6 @@ export function SignUpForm() {
 
   return (
     <form onSubmit={sendCode} className="auth-form mt-6 space-y-4">
-      {/* 1-Click Instant Workspace Enter Button */}
-      <Button
-        type="button"
-        variant="primary"
-        size="lg"
-        loading={busy}
-        className="w-full font-semibold shadow-md"
-        onClick={quickEnter}
-      >
-        ✨ 1-Click Instant Workspace Access
-      </Button>
-
-      <div className="relative my-3 text-center">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-white/10" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-[#110D0A] px-3 text-muted-foreground">or create custom workspace</span>
-        </div>
-      </div>
-
       <Field label="Workspace name" htmlFor="workspace-name">
         <TextInput
           id="workspace-name"
