@@ -50,3 +50,5 @@ evals/web-agent/results/
 # local scratch
 /tmp/
 /scratch/
+.codebase-memory/
+
