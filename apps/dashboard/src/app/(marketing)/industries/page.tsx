@@ -244,12 +244,12 @@ export default function IndustriesPage() {
           Keep one controlled system.
         </h2>
         <div className="hero-actions--buttonless justify-center" data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+          <Link href="/overview" className="hero-action-primary">
             <span>Start now</span>
             <ArrowRight size={18} />
-          </a>
-          <Link href="/integrations" className="hero-action-secondary">
-            <span>Explore integrations</span>
+          </Link>
+          <Link href="/product" className="hero-action-secondary">
+            <span>Explore capabilities</span>
             <ArrowUpRight size={17} />
           </Link>
         </div>

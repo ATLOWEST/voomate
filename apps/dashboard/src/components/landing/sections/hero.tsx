@@ -33,13 +33,11 @@ export function HeroSection() {
             Voomate gives every business one connected AI team: it speaks to customers, understands
             your business, and safely gets work done across your tools.
           </p>
-          <div
-            className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-center animate-fade"
-            style={{ '--delay': '220ms' } as React.CSSProperties}
-          >
-            <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
-              <span>Start now</span> <ArrowRight size={18} />
-            </a>
+          <div className="hero-actions" data-reveal>
+            <Link href="/overview" className="hero-action-primary">
+              <span>Start now</span>
+              <ArrowRight size={18} />
+            </Link>
             <Link href="/#features" className="hero-action-secondary">
               <span>See how it works</span> <ArrowUpRight size={17} />
             </Link>

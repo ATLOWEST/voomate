@@ -331,10 +331,10 @@ export default function HomePage() {
           business needs.
         </p>
         <div className="hero-actions hero-actions--buttonless justify-center" data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+          <Link href="/overview" className="hero-action-primary">
             <span>Start now</span>
             <ArrowRight size={18} />
-          </a>
+          </Link>
           <Link href="/pricing" className="hero-action-secondary">
             <span>View pricing</span>
             <ArrowUpRight size={17} />

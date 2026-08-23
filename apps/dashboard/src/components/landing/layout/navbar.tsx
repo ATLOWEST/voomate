@@ -196,12 +196,12 @@ export function Navbar() {
 
         {/* Action Buttons (Buttonless text + arrow) */}
         <div className="site-nav__actions">
-          <a href={`${DASHBOARD_URL}/sign-in`} className="site-nav__sign-in">
+          <Link href="/overview" className="site-nav__sign-in">
             Sign in
-          </a>
-          <a href={`${DASHBOARD_URL}/sign-up`} className="site-nav__sign-up">
-            Sign up <ArrowUpRight size={15} />
-          </a>
+          </Link>
+          <Link href="/overview" className="site-nav__sign-up">
+            Dashboard <ArrowUpRight size={15} />
+          </Link>
         </div>
 
         {/* Mobile menu toggle */}
@@ -251,20 +251,20 @@ export function Navbar() {
           </div>
 
           <div className="site-nav__mobile-actions">
-            <a
-              href={`${DASHBOARD_URL}/sign-in`}
+            <Link
+              href="/overview"
               className="site-nav__mobile-link text-center font-bold"
               onClick={() => setOpen(false)}
             >
               Sign in
-            </a>
-            <a
-              href={`${DASHBOARD_URL}/sign-up`}
+            </Link>
+            <Link
+              href="/overview"
               className="btn-ink justify-center w-full"
               onClick={() => setOpen(false)}
             >
-              Sign up <ArrowUpRight size={15} />
-            </a>
+              Dashboard <ArrowUpRight size={15} />
+            </Link>
           </div>
         </div>
       )}

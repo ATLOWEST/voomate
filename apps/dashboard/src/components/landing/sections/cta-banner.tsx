@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { SplineScene } from '@/components/ui/splite';
 
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://dashboard.atlowest.in';
@@ -42,10 +44,11 @@ export function CTASection() {
                 handles every customer conversation, in every language, 24 hours a day.
               </p>
 
-              <div className="mb-8">
-                <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
-                  <span>Start now</span> →
-                </a>
+              <div className="hero-actions" data-reveal>
+                <Link href="/overview" className="hero-action-primary">
+                  <span>Start now</span>
+                  <ArrowRight size={18} />
+                </Link>
               </div>
 
               {/* Guarantee trio */}

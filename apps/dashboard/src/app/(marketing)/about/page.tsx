@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { BreadcrumbJsonLd, WebPageJsonLd } from '@/components/seo/json-ld';
 import { siteUrl } from '@/lib/site-url';
 import {
@@ -177,14 +178,14 @@ export default function AboutPage() {
           you want customers to feel.
         </h2>
         <div className="hero-actions--buttonless justify-center" data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+          <Link href="/overview" className="hero-action-primary">
             <span>Start now</span>
             <ArrowRight size={18} />
-          </a>
-          <a href="mailto:hello@voomate.com" className="hero-action-secondary">
-            <span>Talk to the team</span>
+          </Link>
+          <Link href="/pricing" className="hero-action-secondary">
+            <span>Review pricing tiers</span>
             <ArrowUpRight size={17} />
-          </a>
+          </Link>
         </div>
       </section>
     </main>

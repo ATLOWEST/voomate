@@ -192,8 +192,8 @@ export function Navbar() {
 
         {/* Action Buttons */}
         <div className="site-nav__actions">
-          <Link href="/admin/merchants" className="site-nav__sign-in text-xs opacity-75 hover:opacity-100">
-            Super Admin
+          <Link href="/overview" className="site-nav__sign-in">
+            Sign in
           </Link>
           <Link href="/overview" className="site-nav__sign-up">
             Dashboard <ArrowUpRight size={15} />
@@ -248,11 +248,11 @@ export function Navbar() {
 
           <div className="site-nav__mobile-actions">
             <Link
-              href="/admin/merchants"
+              href="/overview"
               className="site-nav__mobile-sign-in"
               onClick={() => setOpen(false)}
             >
-              Super Admin
+              Sign in
             </Link>
             <Link
               href="/overview"
