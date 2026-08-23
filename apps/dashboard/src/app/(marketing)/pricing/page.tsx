@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: 'Pricing — Voomate Plans',
   description:
     'Clear Voomate plans for businesses starting, growing, or connecting custom systems. Starter is free with 100 conversations per month. Growth is ₹2,499/month.',
+  robots: { index: false, follow: false },
   openGraph: {
     title: 'Pricing — Voomate Plans',
     description:

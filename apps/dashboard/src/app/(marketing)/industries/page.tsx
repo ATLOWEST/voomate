@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   title: 'Industries — Voomate Use Cases',
   description:
     'See how Voomate adapts to any business through tenant knowledge, live tools, and controlled workflow permissions without rigid industry templates.',
+  robots: { index: false, follow: false },
   openGraph: {
     title: 'Industries — Voomate Use Cases',
     description:

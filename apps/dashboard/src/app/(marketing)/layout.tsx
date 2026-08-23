@@ -1,9 +1,23 @@
 import type { ReactNode } from 'react';
+import type { Metadata } from 'next';
 import { Navbar } from '@/components/landing-layout/navbar';
 import { Footer } from '@/components/landing-layout/footer';
 import { MarketingMotion } from '@/components/ui/marketing-motion';
 import { ShaderBackground } from '@/components/ui/shader-bg';
 import { OrganizationJsonLd } from '@/components/seo/json-ld';
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
+};
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (

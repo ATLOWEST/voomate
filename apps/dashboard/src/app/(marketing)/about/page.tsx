@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   title: 'About — The Voomate Principles',
   description:
     'Why Voomate is building one connected AI operating team for businesses. Discover our principles: grounded answers, useful actions, and private context.',
+  robots: { index: false, follow: false },
   openGraph: {
     title: 'About — The Voomate Principles',
     description: 'Building one connected AI operating team for businesses.',

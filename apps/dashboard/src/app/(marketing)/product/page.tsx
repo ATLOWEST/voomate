@@ -22,9 +22,10 @@ import { ProductTabs } from '@/components/ui/product-tabs';
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? '';
 
 export const metadata: Metadata = {
-  title: 'Product — How Voomate Works',
+  title: 'Product & Capabilities · Voomate',
   description:
-    "See how Voomate's Web, Voice Calling, and Integration Agents work as one controlled operating system for customer conversations and approved business actions.",
+    'Deep dive into the Voomate Web Agent, Voice Calling Agent, and Integration Agent operating system.',
+  robots: { index: false, follow: false },
   openGraph: {
     title: 'Product — How Voomate Works',
     description:

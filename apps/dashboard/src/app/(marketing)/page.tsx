@@ -23,6 +23,7 @@ export const metadata: Metadata = {
   title: 'Voomate — One AI team for every customer conversation',
   description:
     'Voomate is an AI operating system that connects a Web Agent, Voice Calling Agent, and Integration Agent so businesses can answer customers and complete approved work from one shared system.',
+  robots: { index: false, follow: false },
   keywords: [
     'AI voice agent',
     'AI web agent',
@@ -45,7 +46,6 @@ export const metadata: Metadata = {
     description:
       'AI operating system connecting web, voice, and integration agents for customer conversations.',
   },
-  robots: { index: true, follow: true },
   alternates: {
     canonical: '/',
   },
