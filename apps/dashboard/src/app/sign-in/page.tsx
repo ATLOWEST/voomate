@@ -1,41 +1,80 @@
-import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { getUser } from '@/lib/supabase/server';
-import { SignInForm } from './form';
+import { ArrowRight, Bot, ShieldCheck, Sparkles, ArrowLeft } from 'lucide-react';
 
-export const metadata: Metadata = { title: 'Sign in' };
+export const metadata: Metadata = {
+  title: 'Instant Dashboard Access · Voomate',
+  robots: { index: false, follow: false },
+};
 
-export default async function SignInPage() {
-  // Someone already signed in who lands here (a bookmark, a back button) should go straight
-  // to work rather than being shown a form that will bounce them anyway.
-  if (await getUser()) redirect('/agents');
-
+export default function SignInPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center justify-center">
-          <img src="/voomate-logo.png" alt="Voomate" className="h-10 w-auto dark:invert" />
+    <main className="flex min-h-screen items-center justify-center px-6 py-12 bg-background">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+            <Sparkles className="size-3.5 text-amber-500" /> Instant Demo & Dashboard Access
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Select Your Workspace
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Authentication is currently bypassed. Select which platform experience you would like to explore.
+          </p>
         </div>
 
-        <h1 className="text-xl font-semibold tracking-[-0.02em]">Sign in</h1>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-secondary">
-          Use the email and password for your Voomate account.
-        </p>
-
-        <Suspense fallback={<div className="mt-7 h-48 animate-pulse rounded-lg bg-[var(--surface-sunken)]" />}>
-          <SignInForm />
-        </Suspense>
-        <p className="mt-5 text-center text-[13px] text-secondary">
-          New to Voomate?{' '}
+        <div className="grid gap-4">
           <Link
-            href="/sign-up"
-            className="font-medium text-foreground underline underline-offset-4"
+            href="/overview"
+            className="group relative flex flex-col gap-2 rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:border-foreground/30 hover:shadow-md"
           >
-            Create an account
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Bot className="size-5" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-foreground">Merchant Dashboard</h2>
+                  <p className="text-xs text-muted-foreground">Storefront & Customer Operations</p>
+                </div>
+              </div>
+              <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+            </div>
+            <p className="mt-1 text-xs text-secondary leading-relaxed">
+              Configure Web Agents, Voice Prompts, live customer chat transcripts, Shopify/Stripe integrations, and team settings.
+            </p>
           </Link>
-        </p>
+
+          <Link
+            href="/admin/merchants"
+            className="group relative flex flex-col gap-2 rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:border-foreground/30 hover:shadow-md"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  <ShieldCheck className="size-5" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-foreground">Super Admin Platform</h2>
+                  <p className="text-xs text-muted-foreground">Internal Governance & Cluster Edge</p>
+                </div>
+              </div>
+              <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+            </div>
+            <p className="mt-1 text-xs text-secondary leading-relaxed">
+              Global multi-tenant registry, AWS Bedrock LLM routing, real-time Voice Edge Studio, and cluster health logs.
+            </p>
+          </Link>
+        </div>
+
+        <div className="pt-2 text-center">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="size-3.5" /> Back to Marketing Landing Page
+          </Link>
+        </div>
       </div>
     </main>
   );

@@ -1,34 +1,59 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { getUser } from '@/lib/supabase/server';
-import { SignUpForm } from './form';
+import { ArrowRight, Bot, Sparkles, ArrowLeft } from 'lucide-react';
 
-export const metadata: Metadata = { title: 'Create account' };
+export const metadata: Metadata = {
+  title: 'Instant Workspace Access · Voomate',
+  robots: { index: false, follow: false },
+};
 
-export default async function SignUpPage() {
-  if (await getUser()) redirect('/');
-
+export default function SignUpPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center justify-center">
-          <img src="/voomate-logo.png" alt="Voomate" className="h-10 w-auto dark:invert" />
+    <main className="flex min-h-screen items-center justify-center px-6 py-12 bg-background">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+            <Sparkles className="size-3.5 text-amber-500" /> Instant Access Enabled
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Create / Enter Workspace
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Registration is bypassed. You can jump directly into your interactive demo workspace.
+          </p>
         </div>
-        <h1 className="text-xl font-semibold tracking-[-0.02em]">Create your workspace</h1>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-secondary">
-          Start with one secure Voomate account and a workspace for your business.
-        </p>
-        <SignUpForm />
-        <p className="mt-5 text-center text-[13px] text-secondary">
-          Already have an account?{' '}
+
+        <div className="grid gap-4">
           <Link
-            href="/sign-in"
-            className="font-medium text-foreground underline underline-offset-4"
+            href="/overview"
+            className="group relative flex flex-col gap-2 rounded-2xl border border-primary/30 bg-primary/5 p-6 shadow-sm transition-all hover:border-primary/60 hover:shadow-md"
           >
-            Sign in
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <Bot className="size-5" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-foreground">Launch Demo Workspace</h2>
+                  <p className="text-xs text-muted-foreground">Instant Provisioning · No Credit Card</p>
+                </div>
+              </div>
+              <ArrowRight className="size-4 text-primary transition-transform group-hover:translate-x-1" />
+            </div>
+            <p className="mt-2 text-xs text-secondary leading-relaxed">
+              Explore pre-configured AI Web & Voice agents, interactive knowledge bases, and multi-channel conversation tools.
+            </p>
           </Link>
-        </p>
+        </div>
+
+        <div className="pt-2 text-center">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="size-3.5" /> Back to Marketing Landing Page
+          </Link>
+        </div>
       </div>
     </main>
   );

@@ -190,14 +190,14 @@ export function Navbar() {
           })}
         </ul>
 
-        {/* Action Buttons (Buttonless text + arrow) */}
+        {/* Action Buttons */}
         <div className="site-nav__actions">
-          <a href={`${DASHBOARD_URL}/sign-in`} className="site-nav__sign-in">
-            Sign in
-          </a>
-          <a href={`${DASHBOARD_URL}/sign-up`} className="site-nav__sign-up">
-            Sign up <ArrowUpRight size={15} />
-          </a>
+          <Link href="/admin/merchants" className="site-nav__sign-in text-xs opacity-75 hover:opacity-100">
+            Super Admin
+          </Link>
+          <Link href="/overview" className="site-nav__sign-up">
+            Dashboard <ArrowUpRight size={15} />
+          </Link>
         </div>
 
         {/* Mobile menu toggle */}
@@ -233,10 +233,10 @@ export function Navbar() {
           </div>
 
           <div className="site-nav__mobile-section">
-            <span className="site-nav__mobile-category">Platform</span>
+            <span className="site-nav__mobile-category">Menu</span>
             {NAV_LINKS.map((link) => (
               <Link
-                key={link.label}
+                key={link.href}
                 href={link.href}
                 className="site-nav__mobile-link"
                 onClick={() => setOpen(false)}
@@ -247,20 +247,20 @@ export function Navbar() {
           </div>
 
           <div className="site-nav__mobile-actions">
-            <a
-              href={`${DASHBOARD_URL}/sign-in`}
-              className="site-nav__mobile-link text-center font-bold"
+            <Link
+              href="/admin/merchants"
+              className="site-nav__mobile-sign-in"
               onClick={() => setOpen(false)}
             >
-              Sign in
-            </a>
-            <a
-              href={`${DASHBOARD_URL}/sign-up`}
-              className="btn-ink justify-center w-full"
+              Super Admin
+            </Link>
+            <Link
+              href="/overview"
+              className="site-nav__mobile-sign-up"
               onClick={() => setOpen(false)}
             >
-              Sign up <ArrowUpRight size={15} />
-            </a>
+              Dashboard <ArrowUpRight size={15} />
+            </Link>
           </div>
         </div>
       )}

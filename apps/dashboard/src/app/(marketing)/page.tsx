@@ -82,10 +82,10 @@ export default function HomePage() {
             <span className="hero-ember-shiny">your customers.</span>
           </h1>
           <div className="hero-actions hero-actions--buttonless" data-reveal>
-            <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+            <Link href="/overview" className="hero-action-primary">
               <span>Start now</span>
               <ArrowRight size={18} />
-            </a>
+            </Link>
             <Link href="/#features" className="hero-action-secondary">
               <span>See how it works</span>
               <ArrowUpRight size={17} />

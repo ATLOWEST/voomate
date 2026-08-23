@@ -9,16 +9,19 @@ import './marketing.css';
 export const metadata: Metadata = {
   title: { default: 'Voomate — Voice & Web AI Agent Operating System', template: '%s · Voomate' },
   description: 'Voomate connects a Web Agent, Voice Calling Agent, and Integration Agent so businesses can answer customers and automate workflows 24/7.',
-  keywords: [
-    'AI voice agent',
-    'AI web agent',
-    'customer service automation',
-    'AI business operations',
-    'voice AI for business',
-    'AI agent platform',
-    'conversational AI',
-  ],
-  robots: { index: true, follow: true },
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'none',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export const viewport: Viewport = {

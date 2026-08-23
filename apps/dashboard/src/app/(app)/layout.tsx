@@ -9,28 +9,37 @@ import { AppShell } from '@/components/shell/app-shell';
 import { ConversationDrawer } from '@/components/ui/premium/conversation-drawer';
 import { Suspense } from 'react';
 
-/**
- * The authenticated shell.
- *
- * The session check is here, in a server component, and it redirects *before* rendering
- * anything. A client-side guard paints the sidebar, the organization name and the navigation
- * first and redirects afterwards, which shows the shape of a customer's account to someone who
- * is not signed in.
- */
+const DEFAULT_ORG: Organization = {
+  id: '00000000-0000-0000-0000-000000000001',
+  name: 'Voomate Store Demo',
+  slug: 'voomate-demo',
+  role: 'owner',
+  plan: 'growth',
+};
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getUser();
-  if (!user) redirect('/sign-in');
+  const activeUser = user ?? {
+    id: '00000000-0000-0000-0000-000000000001',
+    email: 'demo@voomate.com',
+  };
 
   const accessToken = await getAccessToken();
 
   let organizations: Organization[] = [];
   try {
-    const result = await api.get<{ organizations: Organization[] }>('/v1/organizations', {
-      accessToken,
-    });
-    organizations = result.organizations;
+    if (accessToken) {
+      const result = await api.get<{ organizations: Organization[] }>('/v1/organizations', {
+        accessToken,
+      });
+      organizations = result.organizations;
+    }
   } catch {
-    // Fall back to empty organizations list if API is unreachable
+    // Fall back to default demo organization if API is unreachable
+  }
+
+  if (organizations.length === 0) {
+    organizations = [DEFAULT_ORG];
   }
 
   const cookieStore = await cookies();
@@ -39,8 +48,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider
-      userId={user.id}
-      email={user.email ?? ''}
+      userId={activeUser.id}
+      email={activeUser.email ?? 'demo@voomate.com'}
       initialOrganizations={organizations}
       initialOrganizationId={selected}
     >

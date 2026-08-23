@@ -37,9 +37,9 @@ export function HeroSection() {
             className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-center animate-fade"
             style={{ '--delay': '220ms' } as React.CSSProperties}
           >
-            <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
+            <Link href="/overview" className="hero-action-primary">
               <span>Start now</span> <ArrowRight size={18} />
-            </a>
+            </Link>
             <Link href="/#features" className="hero-action-secondary">
               <span>See how it works</span> <ArrowUpRight size={17} />
             </Link>
