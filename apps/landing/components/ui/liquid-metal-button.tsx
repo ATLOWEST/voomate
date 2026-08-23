@@ -19,7 +19,7 @@ export function LiquidMetalButton({
   const [isPressed, setIsPressed] = useState(false);
   const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([]);
   const shaderRef = useRef<HTMLDivElement>(null);
-  const shaderMount = useRef<{ destroy?: () => void } | null>(null);
+  const shaderMount = useRef<ShaderMount | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const rippleId = useRef(0);
 
@@ -79,8 +79,8 @@ export function LiquidMetalButton({
         // static import used above
 
         if (shaderRef.current) {
-          if (shaderMount.current?.destroy) {
-            shaderMount.current.destroy();
+          if (shaderMount.current?.dispose) {
+            shaderMount.current.dispose();
           }
 
           shaderMount.current = new ShaderMount(
@@ -111,8 +111,8 @@ export function LiquidMetalButton({
     loadShader();
 
     return () => {
-      if (shaderMount.current?.destroy) {
-        shaderMount.current.destroy();
+      if (shaderMount.current?.dispose) {
+        shaderMount.current.dispose();
         shaderMount.current = null;
       }
     };

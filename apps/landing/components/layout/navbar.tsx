@@ -199,7 +199,7 @@ export function Navbar() {
           <a href={`${DASHBOARD_URL}/sign-in`} className="site-nav__sign-in">
             Sign in
           </a>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="site-nav__sign-up">
+          <a href={`${DASHBOARD_URL}/sign-up`} className="site-nav__sign-up">
             Sign up <ArrowUpRight size={15} />
           </a>
         </div>
@@ -259,7 +259,7 @@ export function Navbar() {
               Sign in
             </a>
             <a
-              href={`${DASHBOARD_URL}/sign-in`}
+              href={`${DASHBOARD_URL}/sign-up`}
               className="btn-ink justify-center w-full"
               onClick={() => setOpen(false)}
             >

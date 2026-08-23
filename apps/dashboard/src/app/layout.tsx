@@ -4,12 +4,21 @@ import Script from 'next/script';
 import { defineUiManifest, serializeUiManifest } from '@voomate/connect';
 import { VoomateNavigationBridge } from '@/components/voomate-navigation-bridge';
 import './globals.css';
+import './marketing.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Voomate', template: '%s · Voomate' },
-  description: 'Voice-first AI agents for your website.',
-  // The dashboard holds customer conversation data. Keep it out of search indexes entirely.
-  robots: { index: false, follow: false },
+  title: { default: 'Voomate — Voice & Web AI Agent Operating System', template: '%s · Voomate' },
+  description: 'Voomate connects a Web Agent, Voice Calling Agent, and Integration Agent so businesses can answer customers and automate workflows 24/7.',
+  keywords: [
+    'AI voice agent',
+    'AI web agent',
+    'customer service automation',
+    'AI business operations',
+    'voice AI for business',
+    'AI agent platform',
+    'conversational AI',
+  ],
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {

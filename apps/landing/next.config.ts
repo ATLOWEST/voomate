@@ -40,7 +40,7 @@ const securityHeaders = [
 
 const config: NextConfig = {
   reactStrictMode: true,
-  // Cloudflare Pages serves the marketing site from static assets. Dashboard and API requests
+  // AWS CloudFront and Route 53 serve the marketing site from static assets. Dashboard and API requests
   // are intentionally kept outside this build: they carry authenticated, tenant-scoped traffic.
   ...(staticExport ? { output: 'export' as const, images: { unoptimized: true } } : {}),
   ...(staticExport

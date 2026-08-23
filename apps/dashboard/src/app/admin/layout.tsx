@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default async function SuperAdminLayout({ children }: { children: ReactNode }) {
   const user = await getUser();
-  if (!user) redirect('/sign-in');
+  if (!user) redirect('/sign-in?next=/admin');
 
   const supabase = await createClient();
   const { data: administrator } = await supabase

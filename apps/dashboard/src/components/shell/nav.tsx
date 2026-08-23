@@ -27,7 +27,7 @@ type NavItem = {
 };
 
 const primaryItems: NavItem[] = [
-  { title: 'Home', href: '/', icon: CircleGauge },
+  { title: 'Overview', href: '/overview', icon: CircleGauge },
   { title: 'Inbox', href: '/conversations', icon: Inbox },
 ];
 

@@ -248,6 +248,8 @@ export class ApplicationFoundationStack extends Stack {
       }),
       secrets: {
         NODE_ENV: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'NODE_ENV'),
+        SUPABASE_URL: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'SUPABASE_URL'),
+        SUPABASE_ANON_KEY: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'SUPABASE_ANON_KEY'),
         NEXT_PUBLIC_SUPABASE_URL: ecs.Secret.fromSecretsManager(
           this.runtimeSecret,
           'NEXT_PUBLIC_SUPABASE_URL',
@@ -261,8 +263,16 @@ export class ApplicationFoundationStack extends Stack {
           'SUPABASE_SERVICE_ROLE_KEY',
         ),
         DATABASE_URL: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'DATABASE_URL'),
+        DATABASE_DIRECT_URL: ecs.Secret.fromSecretsManager(
+          this.runtimeSecret,
+          'DATABASE_DIRECT_URL',
+        ),
         BEDROCK_REGION: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'BEDROCK_REGION'),
         BEDROCK_MODEL_ID: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'BEDROCK_MODEL_ID'),
+        BEDROCK_UTILITY_MODEL_ID: ecs.Secret.fromSecretsManager(
+          this.runtimeSecret,
+          'BEDROCK_UTILITY_MODEL_ID',
+        ),
         UPSTASH_REDIS_REST_URL: ecs.Secret.fromSecretsManager(
           this.runtimeSecret,
           'UPSTASH_REDIS_REST_URL',
@@ -401,7 +411,7 @@ export class ApplicationFoundationStack extends Stack {
       ],
       healthCheck: {
         path: '/sign-in',
-        healthyHttpCodes: '200,307,308',
+        healthyHttpCodes: '200-399',
         interval: Duration.seconds(30),
         timeout: Duration.seconds(5),
         healthyThresholdCount: 2,
@@ -451,22 +461,46 @@ export class ApplicationFoundationStack extends Stack {
       },
     });
 
-    // Plain HTTP never serves application traffic.
-    alb.addListener('HttpListener', {
+    // Public HTTP listener (port 80) - serves direct HTTP requests for both ALB DNS and custom domains
+    const httpListener = alb.addListener('HttpListener', {
       port: 80,
       open: true,
-      defaultAction: elbv2.ListenerAction.redirect({
-        protocol: 'HTTPS',
-        port: '443',
-        permanent: true,
-      }),
+      defaultTargetGroups: [dashboardTargetGroup],
     });
 
-    // The wildcard certificate is DNS-validated in the authoritative Vercel zone.
+    httpListener.addAction('ApiRoutingHttpPath', {
+      priority: 10,
+      conditions: [
+        elbv2.ListenerCondition.pathPatterns(['/health', '/health/*', '/v1/*', '/api/*']),
+      ],
+      action: elbv2.ListenerAction.forward([apiTargetGroup]),
+    });
+
+    httpListener.addAction('ApiRoutingHttpHost', {
+      priority: 11,
+      conditions: [elbv2.ListenerCondition.hostHeaders(['api.atlowest.in', 'api.atlowest.com'])],
+      action: elbv2.ListenerAction.forward([apiTargetGroup]),
+    });
+
+    httpListener.addAction('VoiceRoutingHttpPath', {
+      priority: 20,
+      conditions: [
+        elbv2.ListenerCondition.pathPatterns(['/voice/*', '/client/*', '/ws/*']),
+      ],
+      action: elbv2.ListenerAction.forward([voiceTargetGroup]),
+    });
+
+    httpListener.addAction('VoiceRoutingHttpHost', {
+      priority: 21,
+      conditions: [elbv2.ListenerCondition.hostHeaders(['voice.atlowest.in', 'voice.atlowest.com'])],
+      action: elbv2.ListenerAction.forward([voiceTargetGroup]),
+    });
+
+    // The issued certificate in us-east-1 for atlowest.in and www.atlowest.in
     const albCertificate = acm.Certificate.fromCertificateArn(
       this,
       'AlbCertificate',
-      'arn:aws:acm:us-east-1:424999960818:certificate/6c534b6a-8979-4bff-8592-ce67f19a767f',
+      'arn:aws:acm:us-east-1:424999960818:certificate/f4d52737-4e8c-444e-b5a9-9ed1ccb2f085',
     );
 
     const httpsListener = alb.addListener('HttpsListener', {
@@ -476,15 +510,31 @@ export class ApplicationFoundationStack extends Stack {
       defaultTargetGroups: [dashboardTargetGroup],
     });
 
-    httpsListener.addAction('ApiRoutingHttps', {
+    httpsListener.addAction('ApiRoutingHttpsPath', {
       priority: 10,
-      conditions: [elbv2.ListenerCondition.hostHeaders(['api.atlowest.in'])],
+      conditions: [
+        elbv2.ListenerCondition.pathPatterns(['/health', '/health/*', '/v1/*', '/api/*']),
+      ],
       action: elbv2.ListenerAction.forward([apiTargetGroup]),
     });
 
-    httpsListener.addAction('VoiceRoutingHttps', {
+    httpsListener.addAction('ApiRoutingHttpsHost', {
+      priority: 11,
+      conditions: [elbv2.ListenerCondition.hostHeaders(['api.atlowest.in', 'api.atlowest.com'])],
+      action: elbv2.ListenerAction.forward([apiTargetGroup]),
+    });
+
+    httpsListener.addAction('VoiceRoutingHttpsPath', {
       priority: 20,
-      conditions: [elbv2.ListenerCondition.hostHeaders(['voice.atlowest.in'])],
+      conditions: [
+        elbv2.ListenerCondition.pathPatterns(['/voice/*', '/client/*', '/ws/*']),
+      ],
+      action: elbv2.ListenerAction.forward([voiceTargetGroup]),
+    });
+
+    httpsListener.addAction('VoiceRoutingHttpsHost', {
+      priority: 21,
+      conditions: [elbv2.ListenerCondition.hostHeaders(['voice.atlowest.in', 'voice.atlowest.com'])],
       action: elbv2.ListenerAction.forward([voiceTargetGroup]),
     });
 
@@ -505,7 +555,7 @@ export class ApplicationFoundationStack extends Stack {
       description: 'Public AWS DNS name for the Application Load Balancer',
     });
     new CfnOutput(this, 'DashboardUrl', {
-      value: 'https://dashboard.atlowest.in',
+      value: 'https://atlowest.in',
       description: 'Production dashboard URL',
     });
   }

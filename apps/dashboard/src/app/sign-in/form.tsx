@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, TextInput } from '@/components/ui/field';
@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 
 export function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string>();
@@ -19,20 +20,37 @@ export function SignInForm() {
     setError(undefined);
 
     const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (signInError) {
-      // Supabase already returns a deliberately vague "Invalid login credentials" for both a
-      // wrong password and an unknown email, which is the right behaviour — distinguishing
-      // them turns the form into an account-enumeration oracle. Pass it through unchanged.
       setError(signInError.message);
       setBusy(false);
       return;
     }
 
-    // `refresh` before `push` so the server components re-render with the new session cookie.
-    // Pushing first renders the authenticated shell against a stale server session, which
-    // bounces straight back here.
+    const next = searchParams.get('next');
+    if (next && next.startsWith('/')) {
+      router.refresh();
+      router.push(next);
+      return;
+    }
+
+    // Smart routing: Check if user is a platform administrator
+    if (data.user) {
+      const { data: adminRecord } = await supabase
+        .from('platform_administrators')
+        .select('user_id')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+
+      router.refresh();
+      if (adminRecord) {
+        router.push('/admin/merchants');
+        return;
+      }
+    }
+
+    // Standard merchant dashboard
     router.refresh();
     router.push('/agents');
   };

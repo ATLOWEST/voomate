@@ -19,7 +19,8 @@ import { DashboardMotion } from './dashboard-motion';
 import { cn } from '@/lib/cn';
 
 const pageNames: Record<string, string> = {
-  '/': 'Home',
+  '/': 'Overview',
+  '/overview': 'Overview',
   '/agents': 'Agents',
   '/conversations': 'Inbox',
   '/integrations': 'Connections',

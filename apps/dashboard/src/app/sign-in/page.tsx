@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -23,7 +24,9 @@ export default async function SignInPage() {
           Use the email and password for your Voomate account.
         </p>
 
-        <SignInForm />
+        <Suspense fallback={<div className="mt-7 h-48 animate-pulse rounded-lg bg-[var(--surface-sunken)]" />}>
+          <SignInForm />
+        </Suspense>
         <p className="mt-5 text-center text-[13px] text-secondary">
           New to Voomate?{' '}
           <Link

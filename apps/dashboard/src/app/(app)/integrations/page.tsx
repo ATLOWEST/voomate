@@ -271,7 +271,7 @@ function ConnectDialog({
   onClose: () => void;
   onCreated: () => void;
 }) {
-  const [agentId, setAgentId] = useState(agents[0]?.id ?? '');
+  const [agentId, setAgentId] = useState<string>(agents[0]?.id ?? '');
   const [name, setName] = useState('');
   const [endpointUrl, setEndpointUrl] = useState('');
   const [secret, setSecret] = useState<string>();
