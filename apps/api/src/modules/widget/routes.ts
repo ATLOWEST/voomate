@@ -29,7 +29,7 @@ import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { getDb } from '../../lib/db.js';
 import { isProduction } from '../../config.js';
 import { normalizeOrigin } from '../../lib/keys.js';
-import { UpstashRateLimitStore } from '../../lib/upstash-rate-limit-store.js';
+import { RedisRateLimitStore } from '../../lib/redis-rate-limit-store.js';
 import { mintWidgetToken } from './token.js';
 
 /**
@@ -55,7 +55,7 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
     await scope.register(import('@fastify/rate-limit'), {
       max: 30,
       timeWindow: '1 minute',
-      ...(isProduction ? { store: UpstashRateLimitStore, cache: 0, skipOnError: false } : {}),
+      ...(isProduction ? { store: RedisRateLimitStore, cache: 0, skipOnError: false } : {}),
       keyGenerator: (request) => `${request.ip}:${originOf(request) ?? 'unknown'}`,
     });
 

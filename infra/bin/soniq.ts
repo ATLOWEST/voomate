@@ -1,14 +1,19 @@
 #!/usr/bin/env tsx
 import { App, Tags } from 'aws-cdk-lib';
 import { ApplicationFoundationStack } from '../lib/application-foundation-stack.js';
+import { AwsDataPlaneStack } from '../lib/aws-data-plane-stack.js';
 import { ApplicationBuildStack } from '../lib/application-build-stack.js';
-import { resolveStage } from '../lib/config.js';
+import { resolveImageTag, resolveStage } from '../lib/config.js';
 import { LandingDeliveryStack } from '../lib/landing-delivery-stack.js';
 import { RuntimeStack } from '../lib/runtime-stack.js';
 import { StorageStack } from '../lib/storage-stack.js';
 
 const app = new App();
 const config = resolveStage(app.node.tryGetContext('stage') as string | undefined);
+const imageTag = resolveImageTag(
+  config.stage,
+  app.node.tryGetContext('imageTag') as string | undefined,
+);
 
 const env = { region: config.region };
 const prefix = `Voomate-${config.stage}`;
@@ -27,8 +32,16 @@ const applicationFoundation = new ApplicationFoundationStack(
   {
     env,
     config,
+    imageTag,
   },
 );
+
+new AwsDataPlaneStack(app, `${prefix}-DataPlane`, {
+  env,
+  config,
+  vpc: applicationFoundation.vpc,
+  taskSecurityGroup: applicationFoundation.taskSecurityGroup,
+});
 
 new ApplicationBuildStack(app, `${prefix}-ApplicationBuild`, {
   env,

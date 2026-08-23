@@ -9,7 +9,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://dashboard.atlowest.in';
 
 export function HeroSection() {
   return (
@@ -34,7 +33,7 @@ export function HeroSection() {
             your business, and safely gets work done across your tools.
           </p>
           <div className="hero-actions" data-reveal>
-            <Link href="/overview" className="hero-action-primary">
+            <Link href="/sign-up" className="hero-action-primary">
               <span>Start now</span>
               <ArrowRight size={18} />
             </Link>

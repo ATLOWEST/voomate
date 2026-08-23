@@ -6,7 +6,7 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start --port 3001",
-    "test": "vitest run src/lib/web-agent",
+    "test": "vitest run src/lib/web-agent src/lib/auth",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next"
   },

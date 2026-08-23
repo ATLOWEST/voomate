@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { WORKFLOW_USE_CASES, UseCaseAccordion } from '@/components/ui/use-case-accordion';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? '';
 
 export const metadata: Metadata = {
   title: 'Industries — Voomate Use Cases',
@@ -244,7 +243,7 @@ export default function IndustriesPage() {
           Keep one controlled system.
         </h2>
         <div className="hero-actions--buttonless justify-center" data-reveal>
-          <Link href="/overview" className="hero-action-primary">
+          <Link href="/sign-up" className="hero-action-primary">
             <span>Start now</span>
             <ArrowRight size={18} />
           </Link>

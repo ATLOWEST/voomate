@@ -5,13 +5,14 @@ blocked until every release gate below is green.
 
 ## Hosting decision
 
-Use Cloudflare for DNS, TLS, WAF, CDN, and rate-limit rules. It is the public edge, not the
-execution environment for the agent runtime.
+Use AWS as the public and execution edge: Route 53/DNS, ACM, CloudFront for the static landing
+site, an Application Load Balancer for the dashboard/API/voice hostnames, and AWS WAF before
+opening public traffic. Do not place Cloudflare, Vercel, or another proxy in the request path.
 
 | Surface | Production home | Reason |
 | --- | --- | --- |
-| Landing site | Cloudflare Pages or Vercel | Static Next.js output, cached globally. |
-| Dashboard | Vercel or AWS ECS | Normal signed-in Next.js UI. Keep all server secrets server-side. |
+| Landing site | AWS S3 + CloudFront | Static Next.js output, cached globally through an AWS-only edge. |
+| Dashboard | AWS ECS/Fargate behind an ALB | Normal signed-in Next.js UI. Keep all server secrets server-side. |
 | Fastify control-plane API | AWS ECS/Fargate behind an ALB | Long-lived streaming, workers, WebSockets, and explicit IAM task roles need a persistent Node runtime. |
 | Pipecat voice service | Separate AWS ECS/Fargate service | WebRTC/audio streams cannot safely run in a static host or short-lived serverless function. |
 | Database and auth | Supabase in the selected production region | Managed Postgres, backups, JWT auth, and RLS. |
@@ -69,18 +70,20 @@ Redis errors fail closed; they do not turn into unlimited public traffic.
 6. Deploy to a private staging domain first. Verify readiness, tenant denial, widget wrong-origin
    denial, webhook HMAC rejection, rate-limit denial, logs redaction, and a complete voice turn.
 7. Rotate the local long-lived AWS access key after the first task-role deployment, enable MFA,
-   and set AWS/Cloudflare/Supabase budget and security alerts.
+   and set AWS/Supabase budget and security alerts.
 8. Promote the exact tested image to production with an ALB health-check deploy gate and rollback
    target. Do not rebuild a different artifact during promotion.
 
-## Cloudflare edge rules
+## AWS edge rules
 
-- Proxy only public HTTP(S) hostnames; do not proxy database or administrative origins.
-- Enable managed WAF rules, bot protection appropriate to the plan, and a per-IP rate-limit rule
-  for `/v1/widget/session` and `/api/web-agent/session`.
-- Permit only the required methods and keep dashboard/admin paths behind Supabase auth.
-- Send security events to a retained log destination and keep origin-server access limited to the
-  load balancer or Cloudflare network as applicable.
+- Route the marketing hostname only to CloudFront; route the Dashboard, API, and Voice hostnames
+  only to the ALB. Do not make one hostname serve both CloudFront and ALB origins.
+- Attach AWS WAF managed rules and a per-IP rate limit for `/v1/widget/session` and
+  `/api/web-agent/session` before public launch.
+- Permit only the required methods, redirect all HTTP traffic to HTTPS, and keep dashboard/admin
+  paths behind Supabase auth.
+- Send ALB, WAF, and ECS security events to retained CloudWatch/S3 destinations; task security
+  groups must admit inbound traffic only from the ALB.
 
 ## Postman
 

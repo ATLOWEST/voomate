@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { SplineScene } from '@/components/ui/splite';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://dashboard.atlowest.in';
 
 const GUARANTEES = [
   { label: 'No credit card', sub: 'Start with 100 free conversations' },
@@ -45,7 +44,7 @@ export function CTASection() {
               </p>
 
               <div className="hero-actions" data-reveal>
-                <Link href="/overview" className="hero-action-primary">
+                <Link href="/sign-up" className="hero-action-primary">
                   <span>Start now</span>
                   <ArrowRight size={18} />
                 </Link>

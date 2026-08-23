@@ -17,7 +17,6 @@ import { OutcomeCarousel } from '@/components/ui/outcome-carousel';
 import { TryNowButton } from '@/components/ui/try-now-button';
 import { SITE_URL } from '@/lib/site-url';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? '';
 
 export const metadata: Metadata = {
   title: 'Voomate — One AI team for every customer conversation',
@@ -82,7 +81,7 @@ export default function HomePage() {
             <span className="hero-ember-shiny">your customers.</span>
           </h1>
           <div className="hero-actions hero-actions--buttonless" data-reveal>
-            <Link href="/overview" className="hero-action-primary">
+            <Link href="/sign-up" className="hero-action-primary">
               <span>Start now</span>
               <ArrowRight size={18} />
             </Link>
@@ -331,7 +330,7 @@ export default function HomePage() {
           business needs.
         </p>
         <div className="hero-actions hero-actions--buttonless justify-center" data-reveal>
-          <Link href="/overview" className="hero-action-primary">
+          <Link href="/sign-up" className="hero-action-primary">
             <span>Start now</span>
             <ArrowRight size={18} />
           </Link>

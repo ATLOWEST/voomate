@@ -14,7 +14,6 @@ import {
   Workflow,
 } from 'lucide-react';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? '';
 
 export const metadata: Metadata = {
   title: 'About — The Voomate Principles',
@@ -178,7 +177,7 @@ export default function AboutPage() {
           you want customers to feel.
         </h2>
         <div className="hero-actions--buttonless justify-center" data-reveal>
-          <Link href="/overview" className="hero-action-primary">
+          <Link href="/sign-up" className="hero-action-primary">
             <span>Start now</span>
             <ArrowRight size={18} />
           </Link>

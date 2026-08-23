@@ -22,7 +22,7 @@ import { voiceSocketRoutes } from './modules/widget/voice-socket.js';
 import { webhookRoutes } from './modules/webhooks/routes.js';
 import { authPlugin } from './plugins/auth.js';
 import { errorHandler } from './plugins/error-handler.js';
-import { UpstashRateLimitStore } from './lib/upstash-rate-limit-store.js';
+import { RedisRateLimitStore } from './lib/redis-rate-limit-store.js';
 
 export const buildServer = async (): Promise<FastifyInstance> => {
   const app = Fastify({
@@ -71,7 +71,7 @@ export const buildServer = async (): Promise<FastifyInstance> => {
     timeWindow: '1 minute',
     // A production request can land on any instance, so only a shared counter is meaningful.
     // Keep the low-overhead memory store for local development and isolated test processes.
-    ...(isProduction ? { store: UpstashRateLimitStore, cache: 0, skipOnError: false } : {}),
+    ...(isProduction ? { store: RedisRateLimitStore, cache: 0, skipOnError: false } : {}),
     // Per-tenant where we know the tenant, per-IP otherwise. Without the tenant key, one
     // busy merchant's visitors would exhaust the limit for everyone behind a shared NAT.
     keyGenerator: (request) => request.tenant?.organizationId ?? request.ip,

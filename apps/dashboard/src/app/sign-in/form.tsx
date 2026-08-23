@@ -4,59 +4,114 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, TextInput } from '@/components/ui/field';
+import { safeInternalPath } from '@/lib/auth/redirect';
 import { createClient } from '@/lib/supabase/client';
 
 export function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [challengeSent, setChallengeSent] = useState(false);
   const [error, setError] = useState<string>();
+  const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
 
-  const submit = async (event: FormEvent) => {
+  const sendCode = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(undefined);
+    setNotice(undefined);
+
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (signInError) {
+      // Keep the response generic so this form does not reveal whether an email is registered.
+      setError('We could not send a sign-in code. Check the email address and try again shortly.');
+      setBusy(false);
+      return;
+    }
+
+    setChallengeSent(true);
+    setNotice('If this email can sign in, a code is on its way. It expires shortly.');
+    setBusy(false);
+  };
+
+  const verifyCode = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError(undefined);
 
     const supabase = createClient();
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: otp.trim(),
+      type: 'email',
+    });
 
-    if (signInError) {
-      setError(signInError.message);
+    if (verifyError) {
+      setError('That code is invalid or expired. Request a new code and try again.');
       setBusy(false);
       return;
     }
 
-    const next = searchParams.get('next');
-    if (next && next.startsWith('/')) {
-      router.refresh();
-      router.push(next);
-      return;
-    }
-
-    // Smart routing: Check if user is a platform administrator
-    if (data.user) {
-      const { data: adminRecord } = await supabase
-        .from('platform_administrators')
-        .select('user_id')
-        .eq('user_id', data.user.id)
-        .maybeSingle();
-
-      router.refresh();
-      if (adminRecord) {
-        router.push('/admin/merchants');
-        return;
-      }
-    }
-
-    // Standard merchant dashboard
     router.refresh();
-    router.push('/agents');
+    router.replace(safeInternalPath(searchParams.get('next')));
   };
 
+  if (challengeSent) {
+    return (
+      <form onSubmit={verifyCode} className="mt-7 space-y-4">
+        <Field
+          label="One-time code"
+          htmlFor="otp"
+          hint="Enter the code from your email."
+          error={error}
+        >
+          <TextInput
+            id="otp"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={otp}
+            onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 8))}
+            minLength={6}
+            maxLength={8}
+            required
+            autoFocus
+          />
+        </Field>
+        {notice && (
+          <p role="status" className="text-sm text-secondary">
+            {notice}
+          </p>
+        )}
+        <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
+          Verify and sign in
+        </Button>
+        <button
+          type="button"
+          className="w-full text-sm font-medium text-secondary underline underline-offset-4"
+          onClick={() => {
+            setChallengeSent(false);
+            setOtp('');
+            setError(undefined);
+          }}
+        >
+          Use a different email
+        </button>
+      </form>
+    );
+  }
+
   return (
-    <form onSubmit={submit} className="mt-7 space-y-4">
+    <form onSubmit={sendCode} className="mt-7 space-y-4">
       <Field label="Email" htmlFor="email">
         <TextInput
           id="email"
@@ -68,20 +123,13 @@ export function SignInForm() {
           autoFocus
         />
       </Field>
-
-      <Field label="Password" htmlFor="password" error={error}>
-        <TextInput
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
-      </Field>
-
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
       <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
-        Sign in
+        Email me a sign-in code
       </Button>
     </form>
   );

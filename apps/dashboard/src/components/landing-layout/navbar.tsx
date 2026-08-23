@@ -15,8 +15,6 @@ import {
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? '';
-
 const PRODUCT_ITEMS = [
   {
     title: 'Web Agent',
@@ -192,10 +190,10 @@ export function Navbar() {
 
         {/* Action Buttons */}
         <div className="site-nav__actions">
-          <Link href="/overview" className="site-nav__sign-in">
+          <Link href="/sign-in" className="site-nav__sign-in">
             Sign in
           </Link>
-          <Link href="/overview" className="site-nav__sign-up">
+          <Link href="/sign-in" className="site-nav__sign-up">
             Dashboard <ArrowUpRight size={15} />
           </Link>
         </div>
@@ -248,14 +246,14 @@ export function Navbar() {
 
           <div className="site-nav__mobile-actions">
             <Link
-              href="/overview"
+              href="/sign-in"
               className="site-nav__mobile-sign-in"
               onClick={() => setOpen(false)}
             >
               Sign in
             </Link>
             <Link
-              href="/overview"
+              href="/sign-in"
               className="site-nav__mobile-sign-up"
               onClick={() => setOpen(false)}
             >

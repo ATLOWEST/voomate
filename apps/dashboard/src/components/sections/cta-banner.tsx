@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { SplineScene } from '@/components/ui/splite';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? '';
 
 const GUARANTEES = [
   { label: 'No credit card', sub: 'Start with 100 free conversations' },
@@ -44,7 +43,7 @@ export function CTASection() {
               </p>
 
               <div className="mb-8">
-                <Link href="/overview" className="hero-action-primary">
+                <Link href="/sign-up" className="hero-action-primary">
                   <span>Start now</span> →
                 </Link>
               </div>

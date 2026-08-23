@@ -9,7 +9,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? '';
 
 export function HeroSection() {
   return (
@@ -37,7 +36,7 @@ export function HeroSection() {
             className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-center animate-fade"
             style={{ '--delay': '220ms' } as React.CSSProperties}
           >
-            <Link href="/overview" className="hero-action-primary">
+            <Link href="/sign-up" className="hero-action-primary">
               <span>Start now</span> <ArrowRight size={18} />
             </Link>
             <Link href="/#features" className="hero-action-secondary">

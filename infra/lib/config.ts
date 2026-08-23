@@ -49,3 +49,21 @@ export const resolveStage = (name: string | undefined): StageConfig => {
   }
   return config;
 };
+
+/**
+ * ECS task definitions must point to an immutable image. `candidate` is allowed only for
+ * local/dev synthesis; production releases always pass the git revision that CodeBuild pushed.
+ */
+export const resolveImageTag = (stage: StageConfig['stage'], value: string | undefined): string => {
+  const imageTag = value?.trim();
+  if (!imageTag) {
+    if (stage === 'prod') {
+      throw new Error('Production deployments require an immutable imageTag CDK context value.');
+    }
+    return 'candidate';
+  }
+  if (!/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/.test(imageTag)) {
+    throw new Error('imageTag must be a valid ECR tag.');
+  }
+  return imageTag;
+};

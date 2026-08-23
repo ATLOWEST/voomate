@@ -13,8 +13,8 @@ interface LandingDeliveryStackProps extends StackProps {
 
 /**
  * AWS-owned delivery for the public marketing site. The S3 bucket is never public: only
- * CloudFront's Origin Access Control can read it. Cloudflare will proxy the final domain,
- * providing DNS, TLS and WAF without hosting the application itself.
+ * CloudFront's Origin Access Control can read it. DNS, TLS, CDN delivery, and application
+ * execution remain AWS-owned; do not add a second edge proxy in front of this distribution.
  */
 export class LandingDeliveryStack extends Stack {
   readonly distribution: cloudfront.Distribution;
@@ -22,11 +22,8 @@ export class LandingDeliveryStack extends Stack {
   constructor(scope: Construct, id: string, props: LandingDeliveryStackProps) {
     super(scope, id, props);
 
-    // Cloudflare is the public DNS/TLS/WAF edge, but it must still be able to make a
-    // TLS-verified request to the AWS origin using the customer's hostname. Keeping the
-    // alternate names on CloudFront avoids a fragile "origin host header" workaround.
-    // This is intentionally a single temporary launch domain; a future brand-domain
-    // migration must add its own ACM certificate before changing DNS.
+    // CloudFront terminates TLS for the marketing domain. A future brand-domain migration must
+    // provision its own ACM certificate before changing DNS.
     const landingCertificate = acm.Certificate.fromCertificateArn(
       this,
       'LandingCertificate',
@@ -133,7 +130,7 @@ function handler(event) {
 
     new CfnOutput(this, 'LandingDistributionDomainName', {
       value: this.distribution.distributionDomainName,
-      description: 'AWS CloudFront origin for Cloudflare DNS; do not expose S3 directly',
+      description: 'AWS CloudFront distribution; do not expose S3 directly',
     });
     new CfnOutput(this, 'LandingAssetsBucketName', { value: siteBucket.bucketName });
   }

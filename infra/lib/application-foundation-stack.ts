@@ -9,11 +9,14 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import type { Construct } from 'constructs';
 import type { StageConfig } from './config.js';
 
 interface ApplicationFoundationStackProps extends StackProps {
   readonly config: StageConfig;
+  /** Immutable ECR tag promoted by the release script. */
+  readonly imageTag: string;
 }
 
 /**
@@ -23,6 +26,7 @@ interface ApplicationFoundationStackProps extends StackProps {
  * balancer terminates TLS for the public service hostnames and keeps task addresses private.
  */
 export class ApplicationFoundationStack extends Stack {
+  readonly vpc: ec2.Vpc;
   readonly cluster: ecs.Cluster;
   readonly namespace: servicediscovery.PrivateDnsNamespace;
   readonly taskSecurityGroup: ec2.SecurityGroup;
@@ -35,11 +39,15 @@ export class ApplicationFoundationStack extends Stack {
 
     // Public subnets avoid a permanent NAT Gateway charge. Task security groups admit no
     // inbound traffic, so a public address does not make a service public.
-    const vpc = new ec2.Vpc(this, 'RuntimeVpc', {
+    this.vpc = new ec2.Vpc(this, 'RuntimeVpc', {
       maxAzs: 2,
       natGateways: 0,
-      subnetConfiguration: [{ name: 'egress', subnetType: ec2.SubnetType.PUBLIC }],
+      subnetConfiguration: [
+        { name: 'egress', subnetType: ec2.SubnetType.PUBLIC },
+        { name: 'data', subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      ],
     });
+    const vpc = this.vpc;
 
     this.taskSecurityGroup = new ec2.SecurityGroup(this, 'ApplicationTasksSecurityGroup', {
       vpc,
@@ -100,40 +108,74 @@ export class ApplicationFoundationStack extends Stack {
       });
     }
 
-    // Task Role with Bedrock, Polly, Transcribe, and Chime permissions
-    const taskRole = new iam.Role(this, 'ApplicationTaskRole', {
-      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
-      description: 'ECS Task role for Voomate API and Voice services',
-    });
+    const createTaskRole = (id: string, description: string) =>
+      new iam.Role(this, id, {
+        assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+        description,
+      });
 
-    taskRole.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-        resources: [
-          `arn:aws:bedrock:${this.region}::foundation-model/*`,
-          `arn:aws:bedrock:${this.region}:${this.account}:inference-profile/*`,
-        ],
-      }),
+    const grantBedrockRuntime = (role: iam.Role) => {
+      role.addToPolicy(
+        new iam.PolicyStatement({
+          // Inline agents are created per request, so this action does not support a stable
+          // resource ARN. The model permissions below remain explicitly enumerated.
+          actions: ['bedrock:InvokeInlineAgent'],
+          resources: ['*'],
+        }),
+      );
+      role.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+          resources: [
+            `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-pro-v1:0`,
+            `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`,
+            `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-micro-v1:0`,
+            `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-embed-text-v2:0`,
+            `arn:aws:bedrock:${this.region}:${this.account}:inference-profile/us.amazon.nova-pro-v1:0`,
+            `arn:aws:bedrock:${this.region}:${this.account}:inference-profile/us.amazon.nova-lite-v1:0`,
+            `arn:aws:bedrock:${this.region}:${this.account}:inference-profile/us.amazon.nova-micro-v1:0`,
+          ],
+        }),
+      );
+    };
+
+    const grantVoiceRuntime = (role: iam.Role) => {
+      role.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ['polly:SynthesizeSpeech', 'polly:DescribeVoices'],
+          resources: ['*'],
+        }),
+      );
+      role.addToPolicy(
+        new iam.PolicyStatement({
+          actions: [
+            'transcribe:StartStreamTranscription',
+            'transcribe:StartStreamTranscriptionWebSocket',
+          ],
+          resources: ['*'],
+        }),
+      );
+    };
+
+    // Service task roles are intentionally separate. A compromised Voice task cannot call
+    // Bedrock or Chime, and a Dashboard task cannot open metered speech streams. Secret values
+    // are injected by the ECS execution roles, so application task roles never need GetSecretValue.
+    const apiTaskRole = createTaskRole(
+      'ApiTaskRole',
+      'Least-privilege ECS task role for the Voomate API service',
+    );
+    const dashboardTaskRole = createTaskRole(
+      'DashboardTaskRole',
+      'Least-privilege ECS task role for the Voomate Dashboard service',
+    );
+    const voiceTaskRole = createTaskRole(
+      'VoiceTaskRole',
+      'Least-privilege ECS task role for the Voomate Voice service',
     );
 
-    taskRole.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ['polly:SynthesizeSpeech', 'polly:DescribeVoices'],
-        resources: ['*'],
-      }),
-    );
-
-    taskRole.addToPolicy(
-      new iam.PolicyStatement({
-        actions: [
-          'transcribe:StartStreamTranscription',
-          'transcribe:StartStreamTranscriptionWebSocket',
-        ],
-        resources: ['*'],
-      }),
-    );
-
-    taskRole.addToPolicy(
+    grantBedrockRuntime(apiTaskRole);
+    grantVoiceRuntime(apiTaskRole);
+    apiTaskRole.addToPolicy(
       new iam.PolicyStatement({
         actions: [
           'chime:CreateMeeting',
@@ -146,18 +188,19 @@ export class ApplicationFoundationStack extends Stack {
       }),
     );
 
-    this.runtimeSecret.grantRead(taskRole);
+    grantBedrockRuntime(dashboardTaskRole);
+    grantVoiceRuntime(voiceTaskRole);
 
     // 1. Control-plane Fastify API Service
     const apiTaskDef = new ecs.FargateTaskDefinition(this, 'ApiTaskDefinition', {
       cpu: 512,
       memoryLimitMiB: 1024,
-      taskRole,
+      taskRole: apiTaskRole,
     });
     this.runtimeSecret.grantRead(apiTaskDef.obtainExecutionRole());
 
     apiTaskDef.addContainer('api', {
-      image: ecs.ContainerImage.fromEcrRepository(this.repositories.api, 'candidate'),
+      image: ecs.ContainerImage.fromEcrRepository(this.repositories.api, props.imageTag),
       logging: ecs.LogDrivers.awsLogs({
         logGroup: logGroups.api,
         streamPrefix: 'api',
@@ -224,6 +267,7 @@ export class ApplicationFoundationStack extends Stack {
       maxHealthyPercent: 200,
       circuitBreaker: { rollback: true },
       securityGroups: [this.taskSecurityGroup],
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       assignPublicIp: true,
       cloudMapOptions: {
         name: 'api',
@@ -236,12 +280,12 @@ export class ApplicationFoundationStack extends Stack {
     const dashboardTaskDef = new ecs.FargateTaskDefinition(this, 'DashboardTaskDefinition', {
       cpu: 512,
       memoryLimitMiB: 1024,
-      taskRole,
+      taskRole: dashboardTaskRole,
     });
     this.runtimeSecret.grantRead(dashboardTaskDef.obtainExecutionRole());
 
     dashboardTaskDef.addContainer('dashboard', {
-      image: ecs.ContainerImage.fromEcrRepository(this.repositories.dashboard, 'ad36f65'),
+      image: ecs.ContainerImage.fromEcrRepository(this.repositories.dashboard, props.imageTag),
       logging: ecs.LogDrivers.awsLogs({
         logGroup: logGroups.dashboard,
         streamPrefix: 'dashboard',
@@ -272,6 +316,10 @@ export class ApplicationFoundationStack extends Stack {
         BEDROCK_UTILITY_MODEL_ID: ecs.Secret.fromSecretsManager(
           this.runtimeSecret,
           'BEDROCK_UTILITY_MODEL_ID',
+        ),
+        WIDGET_TOKEN_SECRET: ecs.Secret.fromSecretsManager(
+          this.runtimeSecret,
+          'WIDGET_TOKEN_SECRET',
         ),
         UPSTASH_REDIS_REST_URL: ecs.Secret.fromSecretsManager(
           this.runtimeSecret,
@@ -308,6 +356,7 @@ export class ApplicationFoundationStack extends Stack {
       maxHealthyPercent: 200,
       circuitBreaker: { rollback: true },
       securityGroups: [this.taskSecurityGroup],
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       assignPublicIp: true,
       cloudMapOptions: {
         name: 'dashboard',
@@ -320,12 +369,12 @@ export class ApplicationFoundationStack extends Stack {
     const voiceTaskDef = new ecs.FargateTaskDefinition(this, 'VoiceTaskDefinition', {
       cpu: 512,
       memoryLimitMiB: 1024,
-      taskRole,
+      taskRole: voiceTaskRole,
     });
     this.runtimeSecret.grantRead(voiceTaskDef.obtainExecutionRole());
 
     voiceTaskDef.addContainer('voice', {
-      image: ecs.ContainerImage.fromEcrRepository(this.repositories.voice, 'candidate'),
+      image: ecs.ContainerImage.fromEcrRepository(this.repositories.voice, props.imageTag),
       command: [
         '/app/.venv/bin/python',
         'bot.py',
@@ -341,12 +390,21 @@ export class ApplicationFoundationStack extends Stack {
         streamPrefix: 'voice',
       }),
       secrets: {
-        BEDROCK_REGION: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'BEDROCK_REGION'),
-        BEDROCK_MODEL_ID: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'BEDROCK_MODEL_ID'),
-        POLLY_REGION: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'POLLY_REGION'),
-        POLLY_PREFERRED_ENGINE: ecs.Secret.fromSecretsManager(
+        WIDGET_TOKEN_SECRET: ecs.Secret.fromSecretsManager(
           this.runtimeSecret,
-          'POLLY_PREFERRED_ENGINE',
+          'WIDGET_TOKEN_SECRET',
+        ),
+        WEB_AGENT_BACKEND_ORIGIN: ecs.Secret.fromSecretsManager(
+          this.runtimeSecret,
+          'WEB_AGENT_BACKEND_ORIGIN',
+        ),
+        POLLY_REGION: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'POLLY_REGION'),
+        POLLY_ENGINE: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'POLLY_ENGINE'),
+        POLLY_VOICE_ID: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'POLLY_VOICE_ID'),
+        VOICE_LANGUAGE: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'VOICE_LANGUAGE'),
+        TRANSCRIBE_VOCABULARY_NAME: ecs.Secret.fromSecretsManager(
+          this.runtimeSecret,
+          'TRANSCRIBE_VOCABULARY_NAME',
         ),
         TRANSCRIBE_REGION: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'TRANSCRIBE_REGION'),
       },
@@ -362,6 +420,7 @@ export class ApplicationFoundationStack extends Stack {
       maxHealthyPercent: 200,
       circuitBreaker: { rollback: true },
       securityGroups: [this.taskSecurityGroup],
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       assignPublicIp: true,
       cloudMapOptions: {
         name: 'voice',
@@ -396,6 +455,106 @@ export class ApplicationFoundationStack extends Stack {
       internetFacing: true,
       securityGroup: albSecurityGroup,
       loadBalancerName: `voomate-${props.config.stage}-alb`,
+    });
+
+    // AWS WAF is the AWS-only public-edge guard. The application continues to enforce tenant,
+    // origin, lease, and Redis limits; this layer absorbs common exploits and abusive session
+    // creation before either ECS task allocates work.
+    const publicWebAcl = new wafv2.CfnWebACL(this, 'PublicWebAcl', {
+      name: `voomate-${props.config.stage}-public`,
+      scope: 'REGIONAL',
+      defaultAction: { allow: {} },
+      visibilityConfig: {
+        cloudWatchMetricsEnabled: true,
+        metricName: `voomate-${props.config.stage}-public`,
+        sampledRequestsEnabled: true,
+      },
+      rules: [
+        {
+          name: 'AWSCommonRuleSet',
+          priority: 0,
+          overrideAction: { none: {} },
+          statement: {
+            managedRuleGroupStatement: {
+              name: 'AWSManagedRulesCommonRuleSet',
+              vendorName: 'AWS',
+            },
+          },
+          visibilityConfig: {
+            cloudWatchMetricsEnabled: true,
+            metricName: 'AWSCommonRuleSet',
+            sampledRequestsEnabled: true,
+          },
+        },
+        {
+          name: 'AWSKnownBadInputsRuleSet',
+          priority: 1,
+          overrideAction: { none: {} },
+          statement: {
+            managedRuleGroupStatement: {
+              name: 'AWSManagedRulesKnownBadInputsRuleSet',
+              vendorName: 'AWS',
+            },
+          },
+          visibilityConfig: {
+            cloudWatchMetricsEnabled: true,
+            metricName: 'AWSKnownBadInputsRuleSet',
+            sampledRequestsEnabled: true,
+          },
+        },
+        {
+          name: 'DashboardWidgetSessionRateLimit',
+          priority: 2,
+          action: { block: {} },
+          statement: {
+            rateBasedStatement: {
+              aggregateKeyType: 'IP',
+              limit: 300,
+              scopeDownStatement: {
+                byteMatchStatement: {
+                  fieldToMatch: { uriPath: {} },
+                  positionalConstraint: 'EXACTLY',
+                  searchString: '/api/web-agent/session',
+                  textTransformations: [{ priority: 0, type: 'NONE' }],
+                },
+              },
+            },
+          },
+          visibilityConfig: {
+            cloudWatchMetricsEnabled: true,
+            metricName: 'DashboardWidgetSessionRateLimit',
+            sampledRequestsEnabled: true,
+          },
+        },
+        {
+          name: 'ApiWidgetSessionRateLimit',
+          priority: 3,
+          action: { block: {} },
+          statement: {
+            rateBasedStatement: {
+              aggregateKeyType: 'IP',
+              limit: 300,
+              scopeDownStatement: {
+                byteMatchStatement: {
+                  fieldToMatch: { uriPath: {} },
+                  positionalConstraint: 'EXACTLY',
+                  searchString: '/v1/widget/session',
+                  textTransformations: [{ priority: 0, type: 'NONE' }],
+                },
+              },
+            },
+          },
+          visibilityConfig: {
+            cloudWatchMetricsEnabled: true,
+            metricName: 'ApiWidgetSessionRateLimit',
+            sampledRequestsEnabled: true,
+          },
+        },
+      ],
+    });
+    new wafv2.CfnWebACLAssociation(this, 'ApplicationLoadBalancerWafAssociation', {
+      resourceArn: alb.loadBalancerArn,
+      webAclArn: publicWebAcl.attrArn,
     });
 
     const dashboardTargetGroup = new elbv2.ApplicationTargetGroup(this, 'DashboardTargetGroup', {
@@ -461,46 +620,23 @@ export class ApplicationFoundationStack extends Stack {
       },
     });
 
-    // Public HTTP listener (port 80) - serves direct HTTP requests for both ALB DNS and custom domains
-    const httpListener = alb.addListener('HttpListener', {
+    // HTTP must never serve a token, dashboard session, or WebRTC negotiation. Keep a single
+    // redirect-only listener so every public request reaches the TLS listener first.
+    alb.addListener('HttpListener', {
       port: 80,
       open: true,
-      defaultTargetGroups: [dashboardTargetGroup],
-    });
-
-    httpListener.addAction('ApiRoutingHttpPath', {
-      priority: 10,
-      conditions: [
-        elbv2.ListenerCondition.pathPatterns(['/health', '/health/*', '/v1/*', '/api/*']),
-      ],
-      action: elbv2.ListenerAction.forward([apiTargetGroup]),
-    });
-
-    httpListener.addAction('ApiRoutingHttpHost', {
-      priority: 11,
-      conditions: [elbv2.ListenerCondition.hostHeaders(['api.atlowest.in', 'api.atlowest.com'])],
-      action: elbv2.ListenerAction.forward([apiTargetGroup]),
-    });
-
-    httpListener.addAction('VoiceRoutingHttpPath', {
-      priority: 20,
-      conditions: [
-        elbv2.ListenerCondition.pathPatterns(['/voice/*', '/client/*', '/ws/*']),
-      ],
-      action: elbv2.ListenerAction.forward([voiceTargetGroup]),
-    });
-
-    httpListener.addAction('VoiceRoutingHttpHost', {
-      priority: 21,
-      conditions: [elbv2.ListenerCondition.hostHeaders(['voice.atlowest.in', 'voice.atlowest.com'])],
-      action: elbv2.ListenerAction.forward([voiceTargetGroup]),
+      defaultAction: elbv2.ListenerAction.redirect({
+        protocol: 'HTTPS',
+        port: '443',
+        permanent: true,
+      }),
     });
 
     // The issued certificate in us-east-1 for atlowest.in and www.atlowest.in
     const albCertificate = acm.Certificate.fromCertificateArn(
       this,
       'AlbCertificate',
-      'arn:aws:acm:us-east-1:424999960818:certificate/f4d52737-4e8c-444e-b5a9-9ed1ccb2f085',
+      'arn:aws:acm:us-east-1:424999960818:certificate/2908ee08-b9fa-496a-84f5-5f99549f1aca',
     );
 
     const httpsListener = alb.addListener('HttpsListener', {
@@ -512,9 +648,7 @@ export class ApplicationFoundationStack extends Stack {
 
     httpsListener.addAction('ApiRoutingHttpsPath', {
       priority: 10,
-      conditions: [
-        elbv2.ListenerCondition.pathPatterns(['/health', '/health/*', '/v1/*', '/api/*']),
-      ],
+      conditions: [elbv2.ListenerCondition.pathPatterns(['/health', '/health/*', '/v1', '/v1/*'])],
       action: elbv2.ListenerAction.forward([apiTargetGroup]),
     });
 
@@ -524,17 +658,11 @@ export class ApplicationFoundationStack extends Stack {
       action: elbv2.ListenerAction.forward([apiTargetGroup]),
     });
 
-    httpsListener.addAction('VoiceRoutingHttpsPath', {
+    httpsListener.addAction('VoiceRoutingHttpsHost', {
       priority: 20,
       conditions: [
-        elbv2.ListenerCondition.pathPatterns(['/voice/*', '/client/*', '/ws/*']),
+        elbv2.ListenerCondition.hostHeaders(['voice.atlowest.in', 'voice.atlowest.com']),
       ],
-      action: elbv2.ListenerAction.forward([voiceTargetGroup]),
-    });
-
-    httpsListener.addAction('VoiceRoutingHttpsHost', {
-      priority: 21,
-      conditions: [elbv2.ListenerCondition.hostHeaders(['voice.atlowest.in', 'voice.atlowest.com'])],
       action: elbv2.ListenerAction.forward([voiceTargetGroup]),
     });
 
