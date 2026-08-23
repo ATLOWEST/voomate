@@ -17,7 +17,9 @@ const ADMIN_HOST = 'admin.atlowest.in';
 const LEGACY_DASHBOARD_HOST = 'dashboard.atlowest.in';
 
 const portalRedirect = (request: NextRequest): NextResponse | undefined => {
-  const host = request.nextUrl.hostname.toLowerCase();
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const rawHost = forwardedHost || request.headers.get('host') || request.nextUrl.hostname;
+  const host = rawHost.split(':')[0].toLowerCase();
   const { pathname, search } = request.nextUrl;
   const suffix = `${pathname}${search}`;
 
