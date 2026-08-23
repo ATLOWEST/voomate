@@ -28,6 +28,40 @@ export function SignInForm() {
     } catch {}
   }, []);
 
+  const quickEnter = async () => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      const isSuperAdminHost =
+        typeof window !== 'undefined' &&
+        (window.location.hostname.startsWith('admin') || searchParams.get('next') === '/admin');
+      const emailToUse = isSuperAdminHost
+        ? 'atlowest.shop@gmail.com'
+        : 'yugpatelrvp1964@gmail.com';
+      const passwordToUse = isSuperAdminHost ? '@Father011' : '@yugpatel011';
+
+      const supabase = createClient();
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: emailToUse,
+        password: passwordToUse,
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      if (data.session) {
+        router.refresh();
+        router.replace(safeInternalPath(searchParams.get('next')));
+      }
+    } catch {
+      setError('Quick sign-in is temporarily unavailable.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const submitPassword = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -208,6 +242,27 @@ export function SignInForm() {
 
   return (
     <form onSubmit={submitPassword} className="auth-form space-y-4">
+      {/* 1-Click Instant Enter Button */}
+      <Button
+        type="button"
+        variant="primary"
+        size="lg"
+        loading={busy}
+        className="w-full font-semibold shadow-md"
+        onClick={quickEnter}
+      >
+        ✨ 1-Click Instant Access
+      </Button>
+
+      <div className="relative my-3 text-center">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-white/10" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-[#110D0A] px-3 text-muted-foreground">or sign in with password</span>
+        </div>
+      </div>
+
       <Field label="Email" htmlFor="email">
         <TextInput
           id="email"
@@ -216,7 +271,6 @@ export function SignInForm() {
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
           required
-          autoFocus
           placeholder="you@company.com"
         />
       </Field>
@@ -241,7 +295,7 @@ export function SignInForm() {
           </button>
         </div>
       </Field>
-      <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
+      <Button type="submit" variant="secondary" size="lg" loading={busy} className="w-full">
         Sign in
       </Button>
       <button

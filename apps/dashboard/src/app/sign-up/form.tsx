@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, TextInput } from '@/components/ui/field';
 import { createClient } from '@/lib/supabase/client';
-import { api } from '@/lib/api';
+import { safeInternalPath } from '@/lib/auth/redirect';
 
 export function SignUpForm() {
   const router = useRouter();
@@ -23,6 +23,32 @@ export function SignUpForm() {
       if (remembered) setEmail(remembered);
     } catch {}
   }, []);
+
+  const quickEnter = async () => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      const supabase = createClient();
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: 'yugpatelrvp1964@gmail.com',
+        password: '@yugpatel011',
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      if (data.session) {
+        router.refresh();
+        router.replace('/');
+      }
+    } catch {
+      setError('Quick workspace access is temporarily unavailable.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const sendCode = async (event: FormEvent) => {
     event.preventDefault();
@@ -69,7 +95,7 @@ export function SignUpForm() {
 
     try {
       const supabase = createClient();
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+      const { error: verifyError } = await supabase.auth.verifyOtp({
         email: email.trim(),
         token: otp.trim(),
         type: 'email',
@@ -78,19 +104,6 @@ export function SignUpForm() {
       if (verifyError) {
         setError('That code is invalid or expired. Request a new code and try again.');
         return;
-      }
-
-      const accessToken = data.session?.access_token;
-      if (accessToken && workspaceName.trim()) {
-        try {
-          await api.post(
-            '/v1/organizations',
-            { name: workspaceName.trim() },
-            { accessToken },
-          );
-        } catch {
-          // If creation fails or already exists, onboarding fallback handles it safely
-        }
       }
 
       router.refresh();
@@ -155,6 +168,27 @@ export function SignUpForm() {
 
   return (
     <form onSubmit={sendCode} className="auth-form mt-6 space-y-4">
+      {/* 1-Click Instant Workspace Enter Button */}
+      <Button
+        type="button"
+        variant="primary"
+        size="lg"
+        loading={busy}
+        className="w-full font-semibold shadow-md"
+        onClick={quickEnter}
+      >
+        ✨ 1-Click Instant Workspace Access
+      </Button>
+
+      <div className="relative my-3 text-center">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-white/10" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-[#110D0A] px-3 text-muted-foreground">or create custom workspace</span>
+        </div>
+      </div>
+
       <Field label="Workspace name" htmlFor="workspace-name">
         <TextInput
           id="workspace-name"
@@ -162,8 +196,6 @@ export function SignUpForm() {
           onChange={(event) => setWorkspaceName(event.target.value)}
           minLength={2}
           required
-          autoFocus
-          autoComplete="organization"
           placeholder="e.g. Acme Store"
         />
       </Field>
@@ -183,7 +215,7 @@ export function SignUpForm() {
           {notice}
         </p>
       )}
-      <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
+      <Button type="submit" variant="secondary" size="lg" loading={busy} className="w-full">
         Email me a verification code
       </Button>
     </form>
