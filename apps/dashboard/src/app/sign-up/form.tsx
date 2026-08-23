@@ -2,22 +2,22 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Field, TextInput } from '@/components/ui/field';
 import { createClient } from '@/lib/supabase/client';
+import { api } from '@/lib/api';
 
 export function SignUpForm() {
   const router = useRouter();
   const [workspaceName, setWorkspaceName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [challengeSent, setChallengeSent] = useState(false);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
 
-  const submit = async (event: FormEvent) => {
+  const sendCode = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError(undefined);
@@ -25,34 +25,125 @@ export function SignUpForm() {
 
     try {
       const supabase = createClient();
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        password,
-        options: { data: { workspace_name: workspaceName.trim() } },
+        options: {
+          shouldCreateUser: true,
+          data: { workspace_name: workspaceName.trim() },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
-      if (signUpError) {
-        setError(signUpError.message);
+      if (otpError) {
+        setError(
+          otpError.message ||
+            'We could not send a verification code. Please check your email and try again.',
+        );
         return;
       }
 
-      // If email confirmation is enabled, Supabase deliberately does not issue a session yet.
-      // We wait until the user can prove their email before creating billable workspace data.
-      if (!data.session) {
-        setNotice('Check your email to confirm your account. Then sign in to create your workspace.');
-        return;
-      }
-
-      router.replace(`/onboarding?workspace=${encodeURIComponent(workspaceName.trim())}`);
+      setChallengeSent(true);
+      setNotice(`A 6-digit verification code was sent to ${email.trim()}.`);
     } catch {
-      setError('Account creation is temporarily unavailable. Please reload and try again.');
+      setError('Verification is temporarily unavailable. Please reload and try again.');
     } finally {
       setBusy(false);
     }
   };
 
+  const verifyCode = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(undefined);
+
+    try {
+      const supabase = createClient();
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otp.trim(),
+        type: 'email',
+      });
+
+      if (verifyError) {
+        setError('That code is invalid or expired. Request a new code and try again.');
+        return;
+      }
+
+      const accessToken = data.session?.access_token;
+      if (accessToken && workspaceName.trim()) {
+        try {
+          await api.post(
+            '/v1/organizations',
+            { name: workspaceName.trim() },
+            { accessToken },
+          );
+        } catch {
+          // If creation fails or already exists, onboarding fallback handles it safely
+        }
+      }
+
+      router.refresh();
+      router.replace(
+        workspaceName.trim()
+          ? `/onboarding?workspace=${encodeURIComponent(workspaceName.trim())}`
+          : '/',
+      );
+    } catch {
+      setError('Verification failed. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (challengeSent) {
+    return (
+      <form onSubmit={verifyCode} className="auth-form mt-6 space-y-4">
+        <Field
+          label="6-digit verification code"
+          htmlFor="otp"
+          hint="Enter the 6-digit code sent to your email."
+          error={error}
+        >
+          <TextInput
+            id="otp"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={otp}
+            onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            minLength={6}
+            maxLength={6}
+            required
+            autoFocus
+            className="tracking-widest text-center text-xl font-mono"
+            placeholder="000000"
+          />
+        </Field>
+        {notice && (
+          <p role="status" className="text-sm text-secondary">
+            {notice}
+          </p>
+        )}
+        <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
+          Verify and enter workspace
+        </Button>
+        <button
+          type="button"
+          className="w-full text-sm font-medium text-secondary underline underline-offset-4"
+          onClick={() => {
+            setChallengeSent(false);
+            setOtp('');
+            setError(undefined);
+            setNotice(undefined);
+          }}
+        >
+          Use a different email or workspace
+        </button>
+      </form>
+    );
+  }
+
   return (
-    <form onSubmit={submit} className="auth-form">
+    <form onSubmit={sendCode} className="auth-form mt-6 space-y-4">
       <Field label="Workspace name" htmlFor="workspace-name">
         <TextInput
           id="workspace-name"
@@ -62,9 +153,10 @@ export function SignUpForm() {
           required
           autoFocus
           autoComplete="organization"
+          placeholder="e.g. Acme Store"
         />
       </Field>
-      <Field label="Email" htmlFor="email">
+      <Field label="Email" htmlFor="email" error={error}>
         <TextInput
           id="email"
           type="email"
@@ -72,46 +164,16 @@ export function SignUpForm() {
           onChange={(event) => setEmail(event.target.value)}
           autoComplete="email"
           required
+          placeholder="you@company.com"
         />
       </Field>
-      <Field label="Password" htmlFor="password" hint="Use at least 8 characters." error={error}>
-        <div className="auth-input-with-action">
-          <TextInput
-            id="password"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="new-password"
-            minLength={8}
-            required
-          />
-          <button
-            type="button"
-            className="auth-input-action"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-            onClick={() => setShowPassword((visible) => !visible)}
-          >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        </div>
-      </Field>
       {notice && (
-        <p
-          role="status"
-          className="auth-notice"
-        >
+        <p role="status" className="text-sm text-secondary">
           {notice}
         </p>
       )}
-      <Button
-        type="submit"
-        variant="primary"
-        size="lg"
-        loading={busy}
-        className="auth-submit"
-        disabled={notice !== undefined}
-      >
-        Create account
+      <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
+        Email me a verification code
       </Button>
     </form>
   );

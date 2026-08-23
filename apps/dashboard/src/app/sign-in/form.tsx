@@ -89,11 +89,13 @@ export function SignInForm() {
             inputMode="numeric"
             autoComplete="one-time-code"
             value={otp}
-            onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 8))}
+            onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
             minLength={6}
-            maxLength={8}
+            maxLength={6}
             required
             autoFocus
+            className="tracking-widest text-center text-xl font-mono"
+            placeholder="000000"
           />
         </Field>
         {notice && (
