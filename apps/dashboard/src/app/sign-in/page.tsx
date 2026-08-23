@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { SignInForm } from './form';
 
+export const dynamic = 'force-dynamic';
+
 export default function SignInPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-16">

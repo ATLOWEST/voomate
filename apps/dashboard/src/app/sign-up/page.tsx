@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { SignUpForm } from './form';
 
+export const dynamic = 'force-dynamic';
+
 export default function SignUpPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-16">
