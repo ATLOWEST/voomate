@@ -23,25 +23,29 @@ export function SignInForm() {
     setError(undefined);
     setNotice(undefined);
 
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
-    if (signInError) {
-      // Keep the response generic so this form does not reveal whether an email is registered.
-      setError('We could not send a sign-in code. Check the email address and try again shortly.');
+      if (signInError) {
+        // Keep the response generic so this form does not reveal whether an email is registered.
+        setError('We could not send a sign-in code. Check the email address and try again shortly.');
+        return;
+      }
+
+      setChallengeSent(true);
+      setNotice('If this email can sign in, a code is on its way. It expires shortly.');
+    } catch {
+      setError('Secure sign-in is temporarily unavailable. Please reload and try again.');
+    } finally {
       setBusy(false);
-      return;
     }
-
-    setChallengeSent(true);
-    setNotice('If this email can sign in, a code is on its way. It expires shortly.');
-    setBusy(false);
   };
 
   const verifyCode = async (event: FormEvent) => {
@@ -49,30 +53,35 @@ export function SignInForm() {
     setBusy(true);
     setError(undefined);
 
-    const supabase = createClient();
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: otp.trim(),
-      type: 'email',
-    });
+    try {
+      const supabase = createClient();
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otp.trim(),
+        type: 'email',
+      });
 
-    if (verifyError) {
-      setError('That code is invalid or expired. Request a new code and try again.');
+      if (verifyError) {
+        setError('That code is invalid or expired. Request a new code and try again.');
+        return;
+      }
+
+      router.refresh();
+      router.replace(safeInternalPath(searchParams.get('next')));
+    } catch {
+      setError('Secure sign-in is temporarily unavailable. Please reload and try again.');
+    } finally {
       setBusy(false);
-      return;
     }
-
-    router.refresh();
-    router.replace(safeInternalPath(searchParams.get('next')));
   };
 
   if (challengeSent) {
     return (
-      <form onSubmit={verifyCode} className="mt-7 space-y-4">
+      <form onSubmit={verifyCode} className="auth-form">
         <Field
           label="One-time code"
           htmlFor="otp"
-          hint="Enter the code from your email."
+          hint="Enter the six-digit code from your email."
           error={error}
         >
           <TextInput
@@ -97,7 +106,7 @@ export function SignInForm() {
         </Button>
         <button
           type="button"
-          className="w-full text-sm font-medium text-secondary underline underline-offset-4"
+          className="auth-text-button"
           onClick={() => {
             setChallengeSent(false);
             setOtp('');
@@ -111,7 +120,7 @@ export function SignInForm() {
   }
 
   return (
-    <form onSubmit={sendCode} className="mt-7 space-y-4">
+    <form onSubmit={sendCode} className="auth-form">
       <Field label="Email" htmlFor="email">
         <TextInput
           id="email"
@@ -124,11 +133,11 @@ export function SignInForm() {
         />
       </Field>
       {error && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="auth-error">
           {error}
         </p>
       )}
-      <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
+      <Button type="submit" variant="primary" size="lg" loading={busy} className="auth-submit">
         Email me a sign-in code
       </Button>
     </form>

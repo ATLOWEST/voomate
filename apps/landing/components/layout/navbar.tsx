@@ -200,7 +200,7 @@ export function Navbar() {
             Sign in
           </a>
           <a href={`${DASHBOARD_URL}/sign-up`} className="site-nav__sign-up">
-            Sign up <ArrowUpRight size={15} />
+            Create workspace <ArrowUpRight size={15} />
           </a>
         </div>
 
@@ -263,11 +263,12 @@ export function Navbar() {
               className="btn-ink justify-center w-full"
               onClick={() => setOpen(false)}
             >
-              Sign up <ArrowUpRight size={15} />
+              Create workspace <ArrowUpRight size={15} />
             </a>
           </div>
         </div>
       )}
+
     </header>
   );
 }

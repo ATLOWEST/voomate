@@ -144,8 +144,8 @@ export default function PricingPage() {
           Keep the system connected.
         </h2>
         <div className="hero-actions--buttonless justify-center" data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
-            <span>Start now</span>
+          <a href={`${DASHBOARD_URL}/sign-up`} className="hero-action-primary">
+            <span>Create workspace</span>
             <ArrowRight size={18} />
           </a>
           <Link href="/about" className="hero-action-secondary">

@@ -82,8 +82,8 @@ export default function HomePage() {
             <span className="hero-ember-shiny">your customers.</span>
           </h1>
           <div className="hero-actions hero-actions--buttonless" data-reveal>
-            <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
-              <span>Start now</span>
+            <a href={`${DASHBOARD_URL}/sign-up`} className="hero-action-primary">
+              <span>Create workspace</span>
               <ArrowRight size={18} />
             </a>
             <Link href="/#features" className="hero-action-secondary">
@@ -331,8 +331,8 @@ export default function HomePage() {
           business needs.
         </p>
         <div className="hero-actions hero-actions--buttonless justify-center" data-reveal>
-          <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
-            <span>Start now</span>
+          <a href={`${DASHBOARD_URL}/sign-up`} className="hero-action-primary">
+            <span>Create workspace</span>
             <ArrowRight size={18} />
           </a>
           <Link href="/pricing" className="hero-action-secondary">

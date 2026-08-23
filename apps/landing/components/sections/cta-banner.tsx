@@ -43,8 +43,8 @@ export function CTASection() {
               </p>
 
               <div className="mb-8">
-                <a href={`${DASHBOARD_URL}/sign-in`} className="hero-action-primary">
-                  <span>Start now</span> →
+                <a href={`${DASHBOARD_URL}/sign-up`} className="hero-action-primary">
+                  <span>Create workspace</span> →
                 </a>
               </div>
 
