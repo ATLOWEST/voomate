@@ -31,6 +31,10 @@ export const viewport: Viewport = {
   ],
 };
 
+// Public Supabase settings are injected into the HTML at request time from ECS Secrets Manager.
+// Without this, Next can prerender an empty build-time value and browser authentication fails.
+export const dynamic = 'force-dynamic';
+
 /**
  * Applied before first paint. Without it the page renders light, then snaps to dark once
  * React hydrates — the single most obvious "cheap software" tell in a dashboard.
@@ -218,9 +222,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const widgetOrigin = (process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? '').replace(/\/$/, '');
   const dogfoodAgentKey = process.env.NEXT_PUBLIC_VOOMATE_DOGFOOD_AGENT_KEY;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+    process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   const clientEnvBootstrap = `window.__VOOMATE_ENV__ = ${JSON.stringify({
     supabaseUrl,
     supabaseAnonKey,

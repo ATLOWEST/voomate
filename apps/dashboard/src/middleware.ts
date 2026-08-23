@@ -12,11 +12,41 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const APP_HOST = 'app.atlowest.in';
+const ADMIN_HOST = 'admin.atlowest.in';
+const LEGACY_DASHBOARD_HOST = 'dashboard.atlowest.in';
+
+const portalRedirect = (request: NextRequest): NextResponse | undefined => {
+  const host = request.nextUrl.hostname.toLowerCase();
+  const { pathname, search } = request.nextUrl;
+  const suffix = `${pathname}${search}`;
+
+  if (host === LEGACY_DASHBOARD_HOST) {
+    const destination = pathname.startsWith('/admin') ? ADMIN_HOST : APP_HOST;
+    return NextResponse.redirect(new URL(`https://${destination}${suffix}`), 308);
+  }
+
+  if (host === APP_HOST && pathname.startsWith('/admin')) {
+    return NextResponse.redirect(new URL(`https://${ADMIN_HOST}${suffix}`), 308);
+  }
+
+  if (host !== ADMIN_HOST) return undefined;
+  if (pathname === '/' || pathname === '') {
+    return NextResponse.redirect(new URL(`https://${ADMIN_HOST}/admin`), 308);
+  }
+  if (pathname === '/sign-in' || pathname.startsWith('/auth/')) return undefined;
+  if (pathname.startsWith('/admin')) return undefined;
+  return NextResponse.redirect(new URL(`https://${APP_HOST}${suffix}`), 308);
+};
+
 export async function middleware(request: NextRequest) {
+  const routeResponse = portalRedirect(request);
+  if (routeResponse) return routeResponse;
+
   let response = NextResponse.next({ request });
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
     return response;

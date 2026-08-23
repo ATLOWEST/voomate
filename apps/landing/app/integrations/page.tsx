@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { IntegrationExplorer } from '@/components/ui/integration-explorer';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://dashboard.atlowest.in';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://app.atlowest.in';
 
 export const metadata: Metadata = {
   title: 'Integrations — Connected Business Tools',

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { SuperAdminShell } from '@/components/admin/super-admin-shell';
-import { getUser } from '@/lib/supabase/server';
+import { getUser, isPlatformAdministrator } from '@/lib/supabase/server';
 import { SessionProvider, type Organization } from '@/lib/session';
 
 export const metadata: Metadata = {
@@ -20,15 +21,16 @@ const SUPER_ADMIN_ORG: Organization = {
 
 export default async function SuperAdminLayout({ children }: { children: ReactNode }) {
   const user = await getUser();
-  const activeUser = user ?? {
-    id: '00000000-0000-0000-0000-000000000000',
-    email: 'admin@voomate.com',
-  };
+  if (!user) redirect('/sign-in?next=/admin');
+
+  if (!(await isPlatformAdministrator(user.id))) {
+    redirect('https://app.atlowest.in/');
+  }
 
   return (
     <SessionProvider
-      userId={activeUser.id}
-      email={activeUser.email ?? 'admin@voomate.com'}
+      userId={user.id}
+      email={user.email ?? ''}
       initialOrganizations={[SUPER_ADMIN_ORG]}
       initialOrganizationId={SUPER_ADMIN_ORG.id}
     >

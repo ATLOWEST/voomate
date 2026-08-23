@@ -19,7 +19,7 @@ const DASHBOARD_URL =
   process.env.NEXT_PUBLIC_DASHBOARD_URL ??
   (typeof window !== 'undefined' && window.location.hostname === 'localhost'
     ? 'http://localhost:3001'
-    : 'https://dashboard.atlowest.in');
+    : 'https://app.atlowest.in');
 
 const PRODUCT_ITEMS = [
   {

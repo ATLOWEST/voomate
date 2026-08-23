@@ -25,10 +25,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       organizations = result.organizations;
     }
   } catch {
-    // Fall back to default demo organization if API is unreachable
+    // A control-plane failure must never select or render another tenant.
   }
 
-  if (organizations.length === 0) redirect('/sign-up?reason=workspace');
+  if (organizations.length === 0) redirect('/onboarding');
 
   const cookieStore = await cookies();
   const preferred = cookieStore.get(ORG_COOKIE)?.value;

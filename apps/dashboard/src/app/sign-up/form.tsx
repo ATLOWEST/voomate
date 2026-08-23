@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, TextInput } from '@/components/ui/field';
-import { api } from '@/lib/api';
 import { createClient } from '@/lib/supabase/client';
 
 export function SignUpForm() {
@@ -43,20 +42,7 @@ export function SignUpForm() {
       return;
     }
 
-    try {
-      await api.post(
-        '/v1/organizations',
-        { name: workspaceName.trim() },
-        { accessToken: data.session.access_token },
-      );
-      router.refresh();
-      router.push('/');
-    } catch {
-      // The account is valid even if provisioning was interrupted. The authenticated dashboard
-      // presents the real "Create workspace" action rather than creating a partial tenant.
-      router.refresh();
-      router.push('/');
-    }
+    router.replace(`/onboarding?workspace=${encodeURIComponent(workspaceName.trim())}`);
   };
 
   return (

@@ -13,12 +13,12 @@ export const createClient = async () => {
   const cookieStore = await cookies();
 
   const url =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
     FALLBACK_SUPABASE_URL;
   const anonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     FALLBACK_SUPABASE_KEY;
 
   return createServerClient(url, anonKey, {
@@ -48,9 +48,9 @@ export const createClient = async () => {
  */
 export const getUser = async () => {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey =
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+      process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !anonKey) return null;
 
     const supabase = await createClient();
@@ -69,9 +69,9 @@ export const getUser = async () => {
 /** The access token to forward to the API as a bearer credential. */
 export const getAccessToken = async (): Promise<string | undefined> => {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey =
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+      process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !anonKey) return undefined;
 
     const supabase = await createClient();
@@ -81,5 +81,20 @@ export const getAccessToken = async (): Promise<string | undefined> => {
     return session?.access_token;
   } catch {
     return undefined;
+  }
+};
+
+/** Platform administration is an explicit global allowlist, never a tenant role or UI fallback. */
+export const isPlatformAdministrator = async (userId: string): Promise<boolean> => {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('platform_administrators')
+      .select('user_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    return error === null && data !== null;
+  } catch {
+    return false;
   }
 };
