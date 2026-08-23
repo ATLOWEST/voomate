@@ -36,12 +36,20 @@ const applicationFoundation = new ApplicationFoundationStack(
   },
 );
 
-new AwsDataPlaneStack(app, `${prefix}-DataPlane`, {
-  env,
-  config,
-  vpc: applicationFoundation.vpc,
-  taskSecurityGroup: applicationFoundation.taskSecurityGroup,
-});
+// The AWS data plane is deliberately staged. It owns a separate private-subnet topology and
+// must only be created after the Supabase/Upstash reconciliation and reversible cutover plan are
+// approved. Keeping it opt-in also lets production app recovery reuse the existing VPC safely.
+const deployDataPlane =
+  app.node.tryGetContext('deployDataPlane') === true ||
+  app.node.tryGetContext('deployDataPlane') === 'true';
+if (deployDataPlane) {
+  new AwsDataPlaneStack(app, `${prefix}-DataPlane`, {
+    env,
+    config,
+    vpc: applicationFoundation.vpc,
+    taskSecurityGroup: applicationFoundation.taskSecurityGroup,
+  });
+}
 
 new ApplicationBuildStack(app, `${prefix}-ApplicationBuild`, {
   env,

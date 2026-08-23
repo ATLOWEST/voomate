@@ -44,7 +44,6 @@ export class ApplicationFoundationStack extends Stack {
       natGateways: 0,
       subnetConfiguration: [
         { name: 'egress', subnetType: ec2.SubnetType.PUBLIC },
-        { name: 'data', subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       ],
     });
     const vpc = this.vpc;
