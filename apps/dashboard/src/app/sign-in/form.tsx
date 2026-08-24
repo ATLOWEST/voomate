@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import { safeInternalPath } from '@/lib/auth/redirect';
 import { createClient } from '@/lib/supabase/client';
 
 export function SignInForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +51,10 @@ export function SignInForm() {
       // must never guess it from an email address or a stale local role.
       const requestedDestination = searchParams.get('next');
       if (requestedDestination) {
-        router.replace(safeInternalPath(requestedDestination));
+        // Do not use the App Router here. Its pre-login RSC cache can contain a redirect back
+        // to /sign-in, producing a visible URL loop immediately after a successful password
+        // sign-in. A document navigation starts with the freshly written Supabase cookie.
+        window.location.assign(safeInternalPath(requestedDestination));
         return;
       }
 
@@ -63,12 +65,14 @@ export function SignInForm() {
       if (!destinationResponse.ok) {
         // The session was created successfully. The merchant panel is the safe fallback if a
         // role lookup is temporarily unavailable; it will still enforce server-side access.
-        router.replace('/overview');
+        window.location.assign('/overview');
         return;
       }
 
       const { destination } = (await destinationResponse.json()) as { destination?: string };
-      router.replace(safeInternalPath(destination, '/overview'));
+      // See the requested-destination branch above: a document navigation avoids stale
+      // pre-auth route data and is deliberately used only at the authentication boundary.
+      window.location.assign(safeInternalPath(destination, '/overview'));
     } catch {
       setError('Sign-in is temporarily unavailable. Please reload and try again.');
     } finally {
