@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { SuperAdminShell } from '@/components/admin/super-admin-shell';
-import { getUser, isPlatformAdministrator } from '@/lib/supabase/server';
+import { getMiddlewareIdentity, getUser, isPlatformAdministrator } from '@/lib/supabase/server';
 import { SessionProvider, type Organization } from '@/lib/session';
 
 export const metadata: Metadata = {
@@ -20,8 +20,9 @@ const SUPER_ADMIN_ORG: Organization = {
 };
 
 export default async function SuperAdminLayout({ children }: { children: ReactNode }) {
-  const user = await getUser();
-  if (!user) redirect('/sign-in?next=/admin');
+  const identity = await getMiddlewareIdentity();
+  const user = identity ?? (await getUser());
+  if (user === undefined || user === null) redirect('/sign-in?next=/admin');
 
   if (!(await isPlatformAdministrator(user.id))) {
     redirect('https://app.atlowest.in/');

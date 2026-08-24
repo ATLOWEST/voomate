@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { ORG_COOKIE, SessionProvider, type Organization } from '@/lib/session';
 import { cookies } from 'next/headers';
-import { getAccessToken, getUser } from '@/lib/supabase/server';
+import { getAccessToken, getMiddlewareIdentity, getUser } from '@/lib/supabase/server';
 import { AppShell } from '@/components/shell/app-shell';
 import { getOrganizations } from '@/lib/organizations';
 
@@ -10,8 +10,9 @@ import { ConversationDrawer } from '@/components/ui/premium/conversation-drawer'
 import { Suspense } from 'react';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const user = await getUser();
-  if (!user) redirect('/sign-in');
+  const identity = await getMiddlewareIdentity();
+  const user = identity ?? (await getUser());
+  if (user === undefined || user === null) redirect('/sign-in');
 
   const accessToken = await getAccessToken();
   if (!accessToken) redirect('/sign-in');

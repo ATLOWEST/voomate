@@ -74,12 +74,6 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Cluster Status Pill */}
-            <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11.5px] font-semibold text-emerald-600 dark:text-emerald-400">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Cluster Active (4 Nodes)
-            </div>
-
             <ThemeToggle />
 
             {/* Internal Operator Badge */}

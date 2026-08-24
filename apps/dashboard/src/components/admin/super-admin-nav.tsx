@@ -19,12 +19,12 @@ const governanceItems: NavItem[] = [
 ];
 
 const voiceEdgeItems: NavItem[] = [
-  { title: 'Voice Edge Studio', href: '/admin/voice-studio', icon: Mic, badge: 'Live' },
+  { title: 'Voice Edge Studio', href: '/admin/voice-studio', icon: Mic },
   { title: 'Telephony & WebRTC', href: '/admin/telephony', icon: PhoneCall },
 ];
 
 const infraItems: NavItem[] = [
-  { title: 'Cluster Health & Logs', href: '/admin/health', icon: Server, badge: '100%' },
+  { title: 'Cluster Health & Logs', href: '/admin/health', icon: Server },
 ];
 
 function isActivePath(pathname: string, href: string) {

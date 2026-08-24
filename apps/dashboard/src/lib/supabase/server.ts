@@ -4,7 +4,7 @@
  * Safe fallback is included when running in demo/offline preview mode without live Supabase keys.
  */
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 const FALLBACK_SUPABASE_URL = 'https://placeholder.supabase.co';
 const FALLBACK_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder';
@@ -41,6 +41,30 @@ export const createClient = async () => {
       },
     },
   });
+};
+
+/**
+ * Identity verified by the request middleware.
+ *
+ * Middleware overwrites these internal request headers only after Supabase has verified the
+ * session. Reusing that result avoids a second remote `/auth/v1/user` request before every
+ * dashboard navigation. The normal `getUser()` path remains the safe fallback for requests
+ * that do not pass through middleware.
+ */
+export const getMiddlewareIdentity = async (): Promise<
+  { id: string; email: string | undefined } | undefined
+> => {
+  const requestHeaders = await headers();
+  const id = requestHeaders.get('x-voomate-verified-user-id');
+  if (id === null || id === '') return undefined;
+
+  const encodedEmail = requestHeaders.get('x-voomate-verified-user-email');
+  try {
+    return { id, email: encodedEmail ? decodeURIComponent(encodedEmail) : undefined };
+  } catch {
+    // A malformed value must never block a verified session. The identity itself is the ID.
+    return { id, email: undefined };
+  }
 };
 
 /**

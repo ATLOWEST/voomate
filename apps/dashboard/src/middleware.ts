@@ -58,7 +58,13 @@ export async function middleware(request: NextRequest) {
   const routeResponse = portalRedirect(request);
   if (routeResponse) return routeResponse;
 
-  let response = NextResponse.next({ request });
+  // These values are an internal hand-off to server layouts. Always discard a value supplied
+  // by the browser before writing the verified result below.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete('x-voomate-verified-user-id');
+  requestHeaders.delete('x-voomate-verified-user-email');
+  const nextResponse = () => NextResponse.next({ request: { headers: requestHeaders } });
+  let response = nextResponse();
 
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -72,7 +78,7 @@ export async function middleware(request: NextRequest) {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {
         for (const { name, value } of toSet) request.cookies.set(name, value);
-        response = NextResponse.next({ request });
+        response = nextResponse();
         for (const { name, value, options } of toSet) {
           response.cookies.set(name, value, options);
         }
@@ -81,7 +87,22 @@ export async function middleware(request: NextRequest) {
   });
 
   // The call itself is the point: it triggers the refresh and the cookie write above.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user !== null) {
+    requestHeaders.set('x-voomate-verified-user-id', user.id);
+    if (user.email) {
+      requestHeaders.set('x-voomate-verified-user-email', encodeURIComponent(user.email));
+    }
+
+    // Preserve refresh cookies written above while forwarding the verified identity to the
+    // server component that renders this same request.
+    const identityResponse = nextResponse();
+    for (const cookie of response.cookies.getAll()) identityResponse.cookies.set(cookie);
+    response = identityResponse;
+  }
 
   return response;
 }
