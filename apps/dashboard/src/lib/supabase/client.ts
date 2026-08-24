@@ -49,8 +49,17 @@ const browserRuntimeConfig = (): RuntimeConfig | undefined => {
 
 export const createClient = () => {
   const runtimeConfig = browserRuntimeConfig();
-  const url = runtimeConfig?.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = runtimeConfig?.supabaseAnonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Client components are pre-rendered by Next on the server as well as hydrated in the
+  // browser. ECS supplies the non-public names at runtime for that server render; checking
+  // them prevents an initial 500 that the browser would otherwise have to recover from.
+  const url =
+    runtimeConfig?.supabaseUrl ||
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey =
+    runtimeConfig?.supabaseAnonKey ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
     throw new Error('Secure sign-in is temporarily unavailable. Please reload and try again.');
