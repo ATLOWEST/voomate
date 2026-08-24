@@ -1,6 +1,3 @@
-'use client';
-
-import { useEffect } from 'react';
 import Link from 'next/link';
 
 const DASHBOARD_URL =
@@ -11,10 +8,6 @@ const DASHBOARD_URL =
 
 export default function SignUpPage() {
   const targetUrl = `${DASHBOARD_URL}/sign-up`;
-
-  useEffect(() => {
-    window.location.replace(targetUrl);
-  }, [targetUrl]);
 
   return (
     <main className="marketing-main">
@@ -29,9 +22,7 @@ export default function SignUpPage() {
             <span>Opening Voomate</span>
             <span>Dashboard...</span>
           </h1>
-          <p className="section-subtext">
-            Redirecting you to your secure Voomate workspace.
-          </p>
+          <p className="section-subtext">Taking you to workspace creation.</p>
           <div className="hero-actions">
             <a href={targetUrl} className="hero-action-primary">
               Click here if not redirected &rarr;

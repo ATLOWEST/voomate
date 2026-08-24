@@ -1,16 +1,19 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, TextInput } from '@/components/ui/field';
 import { api, ApiError } from '@/lib/api';
 import { createClient } from '@/lib/supabase/client';
 
-export function WorkspaceOnboardingForm() {
+/**
+ * Recovery for the rare case where an authenticated account predates workspace creation.
+ * New customers always create their workspace in SignUpForm before they can sign in.
+ */
+export function WorkspaceRecoveryForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [name, setName] = useState(searchParams.get('workspace') ?? '');
+  const [name, setName] = useState('');
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
 
@@ -20,10 +23,9 @@ export function WorkspaceOnboardingForm() {
     setError(undefined);
 
     try {
-      const supabase = createClient();
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await createClient().auth.getSession();
       if (!session?.access_token) {
         router.replace('/sign-in');
         return;
@@ -35,11 +37,11 @@ export function WorkspaceOnboardingForm() {
         { accessToken: session.access_token },
       );
       router.refresh();
-      router.replace('/');
+      router.replace('/overview');
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 409) {
         router.refresh();
-        router.replace('/');
+        router.replace('/overview');
         return;
       }
       setError('We could not create the workspace. Please try again.');
@@ -49,11 +51,11 @@ export function WorkspaceOnboardingForm() {
   };
 
   return (
-    <form onSubmit={submit} className="mt-7 space-y-4">
+    <form onSubmit={submit} className="auth-form mt-7" noValidate>
       <Field
         label="Workspace name"
         htmlFor="workspace-name"
-        hint="This is the private workspace for your business."
+        hint="This is the private workspace for your business. You can invite teammates later."
         error={error}
       >
         <TextInput
@@ -65,6 +67,7 @@ export function WorkspaceOnboardingForm() {
           required
           autoFocus
           autoComplete="organization"
+          placeholder="Your business"
         />
       </Field>
       <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
@@ -72,7 +75,7 @@ export function WorkspaceOnboardingForm() {
       </Button>
       {busy && (
         <p className="auth-notice" role="status" aria-live="polite">
-          Creating your workspace. Please keep this page open while we finish the setup.
+          Creating your workspace. Please keep this page open while we finish setup.
         </p>
       )}
     </form>

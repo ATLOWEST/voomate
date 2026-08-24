@@ -36,9 +36,9 @@ const portalRedirect = (request: NextRequest): NextResponse | undefined => {
 
   // The dashboard source still contains the old marketing route group for historical builds.
   // Never let it render on the app host: the public site owns marketing, while the app host
-  // starts at the sign-in screen and only serves the authenticated operating panel.
+  // starts at the operating panel. Its authenticated layout takes guests to sign-in.
   if (host === APP_HOST && (pathname === '/' || pathname === '')) {
-    return NextResponse.redirect(new URL(`https://${APP_HOST}/sign-in${search}`), 308);
+    return NextResponse.redirect(new URL(`https://${APP_HOST}/overview${search}`), 308);
   }
 
   if (host === APP_HOST && DUPLICATE_MARKETING_PATHS.has(pathname)) {

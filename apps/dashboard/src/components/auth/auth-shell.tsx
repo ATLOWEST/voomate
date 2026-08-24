@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-type AuthMode = 'sign-in' | 'sign-up';
+type AuthMode = 'sign-in' | 'sign-up' | 'workspace';
 
 interface AuthShellProps {
   mode: AuthMode;
@@ -18,6 +18,11 @@ const copy: Record<AuthMode, { eyebrow: string; title: string; description: stri
     eyebrow: 'Start with Voomate',
     title: 'Build a calmer way to operate.',
     description: 'Create your workspace, verify your email, and put your agents to work.',
+  },
+  workspace: {
+    eyebrow: 'Workspace setup',
+    title: 'Give your work a home.',
+    description: 'Create one private workspace to continue to your operating panel.',
   },
 };
 
