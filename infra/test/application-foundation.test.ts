@@ -3,14 +3,18 @@ import test from 'node:test';
 import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { ApplicationFoundationStack } from '../lib/application-foundation-stack.js';
-import { resolveImageTag, resolveStage } from '../lib/config.js';
+import { resolveImageTag, resolveImageTags, resolveStage } from '../lib/config.js';
 
 const synth = () => {
   const app = new App();
   const stack = new ApplicationFoundationStack(app, 'FoundationUnderTest', {
     env: { account: '123456789012', region: 'us-east-1' },
     config: resolveStage('prod'),
-    imageTag: 'a8a9382c0ffe',
+    imageTags: {
+      api: 'a8a9382c0ffe',
+      dashboard: 'b8a9382c0ffe',
+      voice: 'c8a9382c0ffe',
+    },
   });
   return Template.fromStack(stack).toJSON() as {
     Resources: Record<string, { Type: string; Properties?: Record<string, unknown> }>;
@@ -69,6 +73,29 @@ test('production image tags are immutable and explicit', () => {
   assert.equal(resolveImageTag('prod', 'a8a9382c0ffe'), 'a8a9382c0ffe');
   assert.throws(() => resolveImageTag('prod', undefined), /immutable imageTag/);
   assert.throws(() => resolveImageTag('prod', 'contains spaces'), /valid ECR tag/);
+
+  assert.deepEqual(resolveImageTags('prod', { dashboard: 'dashboard-commit' }, 'shared-commit'), {
+    api: 'shared-commit',
+    dashboard: 'dashboard-commit',
+    voice: 'shared-commit',
+  });
+});
+
+test('each service task definition keeps its independently promoted image tag', () => {
+  const template = synth();
+  const imageFor = (container: string) => {
+    const definitions = taskDefinition(template, container).ContainerDefinitions;
+    assert.ok(Array.isArray(definitions));
+    const definition = (definitions as Array<{ Image?: unknown }>)[0];
+    assert.ok(definition?.Image, `Missing image for ${container}.`);
+    // CDK represents the ECR registry portion as a CloudFormation intrinsic, while the
+    // immutable tag remains in the serialized image value.
+    return JSON.stringify(definition.Image);
+  };
+
+  assert.match(imageFor('api'), /:a8a9382c0ffe/);
+  assert.match(imageFor('dashboard'), /:b8a9382c0ffe/);
+  assert.match(imageFor('voice'), /:c8a9382c0ffe/);
 });
 
 test('public routing preserves Dashboard widget handlers and redirects HTTP', () => {

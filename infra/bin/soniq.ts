@@ -3,15 +3,20 @@ import { App, Tags } from 'aws-cdk-lib';
 import { ApplicationFoundationStack } from '../lib/application-foundation-stack.js';
 import { AwsDataPlaneStack } from '../lib/aws-data-plane-stack.js';
 import { ApplicationBuildStack } from '../lib/application-build-stack.js';
-import { resolveImageTag, resolveStage } from '../lib/config.js';
+import { resolveImageTags, resolveStage } from '../lib/config.js';
 import { LandingDeliveryStack } from '../lib/landing-delivery-stack.js';
 import { RuntimeStack } from '../lib/runtime-stack.js';
 import { StorageStack } from '../lib/storage-stack.js';
 
 const app = new App();
 const config = resolveStage(app.node.tryGetContext('stage') as string | undefined);
-const imageTag = resolveImageTag(
+const imageTags = resolveImageTags(
   config.stage,
+  {
+    api: app.node.tryGetContext('apiImageTag') as string | undefined,
+    dashboard: app.node.tryGetContext('dashboardImageTag') as string | undefined,
+    voice: app.node.tryGetContext('voiceImageTag') as string | undefined,
+  },
   app.node.tryGetContext('imageTag') as string | undefined,
 );
 
@@ -32,7 +37,7 @@ const applicationFoundation = new ApplicationFoundationStack(
   {
     env,
     config,
-    imageTag,
+    imageTags,
   },
 );
 

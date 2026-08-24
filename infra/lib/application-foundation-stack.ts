@@ -11,12 +11,12 @@ import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import type { Construct } from 'constructs';
-import type { StageConfig } from './config.js';
+import type { ImageTags, StageConfig } from './config.js';
 
 interface ApplicationFoundationStackProps extends StackProps {
   readonly config: StageConfig;
-  /** Immutable ECR tag promoted by the release script. */
-  readonly imageTag: string;
+  /** Immutable ECR tags promoted independently by the release script. */
+  readonly imageTags: ImageTags;
 }
 
 /**
@@ -42,9 +42,7 @@ export class ApplicationFoundationStack extends Stack {
     this.vpc = new ec2.Vpc(this, 'RuntimeVpc', {
       maxAzs: 2,
       natGateways: 0,
-      subnetConfiguration: [
-        { name: 'egress', subnetType: ec2.SubnetType.PUBLIC },
-      ],
+      subnetConfiguration: [{ name: 'egress', subnetType: ec2.SubnetType.PUBLIC }],
     });
     const vpc = this.vpc;
 
@@ -199,7 +197,7 @@ export class ApplicationFoundationStack extends Stack {
     this.runtimeSecret.grantRead(apiTaskDef.obtainExecutionRole());
 
     apiTaskDef.addContainer('api', {
-      image: ecs.ContainerImage.fromEcrRepository(this.repositories.api, props.imageTag),
+      image: ecs.ContainerImage.fromEcrRepository(this.repositories.api, props.imageTags.api),
       logging: ecs.LogDrivers.awsLogs({
         logGroup: logGroups.api,
         streamPrefix: 'api',
@@ -284,7 +282,10 @@ export class ApplicationFoundationStack extends Stack {
     this.runtimeSecret.grantRead(dashboardTaskDef.obtainExecutionRole());
 
     dashboardTaskDef.addContainer('dashboard', {
-      image: ecs.ContainerImage.fromEcrRepository(this.repositories.dashboard, props.imageTag),
+      image: ecs.ContainerImage.fromEcrRepository(
+        this.repositories.dashboard,
+        props.imageTags.dashboard,
+      ),
       logging: ecs.LogDrivers.awsLogs({
         logGroup: logGroups.dashboard,
         streamPrefix: 'dashboard',
@@ -373,7 +374,7 @@ export class ApplicationFoundationStack extends Stack {
     this.runtimeSecret.grantRead(voiceTaskDef.obtainExecutionRole());
 
     voiceTaskDef.addContainer('voice', {
-      image: ecs.ContainerImage.fromEcrRepository(this.repositories.voice, props.imageTag),
+      image: ecs.ContainerImage.fromEcrRepository(this.repositories.voice, props.imageTags.voice),
       command: [
         '/app/.venv/bin/python',
         'bot.py',

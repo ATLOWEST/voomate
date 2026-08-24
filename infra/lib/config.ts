@@ -25,6 +25,12 @@ export interface StageConfig {
   readonly retainData: boolean;
 }
 
+/** ECS runtimes are independently deployable. Keep this list central so a release can never
+ * silently omit a service when resolving immutable image tags. */
+export const APPLICATION_SERVICES = ['api', 'dashboard', 'voice'] as const;
+export type ApplicationService = (typeof APPLICATION_SERVICES)[number];
+export type ImageTags = Record<ApplicationService, string>;
+
 export const STAGES: Record<string, StageConfig> = {
   dev: {
     stage: 'dev',
@@ -67,3 +73,20 @@ export const resolveImageTag = (stage: StageConfig['stage'], value: string | und
   }
   return imageTag;
 };
+
+/**
+ * Resolve image tags per runtime. `imageTag` remains a backwards-compatible fallback for a
+ * coordinated release, while scoped releases pass only the updated service tag and preserve
+ * the already-promoted immutable tags for every other service.
+ */
+export const resolveImageTags = (
+  stage: StageConfig['stage'],
+  values: Partial<Record<ApplicationService, string | undefined>>,
+  fallback: string | undefined,
+): ImageTags =>
+  Object.fromEntries(
+    APPLICATION_SERVICES.map((service) => [
+      service,
+      resolveImageTag(stage, values[service] ?? fallback),
+    ]),
+  ) as ImageTags;
