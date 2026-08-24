@@ -18,21 +18,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!accessToken) redirect('/sign-in');
 
   let organizations: Organization[] = [];
-  let organizationLookupFailed = false;
   try {
     organizations = await getOrganizations(accessToken);
   } catch {
     // Do not turn a temporary control-plane failure into a false "create a workspace" journey.
     // The app shell will keep the user in their current portal with no tenant selected until the
     // API becomes reachable again.
-    organizationLookupFailed = true;
   }
 
-  // One route owns workspace setup. The legacy /onboarding URL is retained only as a redirect
-  // for old bookmarks; new signup already creates the workspace before sign-in.
-  if (organizations.length === 0 && !organizationLookupFailed) {
-    redirect('/sign-up?setup=workspace');
-  }
+  // An empty workspace is a valid dashboard state while the owner is configuring it. Keeping
+  // people in the operating panel is both clearer and avoids sending an authenticated user into
+  // a second, unrelated sign-up journey.
 
   const cookieStore = await cookies();
   const preferred = cookieStore.get(ORG_COOKIE)?.value;

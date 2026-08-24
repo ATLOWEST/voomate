@@ -37,11 +37,18 @@ export function InstallPanels() {
 
   return (
     <PageBody>
+      <div className="mb-4">
+        <Callout tone="caution" title="Website SDK setup is not verified yet">
+          Paste the snippet below on the approved website, then open that website and start the
+          widget once. Until Voomate receives a widget session, it cannot honestly claim that the
+          website SDK is installed or that setup is complete.
+        </Callout>
+      </div>
       {agent.status !== 'active' && (
         <div className="mb-4">
           <Callout tone="caution" title="This agent is still a draft">
-            The snippet below will load, but the agent will not answer visitors until you press
-            Publish. Test it on the Playground tab first.
+            The snippet below will load, but the agent will not answer visitors until you turn it
+            on. Test it on the Playground tab first.
           </Callout>
         </div>
       )}

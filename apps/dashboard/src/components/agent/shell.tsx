@@ -347,7 +347,7 @@ function AgentHeader({
               onClick={() => void publish()}
               className="min-h-10 rounded-lg bg-foreground px-4 text-[13px] font-semibold text-background transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:opacity-90 active:translate-y-px disabled:opacity-45"
             >
-              {busy ? 'Publishing...' : 'Publish'}
+              {busy ? 'Turning on...' : 'Turn on agent'}
             </button>
           ) : (
             <button
@@ -359,8 +359,8 @@ function AgentHeader({
               {busy
                 ? 'Updating...'
                 : optimisticStatus === 'paused'
-                  ? 'Resume agent'
-                  : 'Pause agent'}
+                  ? 'Turn on agent'
+                  : 'Turn off agent'}
             </button>
           )}
         </div>
