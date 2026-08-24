@@ -236,9 +236,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Script id="theme-bootstrap" strategy="beforeInteractive">
           {THEME_BOOTSTRAP}
         </Script>
-        <Script id="client-env-bootstrap" strategy="beforeInteractive">
-          {clientEnvBootstrap}
-        </Script>
+        {/* A plain parser-blocking script is deliberate: dashboard client components need this
+            runtime configuration during their first render, not after Next hydrates Script. */}
+        <script id="client-env-bootstrap" dangerouslySetInnerHTML={{ __html: clientEnvBootstrap }} />
         <Script
           id="voomate-ui-manifest"
           type="application/json"
