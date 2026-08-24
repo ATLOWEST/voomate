@@ -84,7 +84,11 @@ if (selected.has('dashboard')) {
 }
 if (selected.has('voice')) gate('voice tests and lint', 'npm', ['run', 'test:voice-service']);
 if (landingChanged)
-  gate('landing build', 'npm', ['run', 'build', '--workspace', '@voomate/landing']);
+  gate('landing static build', 'npm', ['run', 'build', '--workspace', '@voomate/landing'], {
+    // LandingDelivery publishes the static `out` directory. Make that contract explicit so a
+    // successful Next build cannot leave CDK with no asset to deploy.
+    env: { ...process.env, LANDING_STATIC_EXPORT: 'true' },
+  });
 if (infrastructureChanged) {
   gate('infrastructure typecheck', 'npm', ['run', 'typecheck'], {
     cwd: new URL('../infra/', import.meta.url),

@@ -98,7 +98,7 @@ export function SignUpForm() {
     }
     try {
       const supabase = createClient();
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
@@ -114,10 +114,37 @@ export function SignUpForm() {
         setError(signUpError.message || 'We could not create your account. Please try again.');
         return;
       }
+      // With email confirmation enabled, Supabase returns an obfuscated user for an email
+      // that already belongs to a confirmed account. Do not claim a code was sent when no
+      // message will be delivered; route the person to the one valid path instead.
+      if (signUpData.user?.identities?.length === 0) {
+        setError('An account already exists for this email. Sign in with your password instead.');
+        return;
+      }
       setStage('verify');
       setNotice(`We sent a six-digit code to ${email.trim()}. It expires in 10 minutes.`);
     } catch {
       setError('Account setup is temporarily unavailable. Please reload and try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendSignupCode = async () => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      const { error: resendError } = await createClient().auth.resend({
+        type: 'signup',
+        email: email.trim(),
+      });
+      if (resendError) {
+        setError(resendError.message || 'We could not resend the code. Please try again.');
+        return;
+      }
+      setNotice(`We sent a fresh six-digit code to ${email.trim()}. It expires in 10 minutes.`);
+    } catch {
+      setError('We could not resend the code. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -227,17 +254,28 @@ export function SignUpForm() {
         <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
           Verify and create workspace
         </Button>
-        <button
-          type="button"
-          className="auth-text-button justify-self-center"
-          onClick={() => {
-            setStage('details');
-            setOtp('');
-            setError(undefined);
-          }}
-        >
-          Edit account details
-        </button>
+        <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-center">
+          <button
+            type="button"
+            className="auth-text-button"
+            disabled={busy}
+            onClick={() => void resendSignupCode()}
+          >
+            Resend code
+          </button>
+          <button
+            type="button"
+            className="auth-text-button"
+            disabled={busy}
+            onClick={() => {
+              setStage('details');
+              setOtp('');
+              setError(undefined);
+            }}
+          >
+            Edit account details
+          </button>
+        </div>
       </form>
     );
 
