@@ -21,8 +21,15 @@ RUN npm run build:packages && npm run build --workspace @voomate/dashboard
 
 FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS runtime
 WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=build /app /app
+ENV NODE_ENV=production \
+    PORT=3001 \
+    HOSTNAME=0.0.0.0
+# Next's standalone output contains only the production files traced by the app. Keeping
+# the static and public assets alongside it preserves the normal server-rendered behaviour
+# while avoiding a multi-gigabyte runtime image.
+COPY --from=build /app/apps/dashboard/.next/standalone ./
+COPY --from=build /app/apps/dashboard/.next/static ./apps/dashboard/.next/static
+COPY --from=build /app/apps/dashboard/public ./apps/dashboard/public
 USER node
 EXPOSE 3001
-CMD ["npm", "run", "start", "--workspace", "@voomate/dashboard"]
+CMD ["node", "apps/dashboard/server.js"]
