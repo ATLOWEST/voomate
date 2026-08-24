@@ -70,6 +70,11 @@ export function WorkspaceOnboardingForm() {
       <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
         Create workspace
       </Button>
+      {busy && (
+        <p className="auth-notice" role="status" aria-live="polite">
+          Creating your workspace. Please keep this page open while we finish the setup.
+        </p>
+      )}
     </form>
   );
 }

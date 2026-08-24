@@ -52,6 +52,10 @@ if (missing.length > 0) {
         mailer_otp_length: 6,
         mailer_subjects_magic_link: 'Your Voomate sign-in code',
         mailer_templates_magic_link_content: magicLinkTemplate,
+        // Password signup uses Supabase's confirmation email. Keep it code-only too, so a
+        // new merchant never receives an unwanted Supabase magic link.
+        mailer_subjects_confirmation: 'Verify your Voomate account',
+        mailer_templates_confirmation_content: magicLinkTemplate,
       }),
     },
   );

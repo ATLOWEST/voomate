@@ -1,21 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { safeInternalPath } from '@/lib/auth/redirect';
-import { createClient } from '@/lib/supabase/server';
-
 export const dynamic = 'force-dynamic';
 
 /**
- * Handles a Supabase email link if an administrator enables magic links as a fallback.
- * The normal Dashboard path verifies an email OTP directly in the sign-in form.
+ * Password sign-in and signup confirmation are completed inside the Dashboard form.
+ * Keep legacy links from becoming an accidental session-exchange path.
  */
 export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get('code');
-  if (code) {
-    const supabase = await createClient();
-    await supabase.auth.exchangeCodeForSession(code);
-  }
-
-  return NextResponse.redirect(
-    new URL(safeInternalPath(request.nextUrl.searchParams.get('next')), request.url),
-  );
+  return NextResponse.redirect(new URL('/sign-in', request.url));
 }

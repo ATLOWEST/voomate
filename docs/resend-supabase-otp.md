@@ -1,8 +1,8 @@
 # Resend-backed Supabase OTP
 
-The Dashboard continues to use Supabase Auth for OTP issuance, verification, and
-sessions. Resend is only the SMTP delivery provider. This preserves the existing
-tenant and session security boundary while replacing Brevo.
+The Dashboard continues to use Supabase Auth for password verification, email
+confirmation, and sessions. Resend is the SMTP delivery provider. This preserves
+the existing tenant and session security boundary while replacing Brevo.
 
 ## DNS and domain status
 
@@ -21,7 +21,8 @@ node scripts/configure-supabase-resend-smtp.mjs
 ```
 
 The script configures Resend SMTP (`smtp.resend.com:465`), a six-digit OTP with a
-10-minute expiry, and the branded Magic Link/OTP template. The email template uses
+10-minute expiry, and the branded code-only templates for sign-in and account
+confirmation. The email template uses
 the Voomate logo and an email-safe approximation of the landing page's warm matte
 texture. WebGL shader backgrounds cannot render reliably inside email clients, so the
 template uses compatible radial texture layers instead.

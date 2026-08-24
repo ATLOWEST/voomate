@@ -1,105 +1,208 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { api, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Field, TextInput } from '@/components/ui/field';
 import { createClient } from '@/lib/supabase/client';
-import { safeInternalPath } from '@/lib/auth/redirect';
+
+type Stage = 'details' | 'verify' | 'creating' | 'complete';
+
+const countryOptions = [
+  ['IN', 'India'],
+  ['US', 'United States'],
+  ['GB', 'United Kingdom'],
+  ['AE', 'United Arab Emirates'],
+  ['AU', 'Australia'],
+  ['CA', 'Canada'],
+  ['SG', 'Singapore'],
+  ['Other', 'Other'],
+] as const;
+
+const flagFor = (country: string) =>
+  country.length === 2
+    ? String.fromCodePoint(...[...country].map((letter) => 0x1f1a5 + letter.charCodeAt(0)))
+    : '🌐';
+
+const detectedCountry = () => {
+  try {
+    const region = new Intl.Locale(navigator.language).region;
+    if (region && countryOptions.some(([code]) => code === region)) return region;
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (zone === 'Asia/Kolkata') return 'IN';
+    if (zone.startsWith('America/')) return 'US';
+    if (zone === 'Europe/London') return 'GB';
+  } catch {
+    // Country is optional context. The user can always choose it themselves.
+  }
+  return 'IN';
+};
+
+const passwordFeedback = (value: string) => {
+  const checks = [value.length >= 12, /[a-z]/.test(value), /[A-Z]/.test(value), /\d/.test(value)];
+  return {
+    strong: checks.every(Boolean),
+    label: checks.every(Boolean)
+      ? 'Strong password'
+      : 'Use 12+ characters with upper, lower, and a number',
+  };
+};
 
 export function SignUpForm() {
   const router = useRouter();
+  const [stage, setStage] = useState<Stage>('details');
   const [workspaceName, setWorkspaceName] = useState('');
+  const [country, setCountry] = useState('IN');
+  const [businessAreas, setBusinessAreas] = useState<string[]>([]);
+  const [areaDraft, setAreaDraft] = useState('');
+  const [businessEmail, setBusinessEmail] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
-  const [challengeSent, setChallengeSent] = useState(false);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const passwordState = useMemo(() => passwordFeedback(password), [password]);
 
   useEffect(() => {
+    setCountry(detectedCountry());
     try {
       const remembered = localStorage.getItem('voomate_last_email');
       if (remembered) setEmail(remembered);
-    } catch {}
+    } catch {
+      // Browser storage is a convenience only, never an authentication dependency.
+    }
   }, []);
 
-  const sendCode = async (event: FormEvent) => {
+  const addArea = () => {
+    const value = areaDraft.trim();
+    if (!value || businessAreas.includes(value) || businessAreas.length === 5) return;
+    setBusinessAreas((current) => [...current, value]);
+    setAreaDraft('');
+  };
+
+  const beginSignup = async (event: FormEvent) => {
     event.preventDefault();
+    if (!passwordState.strong) {
+      setError('Choose a stronger password before continuing.');
+      return;
+    }
     setBusy(true);
     setError(undefined);
     setNotice(undefined);
-
     try {
       localStorage.setItem('voomate_last_email', email.trim());
-    } catch {}
-
+    } catch {
+      // The Supabase session is the real remembered sign-in. This is only an email hint.
+    }
     try {
       const supabase = createClient();
-      const { error: otpError } = await supabase.auth.signInWithOtp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
+        password,
         options: {
-          shouldCreateUser: true,
-          data: { workspace_name: workspaceName.trim() },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            workspace_name: workspaceName.trim(),
+            country,
+            business_areas: businessAreas,
+            business_email: businessEmail.trim() || undefined,
+          },
         },
       });
-
-      if (otpError) {
-        setError(
-          otpError.message ||
-            'We could not send a verification code. Please check your email and try again.',
-        );
+      if (signUpError) {
+        setError(signUpError.message || 'We could not create your account. Please try again.');
         return;
       }
-
-      setChallengeSent(true);
-      setNotice(`A 6-digit verification code was sent to ${email.trim()}.`);
+      setStage('verify');
+      setNotice(`We sent a six-digit code to ${email.trim()}. It expires in 10 minutes.`);
     } catch {
-      setError('Verification is temporarily unavailable. Please reload and try again.');
+      setError('Account setup is temporarily unavailable. Please reload and try again.');
     } finally {
       setBusy(false);
     }
   };
 
-  const verifyCode = async (event: FormEvent) => {
+  const verifyAndCreateWorkspace = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError(undefined);
-
     try {
       const supabase = createClient();
-      const { error: verifyError } = await supabase.auth.verifyOtp({
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
         email: email.trim(),
         token: otp.trim(),
-        type: 'email',
+        type: 'signup',
       });
-
-      if (verifyError) {
+      if (verifyError || !data.session?.access_token) {
         setError('That code is invalid or expired. Request a new code and try again.');
         return;
       }
-
-      router.refresh();
-      router.replace(
-        workspaceName.trim()
-          ? `/onboarding?workspace=${encodeURIComponent(workspaceName.trim())}`
-          : '/',
+      setStage('creating');
+      await api.post(
+        '/v1/organizations',
+        { name: workspaceName.trim() },
+        { accessToken: data.session.access_token },
       );
-    } catch {
-      setError('Verification failed. Please try again.');
+      await supabase.auth.signOut();
+      setStage('complete');
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.status === 409) {
+        await createClient().auth.signOut();
+        setStage('complete');
+        return;
+      }
+      setStage('verify');
+      setError(
+        'Your account is verified, but we could not create the workspace. Please try again.',
+      );
     } finally {
       setBusy(false);
     }
   };
 
-  if (challengeSent) {
+  if (stage === 'creating')
     return (
-      <form onSubmit={verifyCode} className="auth-form mt-6 space-y-4">
+      <div className="auth-form mt-7" aria-live="polite">
+        <div className="auth-notice">
+          <strong className="block text-sm text-foreground">Creating your workspace</strong>
+          <span>Setting up your private merchant workspace now. This usually takes a moment.</span>
+        </div>
+      </div>
+    );
+
+  if (stage === 'complete')
+    return (
+      <div className="auth-form mt-7" aria-live="polite">
+        <div className="rounded-2xl border border-positive/25 bg-positive-soft p-5 text-center">
+          <div className="mx-auto mb-3 grid size-10 place-items-center rounded-full bg-positive text-xl font-bold text-white">
+            ✓
+          </div>
+          <h2 className="text-lg font-semibold text-foreground">Workspace created</h2>
+          <p className="mt-1 text-sm text-secondary">
+            Your account is ready. Sign in with your email and password to enter your merchant
+            dashboard.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="primary"
+          size="lg"
+          className="w-full"
+          onClick={() => router.replace('/sign-in?created=1')}
+        >
+          Continue to sign in
+        </Button>
+      </div>
+    );
+
+  if (stage === 'verify')
+    return (
+      <form onSubmit={verifyAndCreateWorkspace} className="auth-form mt-7" noValidate>
         <Field
-          label="6-digit verification code"
+          label="Verification code"
           htmlFor="otp"
-          hint="Enter the 6-digit code sent to your email."
+          hint="Enter the six-digit code from the secure email we sent."
           error={error}
         >
           <TextInput
@@ -112,47 +215,128 @@ export function SignUpForm() {
             maxLength={6}
             required
             autoFocus
-            className="tracking-widest text-center text-xl font-mono"
+            className="text-center font-mono text-xl tracking-[0.45em]"
             placeholder="000000"
           />
         </Field>
         {notice && (
-          <p role="status" className="text-sm text-secondary">
+          <p className="auth-notice" role="status">
             {notice}
           </p>
         )}
         <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
-          Verify and enter workspace
+          Verify and create workspace
         </Button>
         <button
           type="button"
-          className="w-full text-sm font-medium text-secondary underline underline-offset-4"
+          className="auth-text-button justify-self-center"
           onClick={() => {
-            setChallengeSent(false);
+            setStage('details');
             setOtp('');
             setError(undefined);
-            setNotice(undefined);
           }}
         >
-          Use a different email or workspace
+          Edit account details
         </button>
       </form>
     );
-  }
 
   return (
-    <form onSubmit={sendCode} className="auth-form mt-6 space-y-4">
-      <Field label="Workspace name" htmlFor="workspace-name">
+    <form onSubmit={beginSignup} className="auth-form mt-7" noValidate>
+      <Field
+        label="Workspace name"
+        htmlFor="workspace-name"
+        hint="This is the private workspace for your business."
+      >
         <TextInput
           id="workspace-name"
           value={workspaceName}
           onChange={(event) => setWorkspaceName(event.target.value)}
           minLength={2}
+          maxLength={80}
+          autoComplete="organization"
           required
-          placeholder="e.g. Acme Store"
+          placeholder="Your business"
         />
       </Field>
-      <Field label="Email" htmlFor="email" error={error}>
+      <Field
+        label="Country"
+        htmlFor="country"
+        hint="Preselected from your browser settings. You can change it."
+      >
+        <select
+          id="country"
+          value={country}
+          onChange={(event) => setCountry(event.target.value)}
+          className="h-14 rounded-2xl border border-border bg-card px-4 text-sm text-foreground"
+          required
+        >
+          {countryOptions.map(([code, label]) => (
+            <option key={code} value={code}>
+              {flagFor(code)} {label}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field
+        label="Business areas"
+        htmlFor="business-area"
+        hint="Add up to five areas in your own words. This does not change your agent setup."
+      >
+        <div className="flex gap-2">
+          <TextInput
+            id="business-area"
+            value={areaDraft}
+            onChange={(event) => setAreaDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                addArea();
+              }
+            }}
+            maxLength={40}
+            placeholder="e.g. Online retail"
+          />
+          <button
+            type="button"
+            className="rounded-xl border border-border px-4 text-sm font-semibold text-foreground"
+            onClick={addArea}
+          >
+            Add
+          </button>
+        </div>
+        {businessAreas.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-2">
+            {businessAreas.map((area) => (
+              <button
+                type="button"
+                key={area}
+                className="rounded-full bg-muted px-3 py-1 text-xs text-secondary"
+                onClick={() =>
+                  setBusinessAreas((current) => current.filter((item) => item !== area))
+                }
+              >
+                {area} ×
+              </button>
+            ))}
+          </div>
+        )}
+      </Field>
+      <Field
+        label="Business email (optional)"
+        htmlFor="business-email"
+        hint="Leave empty if it is the same as your sign-in email."
+      >
+        <TextInput
+          id="business-email"
+          type="email"
+          value={businessEmail}
+          onChange={(event) => setBusinessEmail(event.target.value)}
+          autoComplete="email"
+          placeholder="hello@yourbusiness.com"
+        />
+      </Field>
+      <Field label="Sign-in email" htmlFor="email" error={error}>
         <TextInput
           id="email"
           type="email"
@@ -163,13 +347,20 @@ export function SignUpForm() {
           placeholder="you@company.com"
         />
       </Field>
-      {notice && (
-        <p role="status" className="text-sm text-secondary">
-          {notice}
-        </p>
-      )}
-      <Button type="submit" variant="secondary" size="lg" loading={busy} className="w-full">
-        Email me a verification code
+      <Field label="Password" htmlFor="password" hint={passwordState.label}>
+        <TextInput
+          id="password"
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="new-password"
+          minLength={12}
+          required
+          placeholder="Create a strong password"
+        />
+      </Field>
+      <Button type="submit" variant="primary" size="lg" loading={busy} className="w-full">
+        Send secure code
       </Button>
     </form>
   );
