@@ -51,6 +51,14 @@ export class ApplicationFoundationStack extends Stack {
       allowAllOutbound: true,
       description: 'Voomate application tasks: inbound only from the production load balancer',
     });
+    // The dashboard proxies browser `/api/*` requests to the private API service discovered
+    // through Cloud Map. Both services use this task group, so the dashboard must be able to
+    // reach API port 4000 directly; the ALB-only rule below is not enough for that hop.
+    this.taskSecurityGroup.addIngressRule(
+      this.taskSecurityGroup,
+      ec2.Port.tcp(4000),
+      'Allow dashboard tasks to reach the private API',
+    );
 
     this.cluster = new ecs.Cluster(this, 'Cluster', {
       vpc,
