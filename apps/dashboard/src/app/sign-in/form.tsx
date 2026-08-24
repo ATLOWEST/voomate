@@ -46,8 +46,29 @@ export function SignInForm() {
         setError('We could not sign you in with those details. Check your email and password.');
         return;
       }
-      router.refresh();
-      router.replace(safeInternalPath(searchParams.get('next')));
+
+      // A requested in-app destination wins. Otherwise ask the server which portal this
+      // verified account may enter. The server owns the platform-admin decision; the browser
+      // must never guess it from an email address or a stale local role.
+      const requestedDestination = searchParams.get('next');
+      if (requestedDestination) {
+        router.replace(safeInternalPath(requestedDestination));
+        return;
+      }
+
+      const destinationResponse = await fetch('/api/auth/destination', {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+      if (!destinationResponse.ok) {
+        // The session was created successfully. The merchant panel is the safe fallback if a
+        // role lookup is temporarily unavailable; it will still enforce server-side access.
+        router.replace('/overview');
+        return;
+      }
+
+      const { destination } = (await destinationResponse.json()) as { destination?: string };
+      router.replace(safeInternalPath(destination, '/overview'));
     } catch {
       setError('Sign-in is temporarily unavailable. Please reload and try again.');
     } finally {
