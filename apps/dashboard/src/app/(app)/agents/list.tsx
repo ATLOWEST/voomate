@@ -48,6 +48,10 @@ export function AgentsList() {
     }
     return slots;
   }, [agents]);
+  const visibleAgents = AGENT_CATALOG.flatMap((definition) => {
+    const agent = agentsByType.get(definition.id);
+    return agent && agent.status !== 'archived' ? [{ definition, agent }] : [];
+  });
 
   const { run: createAgent, busy: creating, error: createError } = useApiAction(
     async (auth, catalogType: AgentCatalogType) => {
@@ -61,7 +65,7 @@ export function AgentsList() {
     <>
       <PageHeader
         title="Agents"
-        description="Choose the capabilities your business needs. Each type has one workspace slot."
+        description="Manage the agents this workspace has added."
         action={
           <Button
             variant="primary"
@@ -94,18 +98,33 @@ export function AgentsList() {
           <AgentCatalogSkeleton />
         ) : (
           <>
-            <section aria-label="Agent capabilities" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {AGENT_CATALOG.map((definition) => {
-                const agent = agentsByType.get(definition.id);
-                return (
+            {visibleAgents.length > 0 ? (
+              <section aria-label="Added agents" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {visibleAgents.map(({ definition, agent }) => (
                   <AgentTile
                     key={definition.id}
                     definition={definition}
                     agent={agent}
                   />
-                );
-              })}
-            </section>
+                ))}
+              </section>
+            ) : (
+              <section className="rounded-xl bg-[var(--surface-soft)] px-6 py-12 sm:px-10">
+                <p className="text-[17px] font-semibold text-foreground">No agents added</p>
+                <p className="mt-2 max-w-md text-[13px] leading-5 text-muted-foreground">
+                  Add the first capability your workspace needs. You can configure it before it
+                  is allowed to go live.
+                </p>
+                <Button
+                  className="mt-6"
+                  variant="primary"
+                  icon={<Plus className="size-4" />}
+                  onClick={() => setCatalogOpen(true)}
+                >
+                  Add agent
+                </Button>
+              </section>
+            )}
             {createError && (
               <div className="mt-5">
                 <Callout tone="critical" title="Could not create the agent">
@@ -134,22 +153,17 @@ function AgentTile({
   agent,
 }: {
   definition: (typeof AGENT_CATALOG)[number];
-  agent: Agent | undefined;
+  agent: Agent;
 }) {
   const Icon = catalogIcons[definition.id];
-  const state = agent
-    ? agent.status === 'active'
+  const state =
+    agent.status === 'active'
       ? 'Live'
       : agent.status === 'paused'
         ? 'Paused'
         : agent.status === 'archived'
           ? 'Archived'
-          : 'Setup'
-    : definition.releaseState === 'released'
-      ? 'Available'
-      : definition.releaseState === 'design'
-        ? 'In design'
-        : 'Planned';
+          : 'Setup';
 
   const contents = (
     <>
@@ -160,7 +174,7 @@ function AgentTile({
         <span className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
           <span
             className={`size-1.5 rounded-full ${
-              agent?.status === 'active'
+              agent.status === 'active'
                 ? 'bg-emerald-500'
                 : definition.releaseState === 'released'
                   ? 'bg-[var(--brand)]'
@@ -173,7 +187,7 @@ function AgentTile({
           {definition.name}
         </span>
         <span className="mt-1.5 block text-[13px] leading-5 text-muted-foreground">
-          {agent ? 'Open workspace' : definition.description}
+          Open workspace
         </span>
       </span>
     </>
@@ -182,23 +196,14 @@ function AgentTile({
   const className =
     'group flex aspect-square min-h-56 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--brand)] hover:bg-[var(--surface-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2';
 
-  if (agent) {
-    return (
-      <Link href={`/agents/${agent.id}`} className={className} aria-label={`Open ${definition.name}`}>
-        {contents}
-      </Link>
-    );
-  }
-
   return (
-    <div
-      className={`flex aspect-square min-h-56 flex-col rounded-xl border border-[var(--border)] p-5 ${
-        definition.releaseState === 'released' ? 'bg-[var(--surface)]' : 'bg-[var(--surface-soft)] opacity-70'
-      }`}
-      aria-label={`${definition.name}: ${state}`}
+    <Link
+      href={`/agents/${agent.id}`}
+      className={className}
+      aria-label={`Open ${definition.name}`}
     >
       {contents}
-    </div>
+    </Link>
   );
 }
 

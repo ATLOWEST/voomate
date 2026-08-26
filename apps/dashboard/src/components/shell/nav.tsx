@@ -13,7 +13,6 @@ import {
   Inbox,
   MessageSquareText,
   MoreHorizontal,
-  Plus,
   Settings2,
   ShieldCheck,
 } from 'lucide-react';
@@ -290,25 +289,6 @@ export function SidebarNav({
         </details>
       </nav>
 
-      <Link
-        href="/agents"
-        onClick={onNavigate}
-        title={isCollapsed ? 'Add an agent' : undefined}
-        className={cn(
-          'group mt-5 flex min-h-11 items-center justify-between rounded-lg bg-foreground px-3.5 text-[13px] font-semibold text-background transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:opacity-92 active:translate-y-px',
-          isCollapsed && 'justify-center px-0',
-        )}
-      >
-        <span className={cn(isCollapsed && 'hidden')}>Add an agent</span>
-        <span
-          className={cn(
-            'grid size-6 place-items-center rounded-md bg-background/15 transition-transform duration-500',
-            !isCollapsed && 'group-hover:rotate-90',
-          )}
-        >
-          <Plus className="size-3.5" />
-        </span>
-      </Link>
     </aside>
   );
 }

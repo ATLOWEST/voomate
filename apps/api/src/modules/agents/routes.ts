@@ -14,6 +14,7 @@ import {
   getAgentCatalogDefinition,
   isReleasedAgentType,
   notFound,
+  selectAgentDeploymentSchema,
   updateAgentSchema,
   uuidSchema,
   type AgentAppearance,
@@ -31,6 +32,11 @@ import { tenantOf } from '../../plugins/auth.js';
 import { transitionAgentLifecycle } from './lifecycle.js';
 
 const paramsSchema = z.object({ id: uuidSchema });
+
+type DeploymentAuditMetadata = {
+  platform?: 'website' | 'web_app' | 'ios' | 'android' | 'web';
+  origin?: string;
+};
 
 const DEFAULT_LANGUAGE: AgentLanguageConfig = {
   languages: DEFAULT_LANGUAGE_CODES,
@@ -82,6 +88,112 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     if (agent === undefined) throw notFound('Agent', id);
     return { agent };
   });
+
+  app.get(
+    '/:id/deployment',
+    { preHandler: app.requireTenant(OrgRole.VIEWER) },
+    async (request) => {
+      const tenant = tenantOf(request);
+      const { id } = paramsSchema.parse(request.params);
+
+      const [agent] = await getDb()
+        .select({ id: agents.id, allowedOrigins: agents.allowedOrigins })
+        .from(agents)
+        .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
+        .limit(1);
+      if (!agent) throw notFound('Agent', id);
+
+      const [selected, verified] = await Promise.all([
+        getDb()
+          .select({ metadata: auditLogs.metadata, createdAt: auditLogs.createdAt })
+          .from(auditLogs)
+          .where(
+            and(
+              tenantScope(auditLogs, tenant.organizationId),
+              eq(auditLogs.resourceId, id),
+              eq(auditLogs.resourceType, 'agent'),
+              eq(auditLogs.action, 'agent.deployment_target_selected'),
+            ),
+          )
+          .orderBy(desc(auditLogs.createdAt))
+          .limit(1),
+        getDb()
+          .select({ metadata: auditLogs.metadata, createdAt: auditLogs.createdAt })
+          .from(auditLogs)
+          .where(
+            and(
+              tenantScope(auditLogs, tenant.organizationId),
+              eq(auditLogs.resourceId, id),
+              eq(auditLogs.resourceType, 'agent'),
+              eq(auditLogs.action, 'agent.installation_verified'),
+            ),
+          )
+          .orderBy(desc(auditLogs.createdAt)),
+      ]);
+
+      const target = selected[0]?.metadata as DeploymentAuditMetadata | undefined;
+      const webTarget = target?.platform === 'website' || target?.platform === 'web_app';
+      const currentProof = verified.find((record) => {
+        const proof = record.metadata as DeploymentAuditMetadata | undefined;
+        return (
+          proof?.platform === 'web' &&
+          typeof proof.origin === 'string' &&
+          agent.allowedOrigins.includes(proof.origin)
+        );
+      });
+      const proof = currentProof?.metadata as DeploymentAuditMetadata | undefined;
+      const proofIsCurrent = webTarget && currentProof !== undefined;
+
+      return {
+        deployment: {
+          platform: target?.platform ?? null,
+          supported: webTarget,
+          verified: proofIsCurrent,
+          verifiedOrigin: proofIsCurrent ? (proof?.origin ?? null) : null,
+          verifiedAt: proofIsCurrent ? currentProof.createdAt : null,
+        },
+      };
+    },
+  );
+
+  app.post(
+    '/:id/deployment',
+    { preHandler: app.requireTenant(OrgRole.DEVELOPER) },
+    async (request) => {
+      const tenant = tenantOf(request);
+      const { id } = paramsSchema.parse(request.params);
+      const input = selectAgentDeploymentSchema.parse(request.body);
+
+      const [agent] = await getDb()
+        .select({ id: agents.id, catalogType: agents.catalogType })
+        .from(agents)
+        .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
+        .limit(1);
+      if (!agent) throw notFound('Agent', id);
+      if (agent.catalogType !== 'web') {
+        throw conflict('Deployment targets are currently available only for the Web Agent.');
+      }
+
+      await getDb().insert(auditLogs).values({
+        organizationId: tenant.organizationId,
+        actorId: tenant.userId,
+        action: 'agent.deployment_target_selected',
+        resourceType: 'agent',
+        resourceId: id,
+        metadata: { platform: input.platform },
+      });
+
+      return {
+        deployment: {
+          platform: input.platform,
+          supported: input.platform === 'website' || input.platform === 'web_app',
+          verified: false,
+          verifiedOrigin: null,
+          verifiedAt: null,
+        },
+      };
+    },
+  );
 
   app.post('/', { preHandler: app.requireTenant(OrgRole.DEVELOPER) }, async (request, reply) => {
     const tenant = tenantOf(request);

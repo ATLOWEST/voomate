@@ -142,6 +142,19 @@ export const createAgentSchema = z.object({
 });
 export type CreateAgentInput = z.infer<typeof createAgentSchema>;
 
+export const agentDeploymentPlatformSchema = z.enum([
+  'website',
+  'web_app',
+  'ios',
+  'android',
+]);
+export type AgentDeploymentPlatform = z.infer<typeof agentDeploymentPlatformSchema>;
+
+export const selectAgentDeploymentSchema = z.object({
+  platform: agentDeploymentPlatformSchema,
+});
+export type SelectAgentDeploymentInput = z.infer<typeof selectAgentDeploymentSchema>;
+
 export const updateAgentSchema = z.object({
   name: z.string().min(1).max(80).optional(),
   language: agentLanguageConfigSchema.optional(),

@@ -19,7 +19,7 @@ import {
   readOnlyConnectionSecrets,
   tenantScope,
 } from '@voomate/db';
-import { and, count, eq, inArray, or } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, or } from 'drizzle-orm';
 import { getDb } from '../../lib/db.js';
 
 export type AgentLifecycleCommand = 'activate' | 'pause' | 'archive' | 'restore';
@@ -62,6 +62,7 @@ export async function transitionAgentLifecycle(input: {
         executionLeaseId: agents.executionLeaseId,
         executionLeaseExpiresAt: agents.executionLeaseExpiresAt,
         publishedAt: agents.publishedAt,
+        allowedOrigins: agents.allowedOrigins,
       })
       .from(agents)
       .where(and(tenantScope(agents, input.tenant.organizationId), eq(agents.id, input.agentId)))
@@ -89,6 +90,54 @@ export async function transitionAgentLifecycle(input: {
         );
       if (!indexed?.chunks) {
         throw conflict('Add and index at least one knowledge source before activating this agent.');
+      }
+    }
+
+    if (input.command === 'activate' && existing.status === AgentStatus.DRAFT) {
+      const [target] = await tx
+        .select({ metadata: auditLogs.metadata })
+        .from(auditLogs)
+        .where(
+          and(
+            tenantScope(auditLogs, input.tenant.organizationId),
+            eq(auditLogs.resourceId, input.agentId),
+            eq(auditLogs.resourceType, 'agent'),
+            eq(auditLogs.action, 'agent.deployment_target_selected'),
+          ),
+        )
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(1);
+      const platform = (target?.metadata as { platform?: string } | null)?.platform;
+      if (!platform) throw conflict('Choose a deployment platform before activating this agent.');
+      if (platform === 'ios' || platform === 'android') {
+        throw conflict('The native mobile SDK is not released yet. Choose Website or Web app.');
+      }
+      if (!existing.allowedOrigins.length) {
+        throw conflict('Add an approved domain before activating this agent.');
+      }
+
+      const installations = await tx
+        .select({ metadata: auditLogs.metadata })
+        .from(auditLogs)
+        .where(
+          and(
+            tenantScope(auditLogs, input.tenant.organizationId),
+            eq(auditLogs.resourceId, input.agentId),
+            eq(auditLogs.resourceType, 'agent'),
+            eq(auditLogs.action, 'agent.installation_verified'),
+          ),
+        )
+        .orderBy(desc(auditLogs.createdAt));
+      const hasCurrentProof = installations.some((installation) => {
+        const proof = installation.metadata as { platform?: string; origin?: string } | undefined;
+        return (
+          proof?.platform === 'web' &&
+          typeof proof.origin === 'string' &&
+          existing.allowedOrigins.includes(proof.origin)
+        );
+      });
+      if (!hasCurrentProof) {
+        throw conflict('Install the SDK and open it once on an approved domain before activation.');
       }
     }
 

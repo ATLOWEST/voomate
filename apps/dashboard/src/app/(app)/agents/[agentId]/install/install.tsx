@@ -8,6 +8,7 @@
  */
 import { useState } from 'react';
 import type { Agent } from '@voomate/core';
+import Link from 'next/link';
 import { useAgent } from '@/components/agent/shell';
 import { PageBody } from '@/components/shell/page-header';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,36 @@ const WIDGET_ORIGIN = (
 ).replace(/\/$/, '');
 
 export function InstallPanels() {
-  const { agent, refresh } = useAgent();
+  const { agent, deployment, refresh } = useAgent();
+
+  if (deployment.platform === null) {
+    return (
+      <PageBody>
+        <Callout tone="caution" title="Choose a deployment platform first">
+          Return to Info and choose Website or Web app before installing this agent.
+        </Callout>
+        <Link
+          href={`/agents/${agent.id}`}
+          className="mt-4 inline-flex min-h-10 items-center rounded-lg bg-foreground px-4 text-[13px] font-semibold text-background"
+        >
+          Open setup guide
+        </Link>
+      </PageBody>
+    );
+  }
+
+  if (deployment.platform === 'ios' || deployment.platform === 'android') {
+    return (
+      <PageBody>
+        <Callout tone="caution" title="Native SDK is not released">
+          The {deployment.platform === 'ios' ? 'iOS' : 'Android'} SDK needs device attestation,
+          short-lived session exchange, microphone permission handling, and signed runtime
+          receipts before it can be offered safely. This dashboard will not provide sample code
+          that cannot pass those controls.
+        </Callout>
+      </PageBody>
+    );
+  }
 
   const snippet = `<script
   src="${WIDGET_ORIGIN}/embed.js"
@@ -38,10 +68,13 @@ export function InstallPanels() {
   return (
     <PageBody>
       <div className="mb-4">
-        <Callout tone="caution" title="Website SDK setup is not verified yet">
-          Paste the snippet below on the approved website, then open that website and start the
-          widget once. Until Voomate receives a widget session, it cannot honestly claim that the
-          website SDK is installed or that setup is complete.
+        <Callout
+          tone={deployment.verified ? 'positive' : 'caution'}
+          title={deployment.verified ? 'SDK installation verified' : 'SDK is not verified yet'}
+        >
+          {deployment.verified
+            ? `Voomate received a real widget session from ${deployment.verifiedOrigin ?? 'an approved domain'}.`
+            : 'Paste the snippet below on an approved domain, then open that page once. Voomate marks installation complete only after the API receives that real SDK session.'}
         </Callout>
       </div>
       {agent.status !== 'active' && (

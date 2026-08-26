@@ -22,7 +22,7 @@ import {
   type AgentPersona,
   type OrganizationId,
 } from '@voomate/core';
-import { agents } from '@voomate/db';
+import { agents, auditLogs } from '@voomate/db';
 import { buildTranscribeConfig, findBilingualVoice, resolveVoice } from '@voomate/i18n';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
@@ -96,6 +96,35 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
         .filter((value): value is string => value !== undefined);
 
       if (!allowed.includes(origin)) denied();
+
+      // This is installation evidence, not a cosmetic dashboard toggle. Reaching this point
+      // proves that the real SDK loaded with the correct embed key from an approved origin.
+      const installationProofs = await getDb()
+        .select({ metadata: auditLogs.metadata })
+        .from(auditLogs)
+        .where(
+          and(
+            eq(auditLogs.organizationId, agent!.organizationId),
+            eq(auditLogs.resourceId, agent!.id),
+            eq(auditLogs.resourceType, 'agent'),
+            eq(auditLogs.action, 'agent.installation_verified'),
+          ),
+        );
+      const originAlreadyVerified = installationProofs.some((proof) => {
+        const metadata = proof.metadata as { platform?: string; origin?: string } | null;
+        return metadata?.platform === 'web' && metadata.origin === origin;
+      });
+      if (!originAlreadyVerified) {
+        await getDb().insert(auditLogs).values({
+          organizationId: agent!.organizationId,
+          actorId: null,
+          action: 'agent.installation_verified',
+          resourceType: 'agent',
+          resourceId: agent!.id,
+          metadata: { platform: 'web', origin },
+          ipAddress: request.ip,
+        });
+      }
 
       if (agent!.status !== AgentStatus.ACTIVE) {
         throw new AppError(

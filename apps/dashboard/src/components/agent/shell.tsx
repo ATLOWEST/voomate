@@ -11,6 +11,7 @@ import {
   FlaskConical,
   Globe2,
   LayoutDashboard,
+  Power,
   Settings,
 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -23,7 +24,25 @@ interface AgentContextValue {
   agent: Agent;
   isPlaceholder: boolean;
   refresh: () => void;
+  deployment: AgentDeployment;
+  refreshDeployment: () => void;
 }
+
+export interface AgentDeployment {
+  platform: 'website' | 'web_app' | 'ios' | 'android' | null;
+  supported: boolean;
+  verified: boolean;
+  verifiedOrigin: string | null;
+  verifiedAt: string | null;
+}
+
+const EMPTY_DEPLOYMENT: AgentDeployment = {
+  platform: null,
+  supported: false,
+  verified: false,
+  verifiedOrigin: null,
+  verifiedAt: null,
+};
 
 const AgentContext = createContext<AgentContextValue | undefined>(undefined);
 
@@ -51,10 +70,23 @@ export function AgentShell({ agentId, children }: { agentId: string; children: R
   } = useApiQuery<{ agents: Agent[] }>(
     organization === undefined || agentId !== 'web' ? null : '/v1/agents',
   );
+  const {
+    data: deploymentData,
+    refetch: refreshDeployment,
+  } = useApiQuery<{ deployment: AgentDeployment }>(
+    organization === undefined || isFixedSlot ? null : `/v1/agents/${agentId}/deployment`,
+    { pollMs: 5_000 },
+  );
 
   const value = useMemo<AgentContextValue | undefined>(() => {
     if (agentId === 'web' && webAgentsData?.agents[0] !== undefined) {
-      return { agent: webAgentsData.agents[0], isPlaceholder: false, refresh: refreshWebAgents };
+      return {
+        agent: webAgentsData.agents[0],
+        isPlaceholder: false,
+        refresh: refreshWebAgents,
+        deployment: EMPTY_DEPLOYMENT,
+        refreshDeployment,
+      };
     }
 
     if (isFixedSlot) {
@@ -80,11 +112,31 @@ export function AgentShell({ agentId, children }: { agentId: string; children: R
         } as unknown as Agent,
         isPlaceholder: true,
         refresh: () => {},
+        deployment: EMPTY_DEPLOYMENT,
+        refreshDeployment: () => {},
       };
     }
 
-    return data === undefined ? undefined : { agent: data.agent, isPlaceholder: false, refresh };
-  }, [agentId, data, isFixedSlot, organization?.id, refresh, refreshWebAgents, webAgentsData]);
+    return data === undefined
+      ? undefined
+      : {
+          agent: data.agent,
+          isPlaceholder: false,
+          refresh,
+          deployment: deploymentData?.deployment ?? EMPTY_DEPLOYMENT,
+          refreshDeployment,
+        };
+  }, [
+    agentId,
+    data,
+    deploymentData,
+    isFixedSlot,
+    organization?.id,
+    refresh,
+    refreshDeployment,
+    refreshWebAgents,
+    webAgentsData,
+  ]);
 
   if ((loading && !isFixedSlot) || (agentId === 'web' && loadingWebAgents)) {
     return <ShellSkeleton />;
@@ -109,6 +161,7 @@ export function AgentShell({ agentId, children }: { agentId: string; children: R
       <div className="min-h-full bg-background">
         <AgentHeader
           agent={value.agent}
+          deployment={value.deployment}
           isPlaceholder={value.isPlaceholder}
           onChanged={value.refresh}
         />
@@ -135,7 +188,7 @@ function AgentNav({ agentId, isPlaceholder }: { agentId: string; isPlaceholder: 
   }
 
   const items = [
-    { name: 'Overview', href: basePath, icon: LayoutDashboard },
+    { name: 'Info', href: basePath, icon: LayoutDashboard },
     { name: 'Knowledge', href: basePath + '/knowledge', icon: Book },
     { name: 'Test', href: basePath + '/playground', icon: FlaskConical },
     { name: 'Install', href: basePath + '/install', icon: Globe2 },
@@ -183,10 +236,12 @@ function AgentNav({ agentId, isPlaceholder }: { agentId: string; isPlaceholder: 
 
 function AgentHeader({
   agent,
+  deployment,
   isPlaceholder,
   onChanged,
 }: {
   agent: Agent;
+  deployment: AgentDeployment;
   isPlaceholder: boolean;
   onChanged: () => void;
 }) {
@@ -343,24 +398,34 @@ function AgentHeader({
             'draft' ? (
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || !deployment.supported || !deployment.verified}
               onClick={() => void publish()}
-              className="min-h-10 rounded-lg bg-foreground px-4 text-[13px] font-semibold text-background transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:opacity-90 active:translate-y-px disabled:opacity-45"
+              className="grid size-11 shrink-0 place-items-center rounded-lg bg-foreground text-background transition-[opacity,transform] duration-200 hover:opacity-90 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-35"
+              aria-label="Turn on agent"
+              title={
+                deployment.verified
+                  ? 'Turn on agent'
+                  : 'Complete and verify installation before turning on this agent'
+              }
             >
-              {busy ? 'Turning on...' : 'Turn on agent'}
+              <Power className={`size-[18px] ${busy ? 'animate-pulse' : ''}`} strokeWidth={2} />
             </button>
           ) : (
             <button
               type="button"
               disabled={busy}
               onClick={() => void togglePause()}
-              className="min-h-10 rounded-lg bg-[var(--surface-sunken)] px-4 text-[13px] font-semibold text-foreground transition-[background-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[var(--surface-hover)] active:translate-y-px disabled:opacity-45"
+              className={cn(
+                'grid size-11 shrink-0 place-items-center rounded-lg border transition-[background-color,border-color,color,transform] duration-200 active:translate-y-px disabled:opacity-45',
+                optimisticStatus === 'active'
+                  ? 'border-positive/25 bg-positive-soft text-positive hover:bg-emerald-100 dark:hover:bg-emerald-950/55'
+                  : 'border-[var(--border-default)] bg-[var(--surface-sunken)] text-muted-foreground hover:bg-[var(--surface-hover)] hover:text-foreground',
+              )}
+              aria-pressed={optimisticStatus === 'active'}
+              aria-label={optimisticStatus === 'paused' ? 'Turn on agent' : 'Turn off agent'}
+              title={optimisticStatus === 'paused' ? 'Turn on agent' : 'Turn off agent'}
             >
-              {busy
-                ? 'Updating...'
-                : optimisticStatus === 'paused'
-                  ? 'Turn on agent'
-                  : 'Turn off agent'}
+              <Power className={`size-[18px] ${busy ? 'animate-pulse' : ''}`} strokeWidth={2} />
             </button>
           )}
         </div>
