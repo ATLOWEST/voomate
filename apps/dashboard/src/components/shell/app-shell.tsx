@@ -15,7 +15,6 @@ import {
 import { SidebarNav } from './nav';
 import { useSession } from '@/lib/session';
 import { ThemeToggle } from './theme-toggle';
-import { DashboardMotion } from './dashboard-motion';
 import { cn } from '@/lib/cn';
 
 const pageNames: Record<string, string> = {
@@ -118,17 +117,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        'dashboard-layout flex h-[100dvh] w-full overflow-hidden bg-background text-foreground',
-        'transition-[grid-template-columns] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] md:grid',
+        'dashboard-layout flex h-[100dvh] min-h-0 w-full overflow-hidden bg-background text-foreground md:grid',
         desktopOpen ? 'md:grid-cols-[17.5rem_1fr]' : 'md:grid-cols-[4.5rem_1fr]',
       )}
     >
-      <DashboardMotion />
-
       {/* Sidebar wrapper */}
       <div
         className={cn(
-          'hidden min-w-0 overflow-hidden md:block transition-[width] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+          'hidden min-h-0 min-w-0 overflow-hidden md:block',
           desktopOpen ? 'w-[17.5rem]' : 'w-[4.5rem]',
         )}
       >
@@ -157,7 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div className="dashboard-main flex min-w-0 flex-1 flex-col">
+      <div className="dashboard-main flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="dashboard-topbar relative z-30 flex h-16 shrink-0 items-center justify-between bg-background px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button
@@ -191,7 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div
           id="dashboard-content"
-          className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="h-0 min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
         >
           {children}
         </div>

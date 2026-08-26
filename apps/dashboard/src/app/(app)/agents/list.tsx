@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { AGENT_CATALOG, type Agent, type AgentCatalogType } from '@voomate/core';
-import { DatabaseZap, Globe2, PhoneCall, Search, type LucideIcon } from 'lucide-react';
+import { DatabaseZap, Globe2, PhoneCall, Plus, Search, type LucideIcon } from 'lucide-react';
 import { PageBody, PageHeader } from '@/components/shell/page-header';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
+import { Dialog } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
@@ -28,6 +29,7 @@ const statusOrder: Record<Agent['status'], number> = {
 
 export function AgentsList() {
   const router = useRouter();
+  const [catalogOpen, setCatalogOpen] = useState(false);
   const { organization } = useSession();
   const { data, error, loading, refetch } = useApiQuery<{ agents: Agent[] }>(
     organization === undefined ? null : '/v1/agents',
@@ -60,6 +62,16 @@ export function AgentsList() {
       <PageHeader
         title="Agents"
         description="Choose the capabilities your business needs. Each type has one workspace slot."
+        action={
+          <Button
+            variant="primary"
+            icon={<Plus className="size-4" />}
+            disabled={organization === undefined}
+            onClick={() => setCatalogOpen(true)}
+          >
+            Add agent
+          </Button>
+        }
       />
       <PageBody>
         {organization === undefined ? (
@@ -90,8 +102,6 @@ export function AgentsList() {
                     key={definition.id}
                     definition={definition}
                     agent={agent}
-                    creating={creating}
-                    onCreate={() => void createAgent(definition.id)}
                   />
                 );
               })}
@@ -106,6 +116,15 @@ export function AgentsList() {
           </>
         )}
       </PageBody>
+
+      {catalogOpen && (
+        <AgentCatalogDialog
+          agentsByType={agentsByType}
+          busy={creating}
+          onClose={() => setCatalogOpen(false)}
+          onAdd={(catalogType) => void createAgent(catalogType)}
+        />
+      )}
     </>
   );
 }
@@ -113,13 +132,9 @@ export function AgentsList() {
 function AgentTile({
   definition,
   agent,
-  creating,
-  onCreate,
 }: {
   definition: (typeof AGENT_CATALOG)[number];
   agent: Agent | undefined;
-  creating: boolean;
-  onCreate: () => void;
 }) {
   const Icon = catalogIcons[definition.id];
   const state = agent
@@ -175,27 +190,77 @@ function AgentTile({
     );
   }
 
-  if (definition.releaseState === 'released') {
-    return (
-      <button
-        type="button"
-        className={className}
-        disabled={creating}
-        onClick={onCreate}
-        aria-label={`Create ${definition.name}`}
-      >
-        {contents}
-      </button>
-    );
-  }
-
   return (
     <div
-      className="flex aspect-square min-h-56 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-5 opacity-70"
+      className={`flex aspect-square min-h-56 flex-col rounded-xl border border-[var(--border)] p-5 ${
+        definition.releaseState === 'released' ? 'bg-[var(--surface)]' : 'bg-[var(--surface-soft)] opacity-70'
+      }`}
       aria-label={`${definition.name}: ${state}`}
     >
       {contents}
     </div>
+  );
+}
+
+function AgentCatalogDialog({
+  agentsByType,
+  busy,
+  onClose,
+  onAdd,
+}: {
+  agentsByType: Map<AgentCatalogType, Agent>;
+  busy: boolean;
+  onClose: () => void;
+  onAdd: (catalogType: AgentCatalogType) => void;
+}) {
+  return (
+    <Dialog
+      title="Add an agent"
+      description="Choose the capability you want to add. Each type can be added once in this workspace."
+      onClose={onClose}
+      wide
+    >
+      <div className="space-y-2">
+        {AGENT_CATALOG.map((definition) => {
+          const Icon = catalogIcons[definition.id];
+          const existing = agentsByType.get(definition.id);
+          const released = definition.releaseState === 'released';
+          return (
+            <div
+              className="flex items-center gap-3 rounded-lg bg-[var(--surface-sunken)] p-3.5"
+              key={definition.id}
+            >
+              <span className="grid size-9 shrink-0 place-items-center rounded-md bg-background text-[var(--brand)]">
+                <Icon className="size-4" strokeWidth={1.8} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13.5px] font-semibold text-foreground">{definition.name}</p>
+                <p className="mt-0.5 text-[12px] leading-4 text-muted-foreground">
+                  {definition.description}
+                </p>
+              </div>
+              {existing ? (
+                <Link
+                  href={`/agents/${existing.id}`}
+                  onClick={onClose}
+                  className="inline-flex min-h-9 shrink-0 items-center rounded-lg bg-background px-3 text-[12.5px] font-semibold text-foreground transition-colors hover:bg-[var(--surface-hover)]"
+                >
+                  Added
+                </Link>
+              ) : released ? (
+                <Button size="sm" variant="primary" loading={busy} onClick={() => onAdd(definition.id)}>
+                  Add
+                </Button>
+              ) : (
+                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+                  {definition.releaseState === 'design' ? 'In design' : 'Planned'}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Dialog>
   );
 }
 
