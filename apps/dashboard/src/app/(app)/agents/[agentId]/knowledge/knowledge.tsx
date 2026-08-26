@@ -24,7 +24,7 @@ import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
 import { api } from '@/lib/api';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
 
-type DialogKind = 'website' | 'qa' | 'text';
+type DialogKind = 'website' | 'qa' | 'text' | 'document';
 
 /** Statuses that are still moving. Anything here means the list is worth re-reading. */
 const IN_FLIGHT = new Set(['pending', 'crawling', 'processing', 'indexing']);
@@ -88,6 +88,27 @@ export function KnowledgePanels() {
                 description="Add your website address to start. Crawling a typical marketing site takes a few minutes; you can keep working while it runs."
               />
             }
+          />
+        </PanelBody>
+      </Panel>
+
+      <Panel className="mt-4">
+        <PanelHeader
+          title="Documents"
+          description="Upload a text-based PDF for policies, product guides, service terms, or internal material your agent should cite."
+          action={
+            <Button size="sm" onClick={() => setDialog('document')}>
+              Upload PDF
+            </Button>
+          }
+        />
+        <PanelBody className="p-0">
+          <SourceList
+            sources={byType('document')}
+            loading={loading}
+            agentId={agent.id}
+            onChanged={refetch}
+            empty={<Blank>No documents uploaded yet.</Blank>}
           />
         </PanelBody>
       </Panel>
@@ -305,6 +326,7 @@ function AddSourceDialog({
   const [answer, setAnswer] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [document, setDocument] = useState<File>();
 
   const { run, busy, error } = useApiAction(async (auth) => {
     const base = `/v1/agents/${agentId}/knowledge`;
@@ -317,8 +339,18 @@ function AddSourceDialog({
       );
     } else if (kind === 'qa') {
       await api.post(`${base}/qa`, { question: question.trim(), answer: answer.trim() }, auth);
-    } else {
+    } else if (kind === 'text') {
       await api.post(`${base}/text`, { title: title.trim(), content: content.trim() }, auth);
+    } else {
+      if (!document) throw new Error('Choose a PDF first.');
+      const bytes = new Uint8Array(await document.arrayBuffer());
+      let binary = '';
+      for (const byte of bytes) binary += String.fromCharCode(byte);
+      await api.post(
+        `${base}/document`,
+        { filename: document.name, contentBase64: btoa(binary) },
+        auth,
+      );
     }
     onAdded();
   });
@@ -328,7 +360,11 @@ function AddSourceDialog({
       ? url.trim().length > 0
       : kind === 'qa'
         ? question.trim().length > 0 && answer.trim().length > 0
-        : title.trim().length > 0 && content.trim().length > 0;
+        : kind === 'text'
+          ? title.trim().length > 0 && content.trim().length > 0
+          : document !== undefined &&
+            document.type === 'application/pdf' &&
+            document.size <= 6 * 1024 * 1024;
 
   const meta = {
     website: {
@@ -344,6 +380,11 @@ function AddSourceDialog({
     text: {
       title: 'Add text',
       description: 'Paste anything the agent should know that is not on your website.',
+    },
+    document: {
+      title: 'Upload PDF',
+      description:
+        'We extract and index selectable text. The original file is not retained after processing.',
     },
   }[kind];
 
@@ -415,12 +456,32 @@ function AddSourceDialog({
             </Field>
           </>
         )}
+        {kind === 'document' && (
+          <Field
+            label="PDF document"
+            htmlFor="source-document"
+            hint="Text-based PDF, up to 6 MB. Scanned PDFs need OCR before upload."
+            error={error}
+          >
+            <input
+              id="source-document"
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={(event) => setDocument(event.target.files?.[0])}
+              className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-[var(--surface-sunken)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-foreground"
+            />
+          </Field>
+        )}
       </div>
 
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="primary" loading={busy} disabled={!ready} onClick={() => void run()}>
-          {kind === 'website' ? 'Add and crawl' : 'Save'}
+          {kind === 'website'
+            ? 'Add and crawl'
+            : kind === 'document'
+              ? 'Extract and index'
+              : 'Save'}
         </Button>
       </DialogActions>
     </Dialog>

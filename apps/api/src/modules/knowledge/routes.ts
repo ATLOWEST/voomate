@@ -6,6 +6,7 @@
  * minutes, and a merchant should watch progress rather than a spinner on a hung request.
  */
 import {
+  addPdfDocumentSchema,
   IngestionStatus,
   KnowledgeSourceType,
   OrgRole,
@@ -20,6 +21,7 @@ import { agents, knowledgeDocuments, knowledgeSources, tenantScope } from '@voom
 import { and, desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
+import { PDFParse } from 'pdf-parse';
 import { getDb } from '../../lib/db.js';
 import { tenantOf } from '../../plugins/auth.js';
 import { assertCrawlableUrl } from '../../lib/url-guard.js';
@@ -267,6 +269,86 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
 
       indexInBackground(app, tenant.organizationId, id, source.id);
 
+      reply.status(201);
+      return { source };
+    },
+  );
+
+  /**
+   * Import a merchant-provided PDF as a first-class, traceable source. The raw PDF is processed
+   * only in memory; we persist extracted text and source metadata, never the file bytes. That
+   * keeps the retrieval boundary auditable and avoids a second unneeded customer-file store.
+   */
+  app.post(
+    '/:id/knowledge/document',
+    { preHandler: app.requireTenant(OrgRole.DEVELOPER), bodyLimit: 8 * 1024 * 1024 },
+    async (request, reply) => {
+      const tenant = tenantOf(request);
+      const { id } = agentParams.parse(request.params);
+      const input = addPdfDocumentSchema.parse(request.body);
+      await assertAgent(tenant.organizationId, id);
+
+      const bytes = Buffer.from(input.contentBase64, 'base64');
+      if (
+        bytes.length < 5 ||
+        bytes.length > 6 * 1024 * 1024 ||
+        bytes.subarray(0, 5).toString() !== '%PDF-'
+      ) {
+        reply.status(400);
+        return { error: 'Upload a PDF smaller than 6 MB.' };
+      }
+
+      let content: string;
+      try {
+        const parser = new PDFParse({ data: bytes });
+        const result = await parser.getText();
+        await parser.destroy();
+        content = result.text.trim();
+      } catch (error) {
+        request.log.info({ err: error, filename: input.filename }, 'PDF extraction failed');
+        reply.status(400);
+        return {
+          error: 'This PDF could not be read. Upload a text-based PDF, not a scanned image.',
+        };
+      }
+
+      if (content.length === 0) {
+        reply.status(400);
+        return { error: 'No selectable text was found in this PDF. Upload a text-based PDF.' };
+      }
+      if (content.length > 250_000) {
+        reply.status(400);
+        return { error: 'This PDF contains too much text. Split it into smaller documents.' };
+      }
+
+      const db = getDb();
+      const source = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(knowledgeSources)
+          .values({
+            organizationId: tenant.organizationId,
+            agentId: id,
+            type: KnowledgeSourceType.DOCUMENT,
+            location: input.filename,
+            title: input.filename,
+            status: IngestionStatus.PENDING,
+            documentCount: 1,
+            config: { format: 'pdf', bytes: bytes.length },
+          })
+          .returning();
+        await tx.insert(knowledgeDocuments).values({
+          organizationId: tenant.organizationId,
+          agentId: id,
+          sourceId: created!.id,
+          title: input.filename,
+          content,
+          contentHash: crypto.randomUUID(),
+          status: IngestionStatus.PENDING,
+          metadata: { format: 'pdf', bytes: bytes.length },
+        });
+        return created!;
+      });
+      indexInBackground(app, tenant.organizationId, id, source.id);
       reply.status(201);
       return { source };
     },

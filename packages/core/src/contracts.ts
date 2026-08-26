@@ -144,12 +144,7 @@ export const createAgentSchema = z.object({
 });
 export type CreateAgentInput = z.infer<typeof createAgentSchema>;
 
-export const agentDeploymentPlatformSchema = z.enum([
-  'website',
-  'web_app',
-  'ios',
-  'android',
-]);
+export const agentDeploymentPlatformSchema = z.enum(['website', 'web_app', 'ios', 'android']);
 export type AgentDeploymentPlatform = z.infer<typeof agentDeploymentPlatformSchema>;
 
 export const selectAgentDeploymentSchema = z.object({
@@ -193,6 +188,14 @@ export const addManualTextSchema = z.object({
   content: z.string().min(1).max(50_000),
 });
 export type AddManualTextInput = z.infer<typeof addManualTextSchema>;
+
+/** A bounded JSON transport for the dashboard's PDF upload. The API decodes and validates it
+ * before anything is persisted; filename and browser MIME metadata are never trusted. */
+export const addPdfDocumentSchema = z.object({
+  filename: z.string().trim().min(1).max(200),
+  contentBase64: z.string().min(16).max(8_400_000),
+});
+export type AddPdfDocumentInput = z.infer<typeof addPdfDocumentSchema>;
 
 // --- Playground / chat ------------------------------------------------------------------------
 
