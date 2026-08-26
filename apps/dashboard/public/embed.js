@@ -89,7 +89,37 @@
   }
 
   if (!customElements.get('voomate-agent')) customElements.define('voomate-agent', VoomateAgent);
-  const element = document.createElement('voomate-agent');
-  element.setAttribute('data-agent', publicKey);
-  document.body.append(element);
+  const mountLauncher = () => {
+    if (document.querySelector(`voomate-agent[data-voomate-agent="${CSS.escape(publicKey)}"]`)) {
+      return;
+    }
+    const element = document.createElement('voomate-agent');
+    element.setAttribute('data-agent', publicKey);
+    element.setAttribute('data-voomate-agent', publicKey);
+    document.body.append(element);
+  };
+
+  // This request is both the real installation verification and the policy gate. The launcher
+  // is not shown until the control plane confirms that this exact origin and page are allowed
+  // and the agent is live. Draft agents therefore prove their SDK installation without exposing
+  // a misleading button that cannot answer yet.
+  const verifyAndMount = async () => {
+    try {
+      const response = await fetch(`${apiOrigin}/api/web-agent/session`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ publicKey, pageUrl: window.location.href }),
+        credentials: 'omit',
+        cache: 'no-store',
+      });
+      script.dataset.voomateStatus = response.ok ? 'active' : 'not-active';
+      if (response.ok) mountLauncher();
+    } catch {
+      // A temporary network failure must not interrupt the host product. The next page load
+      // retries verification; the agent never renders a broken or unauthorized launcher.
+      script.dataset.voomateStatus = 'unavailable';
+    }
+  };
+
+  void verifyAndMount();
 })();

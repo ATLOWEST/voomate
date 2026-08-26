@@ -11,3 +11,4 @@ export * from './prompt.js';
 export * from './business-profile.js';
 export * from './usage.js';
 export * from './agent-catalog.js';
+export * from './web-surface-policy.js';

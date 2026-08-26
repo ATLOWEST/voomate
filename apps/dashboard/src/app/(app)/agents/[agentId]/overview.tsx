@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAgent } from '@/components/agent/shell';
 import { Callout } from '@/components/ui/callout';
+import { WebAgentPlacement } from '@/components/web-agent/web-agent-placement';
 import { api } from '@/lib/api';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
@@ -71,7 +72,7 @@ type WebAgentSetup = {
 };
 
 export function AgentOverview() {
-  const { agent, isPlaceholder } = useAgent();
+  const { agent, isPlaceholder, refresh } = useAgent();
   const { organization } = useSession();
   const canReadLiveState = organization !== undefined && !isPlaceholder;
 
@@ -134,8 +135,16 @@ export function AgentOverview() {
         />
       )}
 
+      <WebAgentPlacement
+        agent={agent}
+        onChanged={() => {
+          refresh();
+          setupQuery.refetch();
+        }}
+      />
+
       <section
-        className={`overflow-hidden rounded-lg bg-[var(--surface-soft)] ${readiness < 100 ? 'mt-6' : ''}`}
+        className="mt-6 overflow-hidden rounded-lg bg-[var(--surface-soft)]"
       >
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
           <div className="px-6 py-7 sm:px-8 sm:py-9">

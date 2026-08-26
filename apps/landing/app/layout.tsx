@@ -125,7 +125,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     : process.env.NODE_ENV === 'development'
       ? configuredWidgetOrigin || 'http://localhost:3001'
       : '';
-  const dogfoodAgentKey = process.env.NEXT_PUBLIC_VOOMATE_DOGFOOD_AGENT_KEY || 'test-embed-key';
+  const dogfoodAgentKey = process.env.NEXT_PUBLIC_VOOMATE_DOGFOOD_AGENT_KEY;
 
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">

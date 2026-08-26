@@ -21,6 +21,8 @@ import {
   type AgentLanguageConfig,
   type AgentPersona,
   type TenantContext,
+  webDeploymentPolicyFromAppearance,
+  webSurfaceForLocation,
 } from '@voomate/core';
 import { agents, auditLogs, knowledgeChunks, tenantScope } from '@voomate/db';
 import { DEFAULT_LANGUAGE_CODES, resolveVoice, validateLanguageSet } from '@voomate/i18n';
@@ -39,6 +41,8 @@ const paramsSchema = z.object({ id: uuidSchema });
 type DeploymentAuditMetadata = {
   platform?: 'website' | 'web_app' | 'ios' | 'android' | 'web';
   origin?: string;
+  pathname?: string;
+  surfaceId?: string;
 };
 
 type SetupAuditMetadata = DeploymentAuditMetadata & {
@@ -66,6 +70,7 @@ async function getWebAgentSetup(organizationId: TenantContext['organizationId'],
       status: agents.status,
       websiteUrl: agents.websiteUrl,
       allowedOrigins: agents.allowedOrigins,
+      appearance: agents.appearance,
     })
     .from(agents)
     .where(and(tenantScope(agents, organizationId), eq(agents.id, agentId)))
@@ -91,13 +96,16 @@ async function getWebAgentSetup(organizationId: TenantContext['organizationId'],
       .orderBy(desc(auditLogs.createdAt)),
   ]);
 
+  const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
   const proof = evidence.find((record) => {
     const metadata = record.metadata as SetupAuditMetadata | null;
     return (
       record.action === 'agent.installation_verified' &&
       metadata?.platform === 'web' &&
       typeof metadata.origin === 'string' &&
-      agent.allowedOrigins.includes(metadata.origin)
+      agent.allowedOrigins.includes(metadata.origin) &&
+      (typeof metadata.pathname !== 'string' ||
+        webSurfaceForLocation(policy, metadata.origin, metadata.pathname) !== undefined)
     );
   });
   const test = evidence.find((record) => record.action === 'agent.playground_test_succeeded');
@@ -334,7 +342,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       const { id } = paramsSchema.parse(request.params);
 
       const [agent] = await getDb()
-        .select({ id: agents.id, allowedOrigins: agents.allowedOrigins })
+        .select({ id: agents.id, allowedOrigins: agents.allowedOrigins, appearance: agents.appearance })
         .from(agents)
         .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
         .limit(1);
@@ -353,12 +361,15 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
           )
           .orderBy(desc(auditLogs.createdAt));
 
+      const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
       const currentProof = verified.find((record) => {
         const proof = record.metadata as DeploymentAuditMetadata | undefined;
         return (
           proof?.platform === 'web' &&
           typeof proof.origin === 'string' &&
-          agent.allowedOrigins.includes(proof.origin)
+          agent.allowedOrigins.includes(proof.origin) &&
+          (typeof proof.pathname !== 'string' ||
+            webSurfaceForLocation(policy, proof.origin, proof.pathname) !== undefined)
         );
       });
       const proof = currentProof?.metadata as DeploymentAuditMetadata | undefined;
@@ -498,6 +509,19 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       if (!existing) throw notFound('Agent', id);
 
       const active = existing.status === AgentStatus.ACTIVE;
+      const nextAllowedOrigins = input.allowedOrigins ?? existing.allowedOrigins;
+      const nextAppearance = input.appearance
+        ? { ...(existing.appearance as object), ...input.appearance }
+        : existing.appearance;
+      const deploymentPolicy = webDeploymentPolicyFromAppearance(nextAppearance, nextAllowedOrigins);
+      const outsideApprovedOrigins = deploymentPolicy.surfaces.find(
+        (surface) => surface.enabled && !nextAllowedOrigins.includes(surface.origin),
+      );
+      if (outsideApprovedOrigins) {
+        throw conflict(
+          `${outsideApprovedOrigins.name} must use a domain listed in Allowed domains before it can be enabled.`,
+        );
+      }
       const nextRevision = existing.desiredStateRevision + 1;
       const [updated] = await tx
         .update(agents)
@@ -507,7 +531,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
             ? { persona: { ...(existing.persona as object), ...input.persona } }
             : {}),
           ...(input.appearance
-            ? { appearance: { ...(existing.appearance as object), ...input.appearance } }
+            ? { appearance: nextAppearance }
             : {}),
           desiredStateRevision: nextRevision,
           observedStateRevision: nextRevision,

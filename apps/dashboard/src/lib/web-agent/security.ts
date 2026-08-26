@@ -10,6 +10,9 @@ export const sessionRequestSchema = z.object({
   publicKey: z.string().min(12).max(160),
   continuationToken: z.string().min(80).max(4_096).optional(),
   conversationId: z.string().uuid().optional(),
+  // The server compares this URL with the browser Origin header before consulting the surface
+  // policy. It therefore narrows an already approved origin; it can never widen one.
+  pageUrl: z.string().url().max(2_048),
 });
 
 export const messageRequestSchema = z.object({

@@ -267,6 +267,7 @@ function AgentHeader({
       });
       setOptimisticStatus('active');
       onChanged();
+      window.dispatchEvent(new Event('voomate:agent-configuration-updated'));
     } catch (caught) {
       setProblem(messageFor(caught));
     } finally {
@@ -286,6 +287,7 @@ function AgentHeader({
       });
       setOptimisticStatus(resuming ? 'active' : 'paused');
       onChanged();
+      window.dispatchEvent(new Event('voomate:agent-configuration-updated'));
     } catch (caught) {
       setProblem(messageFor(caught));
     } finally {

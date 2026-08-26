@@ -219,9 +219,6 @@ const UI_MANIFEST = serializeUiManifest(
 );
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const widgetOrigin = (process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? '').replace(/\/$/, '');
-  const dogfoodAgentKey = process.env.NEXT_PUBLIC_VOOMATE_DOGFOOD_AGENT_KEY;
-
   const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey =
     process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -250,13 +247,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <VoomateNavigationBridge />
         {children}
-        {widgetOrigin && dogfoodAgentKey && (
-          <Script
-            src={`${widgetOrigin}/embed.js`}
-            data-agent={dogfoodAgentKey}
-            strategy="afterInteractive"
-          />
-        )}
       </body>
     </html>
   );

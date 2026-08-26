@@ -682,6 +682,7 @@ export async function mountWidget(host, config) {
     if (!continuationToken) throw new Error('The secure conversation session expired.');
     const refreshed = await postJson(`${config.apiOrigin}/api/web-agent/session`, {
       publicKey: config.publicKey,
+      pageUrl: window.location.href,
       continuationToken,
       ...(conversationId ? { conversationId } : {}),
     });
@@ -1135,6 +1136,7 @@ export async function mountWidget(host, config) {
     try {
       session = await postJson(`${config.apiOrigin}/api/web-agent/session`, {
         publicKey: config.publicKey,
+        pageUrl: window.location.href,
         ...(continuationToken ? { continuationToken } : {}),
         ...(conversationId ? { conversationId } : {}),
       });
@@ -1146,6 +1148,7 @@ export async function mountWidget(host, config) {
       resumeVoiceAfterReload = false;
       session = await postJson(`${config.apiOrigin}/api/web-agent/session`, {
         publicKey: config.publicKey,
+        pageUrl: window.location.href,
       });
     }
     token = session.session.token;

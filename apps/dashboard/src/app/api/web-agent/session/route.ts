@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
 import { agents, auditLogs, conversations, messages } from '@voomate/db';
+import {
+  webDeploymentPolicyFromAppearance,
+  webSurfaceForLocation,
+} from '@voomate/core';
 import { getWebAgentDb } from '@/lib/web-agent/db';
 import { flushRunEvents, logRunEvent } from '@/lib/web-agent/log';
 import { enforceWidgetRateLimit } from '@/lib/web-agent/rate-limit';
@@ -28,6 +32,13 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const input = sessionRequestSchema.parse(await request.json());
+    const pageUrl = new URL(input.pageUrl);
+    if (normalizeOrigin(pageUrl.origin) !== origin) {
+      return Response.json(
+        { error: 'The page location does not match this website.' },
+        { status: 403, headers: corsHeaders(origin) },
+      );
+    }
     const fingerprint = keyFingerprint(input.publicKey);
     await enforceWidgetRateLimit(`${fingerprint}:${origin}`);
 
@@ -63,6 +74,23 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    const policy = webDeploymentPolicyFromAppearance(agent.appearance, allowedOrigins);
+    const surface = webSurfaceForLocation(policy, origin, pageUrl.pathname);
+    if (!surface) {
+      console.warn(
+        JSON.stringify({
+          event: 'widget_surface_denied',
+          origin,
+          pathname: pageUrl.pathname,
+          keyFingerprint: fingerprint,
+        }),
+      );
+      return Response.json(
+        { error: 'This assistant is not enabled on this area of the product.' },
+        { status: 403, headers: corsHeaders(origin) },
+      );
+    }
+
     // Installation is proved by a genuine browser request, not by a dashboard checkbox. This
     // happens before the active-state gate so a draft can be installed and verified before the
     // merchant turns it on. The public session still remains unavailable until activation.
@@ -80,9 +108,10 @@ export async function POST(request: Request): Promise<Response> {
       .orderBy(desc(auditLogs.createdAt))
       .limit(12);
     const recentlyProved = recentProofs.some((proof) => {
-      const metadata = proof.metadata as { origin?: string } | null;
+      const metadata = proof.metadata as { origin?: string; pathname?: string } | null;
       return (
         metadata?.origin === origin &&
+        metadata?.pathname === pageUrl.pathname &&
         proof.createdAt.getTime() > Date.now() - 24 * 60 * 60 * 1_000
       );
     });
@@ -93,7 +122,14 @@ export async function POST(request: Request): Promise<Response> {
         action: 'agent.installation_verified',
         resourceType: 'agent',
         resourceId: agent.id,
-        metadata: { platform: 'web', origin, sdk: 'embed-v2' },
+        metadata: {
+          platform: 'web',
+          origin,
+          pathname: pageUrl.pathname,
+          surfaceId: surface.id,
+          surfaceName: surface.name,
+          sdk: 'embed-v2',
+        },
       });
     }
 
@@ -147,6 +183,8 @@ export async function POST(request: Request): Promise<Response> {
     };
     await logRunEvent(context, 'tenant_resolution', 'success', {
       origin,
+      pathname: pageUrl.pathname,
+      surfaceId: surface.id,
       keyFingerprint: fingerprint,
     });
     const claims = {

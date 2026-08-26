@@ -122,6 +122,8 @@ export interface AgentAppearance {
   logoUrl?: string;
   /** Light/dark/auto follows the host page where detectable. */
   theme: 'light' | 'dark' | 'auto';
+  /** Browser locations where this agent may run; enforced by the widget session endpoint. */
+  webDeployment?: import('./web-surface-policy.js').WebDeploymentPolicy;
 }
 
 export interface Agent {

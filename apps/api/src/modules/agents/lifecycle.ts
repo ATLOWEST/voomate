@@ -5,6 +5,8 @@ import {
   getAgentCatalogDefinition,
   isReleasedAgentType,
   notFound,
+  webDeploymentPolicyFromAppearance,
+  webSurfaceForLocation,
   type AgentCatalogType,
   type AgentStatus as AgentLifecycleStatus,
   type TenantContext,
@@ -63,6 +65,7 @@ export async function transitionAgentLifecycle(input: {
         executionLeaseExpiresAt: agents.executionLeaseExpiresAt,
         publishedAt: agents.publishedAt,
         allowedOrigins: agents.allowedOrigins,
+        appearance: agents.appearance,
       })
       .from(agents)
       .where(and(tenantScope(agents, input.tenant.organizationId), eq(agents.id, input.agentId)))
@@ -113,12 +116,19 @@ export async function transitionAgentLifecycle(input: {
           ),
         )
         .orderBy(desc(auditLogs.createdAt));
+      const policy = webDeploymentPolicyFromAppearance(existing.appearance, existing.allowedOrigins);
       const hasCurrentProof = installations.some((installation) => {
-        const proof = installation.metadata as { platform?: string; origin?: string } | undefined;
+        const proof = installation.metadata as {
+          platform?: string;
+          origin?: string;
+          pathname?: string;
+        } | undefined;
         return (
           proof?.platform === 'web' &&
           typeof proof.origin === 'string' &&
-          existing.allowedOrigins.includes(proof.origin)
+          existing.allowedOrigins.includes(proof.origin) &&
+          (typeof proof.pathname !== 'string' ||
+            webSurfaceForLocation(policy, proof.origin, proof.pathname) !== undefined)
         );
       });
       if (!hasCurrentProof) {

@@ -8,6 +8,7 @@
 import { MAX_CANDIDATE_LANGUAGES, isKnownLanguage, validateLanguageSet } from '@voomate/i18n';
 import { z } from 'zod';
 import { AgentCatalogType } from './agent-catalog.js';
+import { webDeploymentPolicySchema } from './web-surface-policy.js';
 
 // --- Primitives --------------------------------------------------------------------------
 
@@ -121,6 +122,7 @@ export const agentAppearanceSchema = z.object({
   position: z.enum(['bottom-right', 'bottom-left']).default('bottom-right'),
   logoUrl: z.string().url().optional(),
   theme: z.enum(['light', 'dark', 'auto']).default('auto'),
+  webDeployment: webDeploymentPolicySchema.optional(),
 });
 
 export const createAgentSchema = z.object({
