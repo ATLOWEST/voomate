@@ -24,7 +24,7 @@ import {
   type AgentLanguageConfig,
   type AgentPersona,
 } from '@voomate/core';
-import { agents, tenantScope } from '@voomate/db';
+import { agents, auditLogs, tenantScope } from '@voomate/db';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import { z } from 'zod';
@@ -103,6 +103,7 @@ export const askRoutes: FastifyPluginAsync = async (app) => {
 
       if (!wantsStream) {
         const result = await answer(common);
+        await recordSuccessfulTest(db, tenant.organizationId, tenant.userId, agent.id, input.channel);
         return toJson(result);
       }
 
@@ -130,6 +131,7 @@ export const askRoutes: FastifyPluginAsync = async (app) => {
             send(reply, 'delta', { text: chunk.delta });
           },
         );
+        await recordSuccessfulTest(db, tenant.organizationId, tenant.userId, agent.id, input.channel);
         send(reply, 'done', toJson(result));
       } catch (error) {
         // The stream is already open with a 200, so the error handler cannot turn this into a
@@ -148,6 +150,25 @@ export const askRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 };
+
+/** A setup check needs evidence that the runtime answered, not a click on the Test tab. */
+async function recordSuccessfulTest(
+  db: ReturnType<typeof getDb>,
+  organizationId: string,
+  actorId: string,
+  agentId: string,
+  channel: 'text' | 'voice',
+) {
+  await db.insert(auditLogs).values({
+    organizationId,
+    actorId,
+    action: 'agent.playground_test_succeeded',
+    resourceType: 'agent',
+    resourceId: agentId,
+    // No prompts, answers, customer data, or citations belong in an audit event.
+    metadata: { channel },
+  });
+}
 
 /**
  * Latency is part of the response, not a debug detail.

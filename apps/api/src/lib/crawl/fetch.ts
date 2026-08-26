@@ -38,6 +38,11 @@ export interface FetchedPage {
   readonly url: string;
   readonly status: number;
   readonly contentType: string;
+  /** Response policies used by the setup diagnostic. Kept separate from page body so callers
+   * never need to parse untrusted markup just to decide whether a safe in-dashboard preview is
+   * possible. */
+  readonly contentSecurityPolicy: string | null;
+  readonly xFrameOptions: string | null;
   readonly body: string;
 }
 
@@ -142,7 +147,14 @@ export const fetchPage = async (
       throw new FetchError(`Not a readable page (${contentType || 'unknown type'}).`, url);
     }
 
-    return { url, status: response.status, contentType, body: await readCapped(response) };
+    return {
+      url,
+      status: response.status,
+      contentType,
+      contentSecurityPolicy: response.headers.get('content-security-policy'),
+      xFrameOptions: response.headers.get('x-frame-options'),
+      body: await readCapped(response),
+    };
   }
 
   throw new FetchError(`More than ${String(MAX_REDIRECTS)} redirects.`, startUrl);

@@ -3,21 +3,18 @@
 import type { KnowledgeSource } from '@voomate/core';
 import Link from 'next/link';
 import {
-  AppWindow,
   ArrowRight,
   BookOpenCheck,
   Braces,
   Check,
   CircleDashed,
   Globe2,
-  MonitorSmartphone,
   MessageSquareText,
   Play,
   Radio,
   ShieldCheck,
-  Smartphone,
 } from 'lucide-react';
-import { useAgent, type AgentDeployment } from '@/components/agent/shell';
+import { useAgent } from '@/components/agent/shell';
 import { Callout } from '@/components/ui/callout';
 import { api } from '@/lib/api';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
@@ -44,8 +41,37 @@ type ReadConnection = {
   lastVerifiedAt: string | null;
 };
 
+type WebAgentSetup = {
+  completed: number;
+  total: number;
+  percentage: number;
+  currentStep: 'install' | 'knowledge' | 'test' | 'activate';
+  nextAction: { label: string; href: string };
+  steps: Array<{
+    id: 'install' | 'knowledge' | 'test' | 'activate';
+    label: string;
+    detail: string;
+    href: string;
+    complete: boolean;
+    current: boolean;
+  }>;
+  sdk: {
+    verified: boolean;
+    verifiedOrigin: string | null;
+    verifiedAt: string | null;
+    diagnostic: {
+      code: string;
+      message: string;
+      checkedUrl: string | null;
+      previewEmbeddable: boolean;
+      previewReason: string | null;
+      checkedAt: string | null;
+    } | null;
+  };
+};
+
 export function AgentOverview() {
-  const { agent, isPlaceholder, deployment, refreshDeployment } = useAgent();
+  const { agent, isPlaceholder } = useAgent();
   const { organization } = useSession();
   const canReadLiveState = organization !== undefined && !isPlaceholder;
 
@@ -58,6 +84,10 @@ export function AgentOverview() {
   );
   const connections = useApiQuery<{ connections: ReadConnection[] }>(
     canReadLiveState ? '/v1/connect/read-connections' : null,
+  );
+  const setupQuery = useApiQuery<{ setup: WebAgentSetup }>(
+    canReadLiveState ? `/v1/agents/${agent.id}/setup` : null,
+    { pollMs: 5_000 },
   );
 
   const sources = knowledge.data?.sources ?? [];
@@ -78,21 +108,16 @@ export function AgentOverview() {
   const domainsReady = (agent.allowedOrigins?.length ?? 0) > 0;
   const knowledgeReady = readySources.length > 0;
   const published = agent.status === 'active';
-  const targetReady = deployment.platform !== null;
-  const installationReady = deployment.verified;
-  const readinessChecks = [targetReady, knowledgeReady, domainsReady, installationReady, published];
-  const readiness = Math.round(
-    (readinessChecks.filter(Boolean).length / readinessChecks.length) * 100,
-  );
+  const setup = setupQuery.data?.setup;
+  const installationReady = setup?.sdk.verified ?? false;
+  const readiness = setup?.percentage ?? 0;
   const agentPath = `/agents/${agent.id}`;
   const websiteHost = hostFrom(agent.websiteUrl);
-  const dataProblem = knowledge.error ?? conversations.error;
-  const selectDeployment = useApiAction(
-    async (auth, platform: Exclude<AgentDeployment['platform'], null>) => {
-      await api.post(`/v1/agents/${agent.id}/deployment`, { platform }, auth);
-      refreshDeployment();
-    },
-  );
+  const dataProblem = knowledge.error ?? conversations.error ?? setupQuery.error;
+  const diagnose = useApiAction(async (auth) => {
+    await api.post(`/v1/agents/${agent.id}/setup/diagnose`, {}, auth);
+    setupQuery.refetch();
+  });
 
   if (isPlaceholder) {
     return <CreateFirstState />;
@@ -100,16 +125,12 @@ export function AgentOverview() {
 
   return (
     <main className="agent-operations-enter min-w-0 pb-12">
-      {readiness < 100 && (
+      {setup && readiness < 100 && (
         <SetupGuide
-          agentPath={agentPath}
-          deployment={deployment}
-          knowledgeReady={knowledgeReady}
-          domainsReady={domainsReady}
-          published={published}
-          selecting={selectDeployment.busy}
-          selectionError={selectDeployment.error}
-          onSelect={(platform) => void selectDeployment.run(platform)}
+          setup={setup}
+          diagnosing={diagnose.busy}
+          diagnosticError={diagnose.error}
+          onDiagnose={() => void diagnose.run()}
         />
       )}
 
@@ -213,13 +234,6 @@ export function AgentOverview() {
           />
           <div className="mt-4 space-y-2">
             <SetupRow
-              complete={targetReady}
-              title="Deployment platform"
-              detail={platformLabel(deployment.platform)}
-              href={agentPath}
-              action={targetReady ? 'Review' : 'Choose'}
-            />
-            <SetupRow
               complete={websiteReady}
               title="Business website"
               detail={websiteHost ?? 'Add the site this agent represents.'}
@@ -254,7 +268,7 @@ export function AgentOverview() {
               title="SDK installation"
               detail={
                 installationReady
-                  ? `Verified on ${deployment.verifiedOrigin ?? 'an approved domain'}`
+                  ? `Verified on ${setup?.sdk.verifiedOrigin ?? 'an approved domain'}`
                   : domainsReady
                     ? 'SDK not installed or not opened yet.'
                     : 'Approve a domain, install the SDK, then open it once.'
@@ -430,191 +444,76 @@ function CreateFirstState() {
 }
 
 function SetupGuide({
-  agentPath,
-  deployment,
-  knowledgeReady,
-  domainsReady,
-  published,
-  selecting,
-  selectionError,
-  onSelect,
+  setup,
+  diagnosing,
+  diagnosticError,
+  onDiagnose,
 }: {
-  agentPath: string;
-  deployment: AgentDeployment;
-  knowledgeReady: boolean;
-  domainsReady: boolean;
-  published: boolean;
-  selecting: boolean;
-  selectionError: string | undefined;
-  onSelect: (platform: Exclude<AgentDeployment['platform'], null>) => void;
+  setup: WebAgentSetup;
+  diagnosing: boolean;
+  diagnosticError: string | undefined;
+  onDiagnose: () => void;
 }) {
-  const steps = [
-    deployment.platform !== null,
-    domainsReady && deployment.verified,
-    knowledgeReady,
-    published,
-  ];
-  const completed = steps.filter(Boolean).length;
-
+  const diagnostic = setup.sdk.diagnostic;
   return (
     <section className="rounded-xl border border-[var(--border-default)] bg-[var(--surface)] p-5 sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[16px] font-semibold text-foreground">Set up this Web Agent</p>
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-muted-foreground">
-            Complete each verified step before the agent can be turned on for customers.
+            One Web SDK works on a website or browser app. Finish one real check at a time.
           </p>
         </div>
         <span className="text-[12px] font-semibold tabular-nums text-muted-foreground">
-          {completed} of {steps.length}
+          {setup.completed} of {setup.total} complete
         </span>
       </div>
-
-      <div className="mt-5">
-        <p className="text-[12px] font-semibold text-foreground">1. Choose a platform</p>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <PlatformChoice
-            icon={Globe2}
-            label="Website"
-            selected={deployment.platform === 'website'}
-            disabled={selecting}
-            onClick={() => onSelect('website')}
-          />
-          <PlatformChoice
-            icon={AppWindow}
-            label="Web app"
-            selected={deployment.platform === 'web_app'}
-            disabled={selecting}
-            onClick={() => onSelect('web_app')}
-          />
-          <PlatformChoice
-            icon={Smartphone}
-            label="iOS"
-            note="SDK in development"
-            selected={deployment.platform === 'ios'}
-            disabled={selecting}
-            onClick={() => onSelect('ios')}
-          />
-          <PlatformChoice
-            icon={MonitorSmartphone}
-            label="Android"
-            note="SDK in development"
-            selected={deployment.platform === 'android'}
-            disabled={selecting}
-            onClick={() => onSelect('android')}
-          />
-        </div>
-        {selectionError && <p className="mt-2 text-[12px] text-critical">{selectionError}</p>}
+      <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[var(--surface-sunken)]">
+        <div
+          className="h-full bg-accent-500 transition-transform duration-500 ease-out"
+          style={{ transform: `scaleX(${setup.percentage / 100})`, transformOrigin: 'left' }}
+        />
       </div>
-
-      <ol className="mt-5 grid gap-2 md:grid-cols-3">
-        <GuideStep
-          number={2}
-          complete={domainsReady && deployment.verified}
-          title={deployment.verified ? 'SDK verified' : 'Install and verify SDK'}
-          detail={
-            deployment.verified
-              ? `Confirmed on ${deployment.verifiedOrigin ?? 'approved domain'}`
-              : domainsReady
-                ? 'SDK not installed or not opened yet.'
-                : 'Add an approved domain, then install.'
-          }
-          href={`${agentPath}/install`}
-        />
-        <GuideStep
-          number={3}
-          complete={knowledgeReady}
-          title="Add approved knowledge"
-          detail={knowledgeReady ? 'Knowledge is ready.' : 'Add a website, document or answer.'}
-          href={`${agentPath}/knowledge`}
-        />
-        <GuideStep
-          number={4}
-          complete={published}
-          title={published ? 'Agent is live' : 'Test, then turn on'}
-          detail={published ? 'Runtime activation is confirmed.' : 'Use Test before the power control.'}
-          href={`${agentPath}/playground`}
-        />
+      <ol className="mt-5 grid gap-2 lg:grid-cols-4">
+        {setup.steps.map((step, index) => (
+          <li
+            key={step.id}
+            className={`min-h-28 rounded-lg p-3.5 ${step.current ? 'bg-accent-50 dark:bg-accent-950/25' : 'bg-[var(--surface-soft)]'}`}
+          >
+            <span className={`grid size-7 place-items-center rounded-md text-[11px] font-semibold ${step.complete ? 'bg-positive-soft text-positive' : 'bg-[var(--surface-sunken)] text-muted-foreground'}`}>
+              {step.complete ? <Check className="size-3.5" /> : index + 1}
+            </span>
+            <p className="mt-3 text-[12.5px] font-semibold text-foreground">{step.label}</p>
+            <p className="mt-1 text-[11.5px] leading-4 text-muted-foreground">{step.detail}</p>
+          </li>
+        ))}
       </ol>
+      {setup.currentStep === 'install' && (
+        <div className="mt-4 rounded-lg bg-[var(--surface-soft)] p-3.5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[12px] leading-5 text-muted-foreground">
+              {diagnostic?.message ?? 'After publishing the snippet, check your site before you continue.'}
+            </p>
+            <button
+              type="button"
+              onClick={onDiagnose}
+              disabled={diagnosing}
+              className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-sunken)] px-3 text-[12px] font-semibold text-foreground transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
+            >
+              {diagnosing ? 'Checking site…' : 'Check installation'}
+            </button>
+          </div>
+          {diagnosticError && <p className="mt-2 text-[12px] text-critical">{diagnosticError}</p>}
+        </div>
+      )}
+      <Link
+        href={setup.nextAction.href}
+        className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg bg-foreground px-4 text-[13px] font-semibold text-background transition-opacity hover:opacity-90"
+      >
+        {setup.nextAction.label} <ArrowRight className="size-4" />
+      </Link>
     </section>
   );
-}
-
-function PlatformChoice({
-  icon: Icon,
-  label,
-  note,
-  selected = false,
-  disabled = false,
-  onClick,
-}: {
-  icon: typeof Globe2;
-  label: string;
-  note?: string;
-  selected?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      aria-pressed={selected}
-      className={`flex min-h-16 items-center gap-3 rounded-lg border px-3.5 text-left transition-colors ${
-        selected
-          ? 'border-accent-400 bg-accent-50 text-foreground dark:bg-accent-950/25'
-          : 'border-[var(--border-default)] bg-[var(--surface-soft)] text-muted-foreground'
-      } disabled:cursor-not-allowed disabled:opacity-50`}
-    >
-      <Icon className="size-4 shrink-0" strokeWidth={1.8} />
-      <span className="min-w-0">
-        <span className="block text-[12.5px] font-semibold">{label}</span>
-        {note && <span className="mt-0.5 block text-[10.5px]">{note}</span>}
-      </span>
-    </button>
-  );
-}
-
-function GuideStep({
-  number,
-  complete,
-  title,
-  detail,
-  href,
-}: {
-  number: number;
-  complete: boolean;
-  title: string;
-  detail: string;
-  href: string;
-}) {
-  return (
-    <li className="flex min-h-24 gap-3 rounded-lg bg-[var(--surface-soft)] p-3.5">
-      <span
-        className={`grid size-7 shrink-0 place-items-center rounded-md text-[11px] font-semibold ${
-          complete ? 'bg-positive-soft text-positive' : 'bg-[var(--surface-sunken)] text-muted-foreground'
-        }`}
-      >
-        {complete ? <Check className="size-3.5" /> : number}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[12.5px] font-semibold text-foreground">{title}</span>
-        <span className="mt-1 block text-[11.5px] leading-4 text-muted-foreground">{detail}</span>
-        <Link href={href} className="mt-2 inline-flex text-[11.5px] font-semibold text-accent-700">
-          Open step
-        </Link>
-      </span>
-    </li>
-  );
-}
-
-function platformLabel(platform: AgentDeployment['platform']): string {
-  if (platform === 'website') return 'Website';
-  if (platform === 'web_app') return 'Web app';
-  if (platform === 'ios') return 'iOS';
-  if (platform === 'android') return 'Android';
-  return 'Choose where this agent will run.';
 }
 
 function SectionHeading({

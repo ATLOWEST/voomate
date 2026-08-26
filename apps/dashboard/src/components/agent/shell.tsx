@@ -29,7 +29,7 @@ interface AgentContextValue {
 }
 
 export interface AgentDeployment {
-  platform: 'website' | 'web_app' | 'ios' | 'android' | null;
+  platform: 'web' | null;
   supported: boolean;
   verified: boolean;
   verifiedOrigin: string | null;
@@ -75,7 +75,6 @@ export function AgentShell({ agentId, children }: { agentId: string; children: R
     refetch: refreshDeployment,
   } = useApiQuery<{ deployment: AgentDeployment }>(
     organization === undefined || isFixedSlot ? null : `/v1/agents/${agentId}/deployment`,
-    { pollMs: 5_000 },
   );
 
   const value = useMemo<AgentContextValue | undefined>(() => {

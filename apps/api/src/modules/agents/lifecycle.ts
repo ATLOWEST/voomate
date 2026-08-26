@@ -94,24 +94,9 @@ export async function transitionAgentLifecycle(input: {
     }
 
     if (input.command === 'activate' && existing.status === AgentStatus.DRAFT) {
-      const [target] = await tx
-        .select({ metadata: auditLogs.metadata })
-        .from(auditLogs)
-        .where(
-          and(
-            tenantScope(auditLogs, input.tenant.organizationId),
-            eq(auditLogs.resourceId, input.agentId),
-            eq(auditLogs.resourceType, 'agent'),
-            eq(auditLogs.action, 'agent.deployment_target_selected'),
-          ),
-        )
-        .orderBy(desc(auditLogs.createdAt))
-        .limit(1);
-      const platform = (target?.metadata as { platform?: string } | null)?.platform;
-      if (!platform) throw conflict('Choose a deployment platform before activating this agent.');
-      if (platform === 'ios' || platform === 'android') {
-        throw conflict('The native mobile SDK is not released yet. Choose Website or Web app.');
-      }
+      // A Website and a browser-based Web App both run the same signed Web SDK. Keeping a
+      // separate selection here created a cosmetic step that could block a real deployment.
+      // Native packages are not released, so they are deliberately not part of this lifecycle.
       if (!existing.allowedOrigins.length) {
         throw conflict('Add an approved domain before activating this agent.');
       }

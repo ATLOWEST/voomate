@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
-import { agents, conversations, messages } from '@voomate/db';
+import { agents, auditLogs, conversations, messages } from '@voomate/db';
 import { getWebAgentDb } from '@/lib/web-agent/db';
 import { flushRunEvents, logRunEvent } from '@/lib/web-agent/log';
 import { enforceWidgetRateLimit } from '@/lib/web-agent/rate-limit';
@@ -53,17 +53,53 @@ export async function POST(request: Request): Promise<Response> {
     const allowedOrigins = (agent?.allowedOrigins ?? [])
       .map((value) => normalizeOrigin(value))
       .filter((value): value is string => Boolean(value));
-    if (
-      !agent ||
-      agent.status !== 'active' ||
-      !agent.executionLeaseId ||
-      !allowedOrigins.includes(origin)
-    ) {
+    if (!agent || !allowedOrigins.includes(origin)) {
       console.warn(
         JSON.stringify({ event: 'widget_session_denied', origin, keyFingerprint: fingerprint }),
       );
       return Response.json(
         { error: 'This assistant is not authorized for this website.' },
+        { status: 403, headers: corsHeaders(origin) },
+      );
+    }
+
+    // Installation is proved by a genuine browser request, not by a dashboard checkbox. This
+    // happens before the active-state gate so a draft can be installed and verified before the
+    // merchant turns it on. The public session still remains unavailable until activation.
+    const recentProofs = await getWebAgentDb()
+      .select({ metadata: auditLogs.metadata, createdAt: auditLogs.createdAt })
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.organizationId, agent.organizationId),
+          eq(auditLogs.resourceType, 'agent'),
+          eq(auditLogs.resourceId, agent.id),
+          eq(auditLogs.action, 'agent.installation_verified'),
+        ),
+      )
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(12);
+    const recentlyProved = recentProofs.some((proof) => {
+      const metadata = proof.metadata as { origin?: string } | null;
+      return (
+        metadata?.origin === origin &&
+        proof.createdAt.getTime() > Date.now() - 24 * 60 * 60 * 1_000
+      );
+    });
+    if (!recentlyProved) {
+      await getWebAgentDb().insert(auditLogs).values({
+        organizationId: agent.organizationId,
+        actorId: null,
+        action: 'agent.installation_verified',
+        resourceType: 'agent',
+        resourceId: agent.id,
+        metadata: { platform: 'web', origin, sdk: 'embed-v2' },
+      });
+    }
+
+    if (agent.status !== 'active' || !agent.executionLeaseId) {
+      return Response.json(
+        { error: 'This assistant is installed but is not turned on yet.' },
         { status: 403, headers: corsHeaders(origin) },
       );
     }
