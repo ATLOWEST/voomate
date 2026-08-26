@@ -6,7 +6,16 @@ import { z } from 'zod';
  * enforces the origin and path boundary. It is never a request to inspect source code or
  * private application data.
  */
+/**
+ * `marketing_site` and `merchant_dashboard` remain readable for deployments created before
+ * the general route policy. New installations use the source of the rule rather than making
+ * Voomate-specific assumptions about a customer's product.
+ */
 export const webSurfaceKindSchema = z.enum([
+  'declared',
+  'observed',
+  'manual',
+  'legacy',
   'marketing_site',
   'merchant_dashboard',
   'custom',
@@ -33,11 +42,17 @@ const bareOriginSchema = z
   }, 'Use a bare origin such as https://example.com.');
 
 export const webSurfaceRuleSchema = z.object({
-  id: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_-]*$/, 'Use a simple surface ID.'),
+  id: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z][a-z0-9_-]*$/, 'Use a simple surface ID.'),
   name: z.string().trim().min(2).max(60),
   kind: webSurfaceKindSchema,
   origin: bareOriginSchema,
   pathPrefixes: z.array(pathPrefixSchema).min(1).max(20),
+  /** Narrow a broad area without needing to create a conflicting second rule. */
+  excludedPathPrefixes: z.array(pathPrefixSchema).max(40).default([]),
   enabled: z.boolean(),
 });
 
@@ -53,7 +68,10 @@ export const webDeploymentPolicySchema = z
     const targets = new Set<string>();
     for (const surface of policy.surfaces) {
       if (ids.has(surface.id)) {
-        context.addIssue({ code: z.ZodIssueCode.custom, message: 'Each surface needs a unique ID.' });
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Each surface needs a unique ID.',
+        });
       }
       ids.add(surface.id);
       if (!surface.enabled) continue;
@@ -72,18 +90,10 @@ export const webDeploymentPolicySchema = z
 
 export type WebDeploymentPolicy = z.infer<typeof webDeploymentPolicySchema>;
 
-export const SUPER_ADMIN_PATH_PREFIX = '/admin';
-
 export function normalizePathPrefix(value: string): string {
   const normalized = value.trim().replace(/\/+/g, '/');
   if (normalized === '/') return '/';
   return normalized.replace(/\/+$/, '') || '/';
-}
-
-/** The Super Admin portal is a platform control plane, never a merchant Web Agent surface. */
-export function isProtectedWebAgentPath(pathname: string): boolean {
-  const normalized = normalizePathPrefix(pathname);
-  return normalized === SUPER_ADMIN_PATH_PREFIX || normalized.startsWith(`${SUPER_ADMIN_PATH_PREFIX}/`);
 }
 
 export function isPathWithinPrefix(pathname: string, prefix: string): boolean {
@@ -97,8 +107,8 @@ export function isPathWithinPrefix(pathname: string, prefix: string): boolean {
 }
 
 /**
- * Older agents predate explicit surfaces. Their existing origin allowlist remains compatible,
- * but protected Super Admin paths are still excluded by the shared guard above.
+ * Older agents predate explicit surfaces. Their existing origin allowlist remains compatible.
+ * No product-owned path is silently excluded: only the tenant's saved policy decides.
  */
 export function webDeploymentPolicyFromAppearance(
   appearance: unknown,
@@ -116,9 +126,10 @@ export function webDeploymentPolicyFromAppearance(
     surfaces: allowedOrigins.map((origin, index) => ({
       id: `legacy_${index + 1}`,
       name: `Approved site ${index + 1}`,
-      kind: 'custom' as const,
+      kind: 'legacy' as const,
       origin,
       pathPrefixes: ['/'],
+      excludedPathPrefixes: [],
       enabled: true,
     })),
   };
@@ -129,11 +140,11 @@ export function webSurfaceForLocation(
   origin: string,
   pathname: string,
 ): WebSurfaceRule | undefined {
-  if (isProtectedWebAgentPath(pathname)) return undefined;
   return policy.surfaces.find(
     (surface) =>
       surface.enabled &&
       surface.origin === origin &&
-      surface.pathPrefixes.some((prefix) => isPathWithinPrefix(pathname, prefix)),
+      surface.pathPrefixes.some((prefix) => isPathWithinPrefix(pathname, prefix)) &&
+      !surface.excludedPathPrefixes.some((prefix) => isPathWithinPrefix(pathname, prefix)),
   );
 }

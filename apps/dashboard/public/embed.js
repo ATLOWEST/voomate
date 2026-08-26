@@ -14,6 +14,54 @@
   const apiOrigin = script.dataset.api || assetOrigin;
   const widgetModule = new URL('/embed/v2/widget.js', assetOrigin).href;
 
+  // This observes only public, same-origin route hints that the browser is already rendering.
+  // It is not a source-code scan and it never changes authorization. A host can make coverage
+  // exact by publishing its named paths in data-voomate-route-manifest (see the SDK guide).
+  const collectRouteInventory = () => {
+    const routes = [];
+    const seen = new Set();
+    const add = (pathname, name, source) => {
+      if (typeof pathname !== 'string' || !pathname.startsWith('/') || pathname.includes('..'))
+        return;
+      const normalized = pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/';
+      if (seen.has(normalized) || routes.length >= 80) return;
+      seen.add(normalized);
+      routes.push({
+        pathname: normalized,
+        ...(typeof name === 'string' && name.trim() ? { name: name.trim().slice(0, 120) } : {}),
+        source,
+      });
+    };
+    add(window.location.pathname, document.title, 'current');
+    const manifest = document.querySelector(
+      'script[type="application/json"][data-voomate-route-manifest]',
+    );
+    if (manifest?.textContent) {
+      try {
+        const parsed = JSON.parse(manifest.textContent);
+        for (const surface of Array.isArray(parsed?.surfaces) ? parsed.surfaces : []) {
+          for (const prefix of Array.isArray(surface?.pathPrefixes) ? surface.pathPrefixes : []) {
+            add(prefix, surface?.name, 'manifest');
+          }
+        }
+      } catch {
+        /* Invalid host manifest is ignored; the product must keep working. */
+      }
+    }
+    for (const link of document.querySelectorAll(
+      'nav a[href], [role="navigation"] a[href], [data-voomate-route] a[href]',
+    )) {
+      try {
+        const url = new URL(link.href, window.location.href);
+        if (url.origin === window.location.origin)
+          add(url.pathname, link.getAttribute('aria-label') || link.textContent, 'navigation');
+      } catch {
+        /* Ignore malformed host links. */
+      }
+    }
+    return { version: 1, routes };
+  };
+
   class VoomateAgent extends HTMLElement {
     constructor() {
       super();
@@ -108,7 +156,11 @@
       const response = await fetch(`${apiOrigin}/api/web-agent/session`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ publicKey, pageUrl: window.location.href }),
+        body: JSON.stringify({
+          publicKey,
+          pageUrl: window.location.href,
+          routeInventory: collectRouteInventory(),
+        }),
         credentials: 'omit',
         cache: 'no-store',
       });

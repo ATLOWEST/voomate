@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { Agent, WebDeploymentPolicy, WebSurfaceRule } from '@voomate/core';
 import { webDeploymentPolicyFromAppearance } from '@voomate/core';
-import { Globe2, LayoutDashboard, LockKeyhole, Plus } from 'lucide-react';
+import { Globe2, Plus, ShieldCheck } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApiAction } from '@/lib/hooks';
 
@@ -14,10 +14,7 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
   const [newUrl, setNewUrl] = useState('');
   const [newPath, setNewPath] = useState('/');
   const browserOrigin = typeof window === 'undefined' ? undefined : window.location.origin;
-  const policy = useMemo(
-    () => editablePolicy(agent, browserOrigin),
-    [agent, browserOrigin],
-  );
+  const policy = useMemo(() => editablePolicy(agent, browserOrigin), [agent, browserOrigin]);
   const save = useApiAction(async (auth, next: WebDeploymentPolicy) => {
     const allowedOrigins = Array.from(
       new Set([
@@ -44,6 +41,34 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
     void save.run(next);
   };
 
+  const addExclusion = (id: string, path: string) => {
+    const normalized = normalisePath(path);
+    const next = {
+      ...policy,
+      surfaces: policy.surfaces.map((surface) =>
+        surface.id === id && !surface.excludedPathPrefixes.includes(normalized)
+          ? { ...surface, excludedPathPrefixes: [...surface.excludedPathPrefixes, normalized] }
+          : surface,
+      ),
+    };
+    void save.run(next);
+  };
+
+  const removeExclusion = (id: string, path: string) => {
+    const next = {
+      ...policy,
+      surfaces: policy.surfaces.map((surface) =>
+        surface.id === id
+          ? {
+              ...surface,
+              excludedPathPrefixes: surface.excludedPathPrefixes.filter((entry) => entry !== path),
+            }
+          : surface,
+      ),
+    };
+    void save.run(next);
+  };
+
   const addCustom = () => {
     const origin = originFrom(newUrl);
     const name = newName.trim();
@@ -56,9 +81,10 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
         {
           id: `custom_${Date.now()}`,
           name,
-          kind: 'custom',
+          kind: 'manual',
           origin,
           pathPrefixes: [pathPrefix],
+          excludedPathPrefixes: [],
           enabled: true,
         },
       ],
@@ -78,12 +104,12 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
         <div>
           <p className="text-[16px] font-semibold text-foreground">Where {agent.name} can help</p>
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-muted-foreground">
-            Choose the pages where this agent is useful. Voomate reads only the visible page context
-            on these approved areas; it does not scan your codebase or other portals.
+            Your team controls every allowed and excluded path. The SDK can report pages it sees,
+            but exact coverage comes from your route manifest or the areas you approve here.
           </p>
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-md bg-[var(--surface-soft)] px-2.5 py-1.5 text-[11.5px] font-semibold text-muted-foreground">
-          <LockKeyhole className="size-3.5" /> Super Admin excluded
+          <ShieldCheck className="size-3.5" /> Tenant-controlled access
         </span>
       </div>
 
@@ -94,6 +120,8 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
             surface={surface}
             busy={save.busy}
             onToggle={(enabled) => setEnabled(surface.id, enabled)}
+            onAddExclusion={(path) => addExclusion(surface.id, path)}
+            onRemoveExclusion={(path) => removeExclusion(surface.id, path)}
           />
         ))}
       </div>
@@ -103,21 +131,21 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
           value={newName}
           onChange={(event) => setNewName(event.target.value)}
           className="min-h-10 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-3 text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent-500"
-          placeholder="Area name"
+          placeholder="Name people recognise"
           aria-label="New area name"
         />
         <input
           value={newUrl}
           onChange={(event) => setNewUrl(event.target.value)}
           className="min-h-10 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-3 text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent-500"
-          placeholder="https://app.example.com"
+          placeholder="https://your-app.example.com"
           aria-label="New area domain"
         />
         <input
           value={newPath}
           onChange={(event) => setNewPath(event.target.value)}
           className="min-h-10 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-3 font-mono text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent-500"
-          placeholder="/support"
+          placeholder="/support or /admin"
           aria-label="New area path"
         />
         <button
@@ -138,77 +166,95 @@ function SurfaceRow({
   surface,
   busy,
   onToggle,
+  onAddExclusion,
+  onRemoveExclusion,
 }: {
   surface: WebSurfaceRule;
   busy: boolean;
   onToggle: (enabled: boolean) => void;
+  onAddExclusion: (path: string) => void;
+  onRemoveExclusion: (path: string) => void;
 }) {
-  const Icon = surface.kind === 'merchant_dashboard' ? LayoutDashboard : Globe2;
+  const [excludedPath, setExcludedPath] = useState('');
+  const Icon = Globe2;
   return (
-    <article className="flex min-w-0 items-center gap-3 rounded-lg bg-[var(--surface-soft)] p-4">
-      <span className="grid size-9 shrink-0 place-items-center rounded-md bg-[var(--surface)] text-muted-foreground">
-        <Icon className="size-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-semibold text-foreground">{surface.name}</p>
-        <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
-          {surface.origin}{surface.pathPrefixes.map(normalisePath).join(', ')}
-        </p>
+    <article className="min-w-0 rounded-lg bg-[var(--surface-soft)] p-4">
+      <div className="flex items-center gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-md bg-[var(--surface)] text-muted-foreground">
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-semibold text-foreground">{surface.name}</p>
+          <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+            {surface.origin}
+            {surface.pathPrefixes.map(normalisePath).join(', ')}
+          </p>
+          {surface.excludedPathPrefixes.length > 0 && (
+            <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+              Except {surface.excludedPathPrefixes.map(normalisePath).join(', ')}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          aria-pressed={surface.enabled}
+          aria-label={`${surface.enabled ? 'Turn off' : 'Turn on'} ${surface.name}`}
+          disabled={busy}
+          onClick={() => onToggle(!surface.enabled)}
+          className={`grid size-10 shrink-0 place-items-center rounded-md border text-[10px] font-semibold transition-colors disabled:opacity-50 ${
+            surface.enabled
+              ? 'border-positive/30 bg-positive-soft text-positive'
+              : 'border-[var(--border-default)] bg-[var(--surface)] text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          {surface.enabled ? 'On' : 'Off'}
+        </button>
       </div>
-      <button
-        type="button"
-        aria-pressed={surface.enabled}
-        aria-label={`${surface.enabled ? 'Turn off' : 'Turn on'} ${surface.name}`}
-        disabled={busy}
-        onClick={() => onToggle(!surface.enabled)}
-        className={`grid size-10 shrink-0 place-items-center rounded-md border text-[10px] font-semibold transition-colors disabled:opacity-50 ${
-          surface.enabled
-            ? 'border-positive/30 bg-positive-soft text-positive'
-            : 'border-[var(--border-default)] bg-[var(--surface)] text-muted-foreground hover:text-foreground'
-        }`}
-      >
-        {surface.enabled ? 'On' : 'Off'}
-      </button>
+      <div className="mt-3 flex gap-2 border-t border-[var(--border-default)] pt-3">
+        <input
+          value={excludedPath}
+          onChange={(event) => setExcludedPath(event.target.value)}
+          className="min-h-8 min-w-0 flex-1 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-2 font-mono text-[11px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent-500"
+          placeholder="Exclude child path, e.g. /billing"
+          aria-label={`Exclude a path from ${surface.name}`}
+        />
+        <button
+          type="button"
+          disabled={busy || !excludedPath.trim().startsWith('/')}
+          onClick={() => {
+            onAddExclusion(excludedPath);
+            setExcludedPath('');
+          }}
+          className="rounded-md border border-[var(--border-default)] px-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-45"
+        >
+          Exclude
+        </button>
+      </div>
+      {surface.excludedPathPrefixes.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {surface.excludedPathPrefixes.map((path) => (
+            <button
+              key={path}
+              type="button"
+              disabled={busy}
+              onClick={() => onRemoveExclusion(path)}
+              className="rounded-md bg-[var(--surface)] px-2 py-1 font-mono text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-45"
+              title="Remove exclusion"
+            >
+              {normalisePath(path)} ×
+            </button>
+          ))}
+        </div>
+      )}
     </article>
   );
 }
 
-function editablePolicy(agent: Agent, dashboardOrigin: string | undefined): WebDeploymentPolicy {
+function editablePolicy(agent: Agent, _dashboardOrigin: string | undefined): WebDeploymentPolicy {
   const base = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
-  const surfaces = [...base.surfaces];
-  const websiteOrigin = originFrom(agent.websiteUrl);
-
-  if (websiteOrigin && !surfaces.some((surface) => surface.kind === 'marketing_site')) {
-    const existing = surfaces.find((surface) => surface.origin === websiteOrigin);
-    if (existing) {
-      Object.assign(existing, { name: 'Marketing pages', kind: 'marketing_site' as const });
-    } else {
-      surfaces.unshift({
-        id: 'marketing',
-        name: 'Marketing pages',
-        kind: 'marketing_site',
-        origin: websiteOrigin,
-        pathPrefixes: ['/'],
-        enabled: agent.allowedOrigins.includes(websiteOrigin),
-      });
-    }
-  }
-  if (dashboardOrigin && !surfaces.some((surface) => surface.kind === 'merchant_dashboard')) {
-    const existing = surfaces.find((surface) => surface.origin === dashboardOrigin);
-    if (existing) {
-      Object.assign(existing, { name: 'Merchant dashboard', kind: 'merchant_dashboard' as const });
-    } else {
-      surfaces.push({
-        id: 'merchant_dashboard',
-        name: 'Merchant dashboard',
-        kind: 'merchant_dashboard',
-        origin: dashboardOrigin,
-        pathPrefixes: ['/'],
-        enabled: agent.allowedOrigins.includes(dashboardOrigin),
-      });
-    }
-  }
-  return { version: 1, surfaces };
+  // Do not invent product areas such as “merchant dashboard” from Voomate's own routing.
+  // A surface is supplied by the merchant's manifest, an observed route, or this explicit form.
+  return { version: 1, surfaces: [...base.surfaces] };
 }
 
 function originFrom(value: string): string | undefined {

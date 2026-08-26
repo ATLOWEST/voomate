@@ -13,6 +13,22 @@ export const sessionRequestSchema = z.object({
   // The server compares this URL with the browser Origin header before consulting the surface
   // policy. It therefore narrows an already approved origin; it can never widen one.
   pageUrl: z.string().url().max(2_048),
+  // Browser-observed navigation is an advisory inventory only. It cannot grant access: the
+  // origin + route policy gate below remains the source of truth for every session.
+  routeInventory: z
+    .object({
+      version: z.literal(1),
+      routes: z
+        .array(
+          z.object({
+            pathname: z.string().min(1).max(240),
+            name: z.string().trim().min(1).max(120).optional(),
+            source: z.enum(['manifest', 'navigation', 'current']),
+          }),
+        )
+        .max(80),
+    })
+    .optional(),
 });
 
 export const messageRequestSchema = z.object({

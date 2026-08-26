@@ -1,10 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
 import { agents, auditLogs, conversations, messages } from '@voomate/db';
-import {
-  webDeploymentPolicyFromAppearance,
-  webSurfaceForLocation,
-} from '@voomate/core';
+import { webDeploymentPolicyFromAppearance, webSurfaceForLocation } from '@voomate/core';
 import { getWebAgentDb } from '@/lib/web-agent/db';
 import { flushRunEvents, logRunEvent } from '@/lib/web-agent/log';
 import { enforceWidgetRateLimit } from '@/lib/web-agent/rate-limit';
@@ -116,21 +113,39 @@ export async function POST(request: Request): Promise<Response> {
       );
     });
     if (!recentlyProved) {
-      await getWebAgentDb().insert(auditLogs).values({
-        organizationId: agent.organizationId,
-        actorId: null,
-        action: 'agent.installation_verified',
-        resourceType: 'agent',
-        resourceId: agent.id,
-        metadata: {
-          platform: 'web',
-          origin,
-          pathname: pageUrl.pathname,
-          surfaceId: surface.id,
-          surfaceName: surface.name,
-          sdk: 'embed-v2',
-        },
-      });
+      await getWebAgentDb()
+        .insert(auditLogs)
+        .values({
+          organizationId: agent.organizationId,
+          actorId: null,
+          action: 'agent.installation_verified',
+          resourceType: 'agent',
+          resourceId: agent.id,
+          metadata: {
+            platform: 'web',
+            origin,
+            pathname: pageUrl.pathname,
+            surfaceId: surface.id,
+            surfaceName: surface.name,
+            sdk: 'embed-v2',
+            // Route inventory is evidence for the merchant's setup screen, never authorization.
+            // Path-only records cannot contain a host page's query string, fragment, form data,
+            // session data, or source code.
+            ...(input.routeInventory
+              ? {
+                  routeInventory: input.routeInventory.routes
+                    .filter(
+                      (route) => route.pathname.startsWith('/') && !route.pathname.includes('..'),
+                    )
+                    .map((route) => ({
+                      pathname: route.pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/',
+                      ...(route.name ? { name: route.name } : {}),
+                      source: route.source,
+                    })),
+                }
+              : {}),
+          },
+        });
     }
 
     if (agent.status !== 'active' || !agent.executionLeaseId) {

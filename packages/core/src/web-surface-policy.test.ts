@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  isProtectedWebAgentPath,
   webDeploymentPolicyFromAppearance,
   webDeploymentPolicySchema,
   webSurfaceForLocation,
@@ -37,15 +36,49 @@ describe('Web Agent surface policy', () => {
     expect(webSurfaceForLocation(policy, 'https://app.example.com', '/settings')).toBeUndefined();
   });
 
-  it('structurally excludes the Super Admin portal even on an allowed origin', () => {
-    expect(isProtectedWebAgentPath('/admin')).toBe(true);
-    expect(isProtectedWebAgentPath('/admin/agents')).toBe(true);
-    expect(webSurfaceForLocation(policy, 'https://app.example.com', '/admin/agents')).toBeUndefined();
+  it('allows a tenant-approved area even when its path is named admin', () => {
+    const adminPolicy = webDeploymentPolicySchema.parse({
+      version: 1,
+      surfaces: [
+        {
+          id: 'operations',
+          name: 'Operations console',
+          kind: 'declared',
+          origin: 'https://app.example.com',
+          pathPrefixes: ['/admin'],
+          enabled: true,
+        },
+      ],
+    });
+    expect(webSurfaceForLocation(adminPolicy, 'https://app.example.com', '/admin/agents')?.id).toBe(
+      'operations',
+    );
   });
 
-  it('keeps existing origin-only agents compatible while preserving the admin exclusion', () => {
+  it('supports an explicit tenant-owned exclusion below a broad area', () => {
+    const excluded = webDeploymentPolicySchema.parse({
+      version: 1,
+      surfaces: [
+        {
+          id: 'product',
+          name: 'Product',
+          kind: 'manual',
+          origin: 'https://app.example.com',
+          pathPrefixes: ['/'],
+          excludedPathPrefixes: ['/billing'],
+          enabled: true,
+        },
+      ],
+    });
+    expect(webSurfaceForLocation(excluded, 'https://app.example.com', '/orders')).toBeDefined();
+    expect(
+      webSurfaceForLocation(excluded, 'https://app.example.com', '/billing/invoices'),
+    ).toBeUndefined();
+  });
+
+  it('keeps existing origin-only agents compatible on every path', () => {
     const legacy = webDeploymentPolicyFromAppearance({}, ['https://app.example.com']);
     expect(webSurfaceForLocation(legacy, 'https://app.example.com', '/overview')).toBeDefined();
-    expect(webSurfaceForLocation(legacy, 'https://app.example.com', '/admin/health')).toBeUndefined();
+    expect(webSurfaceForLocation(legacy, 'https://app.example.com', '/admin/health')).toBeDefined();
   });
 });
