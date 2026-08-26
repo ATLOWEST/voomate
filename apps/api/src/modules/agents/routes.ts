@@ -94,6 +94,22 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     }
     const catalog = getAgentCatalogDefinition(input.catalogType);
 
+    // One capability has one durable workspace slot. Keeping this tenant-scoped avoids a
+    // second Web Agent being created through a stale browser tab or a direct API request.
+    const [existing] = await getDb()
+      .select({ id: agents.id })
+      .from(agents)
+      .where(
+        and(
+          tenantScope(agents, tenant.organizationId),
+          eq(agents.catalogType, catalog.id),
+        ),
+      )
+      .limit(1);
+    if (existing) {
+      throw conflict(`${catalog.name} already exists in this workspace.`);
+    }
+
     const language = { ...DEFAULT_LANGUAGE, ...input.language };
 
     // Re-validated here even though the zod contract already checked it: defaults merged
@@ -112,17 +128,17 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       .insert(agents)
       .values({
         organizationId: tenant.organizationId,
-        name: input.name,
+        name: input.name ?? catalog.name,
         catalogType: catalog.id,
         catalogVersion: catalog.version,
-        websiteUrl: input.websiteUrl,
+        websiteUrl: input.websiteUrl ?? '',
         status: AgentStatus.DRAFT,
         language,
         persona: { ...DEFAULT_PERSONA, ...input.persona },
         appearance: { ...DEFAULT_APPEARANCE, ...input.appearance },
-        // The agent's own site is allowlisted by default — it's the one origin the
-        // merchant certainly wants, and requiring them to add it is pure friction.
-        allowedOrigins: [new URL(input.websiteUrl).origin],
+        // A website is optional at creation. When supplied, it is safely allowlisted; when
+        // it is not, installation explicitly guides the merchant to add trusted origins.
+        allowedOrigins: input.websiteUrl ? [new URL(input.websiteUrl).origin] : [],
         embedKey: generateEmbedKey(),
       })
       .returning();

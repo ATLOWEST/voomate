@@ -132,8 +132,10 @@ export const createAgentSchema = z.object({
       AgentCatalogType.CALLING,
     ])
     .default(AgentCatalogType.WEB),
-  name: z.string().min(1).max(80),
-  websiteUrl: websiteUrlSchema,
+  // A workspace chooses an agent capability first. Naming and channel installation happen
+  // inside that agent later, so neither field belongs in the creation flow.
+  name: z.string().min(1).max(80).optional(),
+  websiteUrl: websiteUrlSchema.optional(),
   language: agentLanguageConfigSchema.optional(),
   persona: agentPersonaSchema.partial().optional(),
   appearance: agentAppearanceSchema.partial().optional(),

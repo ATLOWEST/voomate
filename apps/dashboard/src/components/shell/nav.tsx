@@ -216,7 +216,7 @@ export function SidebarNav({
   return (
     <aside
       className={cn(
-        'dashboard-sidebar flex h-full flex-col bg-[var(--surface-navigation)] px-3 py-4',
+        'dashboard-sidebar flex h-full min-w-0 flex-col overflow-hidden bg-[var(--surface-navigation)] px-3 py-4',
         className,
       )}
     >
@@ -224,15 +224,15 @@ export function SidebarNav({
         href="/"
         onClick={onNavigate}
         className={cn(
-          'mb-5 flex items-center gap-2.5 py-1',
+          'mb-5 flex min-h-9 shrink-0 items-center gap-2.5 py-1',
           isCollapsed ? 'justify-center' : 'justify-start px-2',
         )}
       >
-        <img src="/voomate-logo.png" alt="Voomate" className="h-8 w-auto dark:invert" />
+        <img src="/voomate-logo.png" alt="Voomate" className="h-8 w-auto shrink-0 dark:invert" />
         <img
           src="/voomate-text-logo.png"
           alt="Voomate"
-          className={cn('h-6 w-auto dark:invert', isCollapsed && 'hidden')}
+          className={cn('h-6 w-auto shrink-0 dark:invert', isCollapsed && 'hidden')}
         />
       </Link>
 
