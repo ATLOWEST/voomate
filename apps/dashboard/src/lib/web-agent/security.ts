@@ -8,6 +8,8 @@ const CONTINUATION_TTL_SECONDS = 24 * 60 * 60;
 
 export const sessionRequestSchema = z.object({
   publicKey: z.string().min(12).max(160),
+  /** Five-minute token minted by the merchant's server. Never a long-lived browser API key. */
+  identityToken: z.string().min(80).max(4_096).optional(),
   continuationToken: z.string().min(80).max(4_096).optional(),
   conversationId: z.string().uuid().optional(),
   // The server compares this URL with the browser Origin header before consulting the surface
@@ -101,6 +103,8 @@ export interface WidgetClaims {
   keyFingerprint: string;
   /** Stable opaque browser session ID. It contains no identity or tenant information. */
   visitorSessionId: string;
+  /** Stable non-reversible ID present only after merchant-server identity verification. */
+  verifiedUserId?: string;
   /** Monotonic configuration revision and lease bind this token to current desired state. */
   configurationRevision: number;
   executionLeaseId: string;
@@ -133,6 +137,40 @@ export function keyFingerprint(publicKey: string): string {
 
 export function sessionFingerprint(token: string): string {
   return createHash('sha256').update(token).digest('hex').slice(0, 32);
+}
+
+export function widgetVisitorFingerprint(claims: WidgetClaims): string {
+  return claims.verifiedUserId ?? sessionFingerprint(claims.visitorSessionId);
+}
+
+export async function verifyWebAgentIdentity(
+  token: string,
+  expected: { organizationId: string; agentId: string; origin: string },
+): Promise<{ userFingerprint: string }> {
+  const { payload } = await jwtVerify(token, tokenSecret(), {
+    issuer: 'voomate-web-agent-identity',
+    audience: 'voomate-web-agent-sdk',
+    algorithms: ['HS256'],
+  });
+  const claims = z
+    .object({
+      sub: z.string().uuid(),
+      organizationId: z.string().uuid(),
+      agentId: z.string().uuid(),
+      origin: z.string(),
+      userFingerprint: z.string().length(43),
+      purpose: z.literal('web-agent-user-identity'),
+    })
+    .parse(payload);
+  if (
+    claims.sub !== expected.agentId ||
+    claims.agentId !== expected.agentId ||
+    claims.organizationId !== expected.organizationId ||
+    claims.origin !== expected.origin
+  ) {
+    throw new Error('Web Agent identity token does not match this session.');
+  }
+  return { userFingerprint: claims.userFingerprint };
 }
 
 export async function mintWidgetSession(claims: WidgetClaims): Promise<{
@@ -177,6 +215,7 @@ export async function verifyWidgetSession(token: string, origin: string): Promis
       origin: z.string(),
       keyFingerprint: z.string().length(16),
       visitorSessionId: z.string().uuid(),
+      verifiedUserId: z.string().length(43).optional(),
       configurationRevision: z.number().int().positive(),
       executionLeaseId: z.string().uuid(),
     })
@@ -200,6 +239,7 @@ export async function verifyWidgetContinuation(
       origin: z.string(),
       keyFingerprint: z.string().length(16),
       visitorSessionId: z.string().uuid(),
+      verifiedUserId: z.string().length(43).optional(),
       configurationRevision: z.number().int().positive(),
       executionLeaseId: z.string().uuid(),
       purpose: z.literal('conversation-continuation'),

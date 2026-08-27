@@ -8,6 +8,11 @@ interface AssistantPromptInput extends WebAgentInstallInput {
   approvedOrigins: readonly string[];
 }
 
+interface IdentityInstallInput extends AssistantPromptInput {
+  controlPlaneOrigin: string;
+  identityEndpoint?: string;
+}
+
 /**
  * Converts a pasted hostname or page URL to the exact origin used by the runtime allowlist.
  * Paths are intentionally removed because browser Origin headers never include them.
@@ -35,6 +40,80 @@ export function buildWebAgentSnippet({ widgetOrigin, embedKey }: WebAgentInstall
   data-agent="${embedKey}"
   async
 ></script>`;
+}
+
+export function buildVerifiedUserSnippet({
+  widgetOrigin,
+  embedKey,
+  identityEndpoint = '/api/voomate/identity',
+}: WebAgentInstallInput & { identityEndpoint?: string }): string {
+  return `<script
+  src="${widgetOrigin.replace(/\/$/, '')}/embed.js"
+  data-agent="${embedKey}"
+  data-identity-endpoint="${identityEndpoint}"
+  async
+></script>`;
+}
+
+export function buildIdentityServerExample({
+  controlPlaneOrigin,
+  approvedOrigins,
+}: Pick<IdentityInstallInput, 'controlPlaneOrigin' | 'approvedOrigins'>): string {
+  const origin = approvedOrigins[0] ?? 'https://your-approved-domain.example';
+  return `// Server-only endpoint: POST /api/voomate/identity
+// Replace requireCurrentUser with this project's existing server auth helper.
+export async function POST(request) {
+  const user = await requireCurrentUser(request);
+  if (!user) return new Response(null, { status: 401 });
+
+  const response = await fetch("${controlPlaneOrigin.replace(/\/$/, '')}/v1/widget/identity", {
+    method: "POST",
+    headers: {
+      "Authorization": \`Bearer \${process.env.VOOMATE_IDENTITY_KEY}\`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      userId: user.id,
+      origin: "${origin}"
+    })
+  });
+
+  if (!response.ok) return new Response(null, { status: 401 });
+  return Response.json(await response.json(), {
+    headers: { "Cache-Control": "no-store" }
+  });
+}`;
+}
+
+export function buildIdentityAssistantPrompt({
+  widgetOrigin,
+  controlPlaneOrigin,
+  embedKey,
+  agentName,
+  approvedOrigins,
+  identityEndpoint = '/api/voomate/identity',
+}: IdentityInstallInput): string {
+  const snippet = buildVerifiedUserSnippet({ widgetOrigin, embedKey, identityEndpoint });
+  const origins =
+    approvedOrigins.length > 0
+      ? approvedOrigins.map((origin) => `- ${origin}`).join('\n')
+      : '- Ask me for the production origin before editing.';
+
+  return `Add signed-in customer verification for the Voomate Web Agent “${agentName}”.
+
+Approved origins:
+${origins}
+
+Use the application's EXISTING server authentication. Do not invent another login system.
+1. Create a same-origin POST endpoint at ${identityEndpoint}. It must reject unauthenticated requests.
+2. On the server, read the authenticated user's stable internal ID. Never accept a user ID supplied by the browser.
+3. Call ${controlPlaneOrigin.replace(/\/$/, '')}/v1/widget/identity with Authorization: Bearer process.env.VOOMATE_IDENTITY_KEY and JSON { userId, origin }.
+4. Return only the short-lived token JSON with Cache-Control: no-store. Never send, log, bundle, or prefix the server key with NEXT_PUBLIC/VITE_PUBLIC.
+5. Add the exact script below once to the authenticated shared layout. Keep it out of payment, admin, health and any routes excluded in Voomate.
+6. Add VOOMATE_IDENTITY_KEY to the deployment secret manager, run the project's tests, and report the endpoint plus changed files.
+
+Exact authenticated-layout script:
+${snippet}`;
 }
 
 /**

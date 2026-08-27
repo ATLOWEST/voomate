@@ -53,6 +53,8 @@ export const webSurfaceRuleSchema = z.object({
   pathPrefixes: z.array(pathPrefixSchema).min(1).max(20),
   /** Narrow a broad area without needing to create a conflicting second rule. */
   excludedPathPrefixes: z.array(pathPrefixSchema).max(40).default([]),
+  /** Private product areas may refuse anonymous sessions and require a signed user token. */
+  identity: z.enum(['anonymous', 'required']).optional(),
   enabled: z.boolean(),
 });
 
@@ -130,6 +132,7 @@ export function webDeploymentPolicyFromAppearance(
       origin,
       pathPrefixes: ['/'],
       excludedPathPrefixes: [],
+      identity: 'anonymous' as const,
       enabled: true,
     })),
   };

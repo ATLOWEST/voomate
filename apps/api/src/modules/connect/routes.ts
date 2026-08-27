@@ -330,7 +330,12 @@ export const connectRoutes: FastifyPluginAsync = async (app) => {
         createdAt: apiKeys.createdAt,
       })
       .from(apiKeys)
-      .where(tenantScope(apiKeys, tenant.organizationId))
+      .where(
+        and(
+          tenantScope(apiKeys, tenant.organizationId),
+          sql`${CONNECT_SCOPE} = any(${apiKeys.scopes})`,
+        ),
+      )
       .orderBy(desc(apiKeys.createdAt));
     return { keys };
   });
@@ -397,7 +402,13 @@ export const connectRoutes: FastifyPluginAsync = async (app) => {
       const [revoked] = await db
         .update(apiKeys)
         .set({ revokedAt: new Date(), updatedAt: new Date() })
-        .where(and(tenantScope(apiKeys, tenant.organizationId), eq(apiKeys.id, keyId)))
+        .where(
+          and(
+            tenantScope(apiKeys, tenant.organizationId),
+            eq(apiKeys.id, keyId),
+            sql`${CONNECT_SCOPE} = any(${apiKeys.scopes})`,
+          ),
+        )
         .returning({ id: apiKeys.id });
       if (!revoked) throw notFound('Connect key', keyId);
 

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { SignJWT } from 'jose';
 import {
   mintWidgetSession,
   mintWidgetContinuation,
@@ -6,6 +7,7 @@ import {
   streamMessageRequestSchema,
   verifyWidgetSession,
   verifyWidgetContinuation,
+  verifyWebAgentIdentity,
 } from './security';
 
 const previousSecret = process.env.WIDGET_TOKEN_SECRET;
@@ -59,6 +61,35 @@ describe('widget session security', () => {
     await expect(
       verifyWidgetContinuation(continuation.token, 'https://evil.example'),
     ).rejects.toThrow('origin mismatch');
+  });
+
+  it('accepts only merchant-server identity tokens bound to this tenant, agent and origin', async () => {
+    process.env.WIDGET_TOKEN_SECRET = 'test-secret-that-is-at-least-thirty-two-characters';
+    const expected = {
+      agentId: '11111111-1111-4111-8111-111111111111',
+      organizationId: '22222222-2222-4222-8222-222222222222',
+      origin: 'https://shop.example',
+    };
+    const fingerprint = 'a'.repeat(43);
+    const token = await new SignJWT({
+      ...expected,
+      userFingerprint: fingerprint,
+      purpose: 'web-agent-user-identity',
+    })
+      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setIssuer('voomate-web-agent-identity')
+      .setAudience('voomate-web-agent-sdk')
+      .setSubject(expected.agentId)
+      .setIssuedAt()
+      .setExpirationTime('5m')
+      .sign(new TextEncoder().encode(process.env.WIDGET_TOKEN_SECRET));
+
+    await expect(verifyWebAgentIdentity(token, expected)).resolves.toEqual({
+      userFingerprint: fingerprint,
+    });
+    await expect(
+      verifyWebAgentIdentity(token, { ...expected, origin: 'https://evil.example' }),
+    ).rejects.toThrow('does not match');
   });
 
   it('keeps old voice streams compatible and allows explicit text image streams', () => {

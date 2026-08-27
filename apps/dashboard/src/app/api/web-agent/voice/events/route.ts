@@ -7,9 +7,9 @@ import {
   bearerToken,
   corsHeaders,
   normalizeOrigin,
-  sessionFingerprint,
   verifyWidgetSession,
   voiceEventRequestSchema,
+  widgetVisitorFingerprint,
 } from '@/lib/web-agent/security';
 
 export const runtime = 'nodejs';
@@ -37,7 +37,7 @@ export async function POST(request: Request): Promise<Response> {
             eq(conversations.id, input.conversationId),
             eq(conversations.organizationId, claims.organizationId),
             eq(conversations.agentId, claims.agentId),
-            eq(conversations.visitorId, sessionFingerprint(claims.visitorSessionId)),
+            eq(conversations.visitorId, widgetVisitorFingerprint(claims)),
           ),
         )
         .limit(1);

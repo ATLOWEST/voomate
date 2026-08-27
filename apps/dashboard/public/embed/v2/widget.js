@@ -724,15 +724,37 @@ export async function mountWidget(host, config) {
     });
   };
 
+  const refreshIdentity = async () => {
+    if (!config.identityEndpoint) return config.identityToken;
+    const endpoint = new URL(config.identityEndpoint, window.location.href);
+    if (endpoint.origin !== window.location.origin) {
+      throw new Error('The signed-in identity endpoint must use this site.');
+    }
+    const response = await fetch(endpoint.href, {
+      method: 'POST',
+      headers: { accept: 'application/json' },
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || typeof payload.token !== 'string' || payload.token.length > 4_096) {
+      throw new Error('Signed-in customer verification failed.');
+    }
+    config.identityToken = payload.token;
+    return config.identityToken;
+  };
+
   const refreshSession = async (force = false) => {
     if (!force && token && tokenExpiresAt - Date.now() > 2 * 60 * 1000) return;
     if (!continuationToken) throw new Error('The secure conversation session expired.');
+    const identityToken = await refreshIdentity();
     const refreshed = await postJson(`${config.apiOrigin}/api/web-agent/session`, {
       publicKey: config.publicKey,
       pageUrl: window.location.href,
       routeInventory: collectRouteInventory(),
       continuationToken,
       ...(conversationId ? { conversationId } : {}),
+      ...(identityToken ? { identityToken } : {}),
     });
     token = refreshed.session.token;
     tokenExpiresAt = Date.now() + Number(refreshed.session.expiresIn ?? 0) * 1000;
@@ -1180,6 +1202,7 @@ export async function mountWidget(host, config) {
 
   requestAnimationFrame(() => setViewMode(viewMode));
   try {
+    const identityToken = await refreshIdentity();
     let session;
     try {
       session = await postJson(`${config.apiOrigin}/api/web-agent/session`, {
@@ -1188,6 +1211,7 @@ export async function mountWidget(host, config) {
         routeInventory: collectRouteInventory(),
         ...(continuationToken ? { continuationToken } : {}),
         ...(conversationId ? { conversationId } : {}),
+        ...(identityToken ? { identityToken } : {}),
       });
     } catch (error) {
       if (!continuationToken) throw error;
@@ -1199,6 +1223,7 @@ export async function mountWidget(host, config) {
         publicKey: config.publicKey,
         pageUrl: window.location.href,
         routeInventory: collectRouteInventory(),
+        ...(identityToken ? { identityToken } : {}),
       });
     }
     token = session.session.token;

@@ -8,8 +8,8 @@ import {
   corsHeaders,
   messageFeedbackRequestSchema,
   normalizeOrigin,
-  sessionFingerprint,
   verifyWidgetSession,
+  widgetVisitorFingerprint,
 } from '@/lib/web-agent/security';
 
 export const runtime = 'nodejs';
@@ -27,7 +27,7 @@ export async function POST(request: Request): Promise<Response> {
     const token = bearerToken(request);
     if (!token) throw new Error('Session token required.');
     const claims = await verifyWidgetSession(token, origin);
-    const visitorFingerprint = sessionFingerprint(claims.visitorSessionId);
+    const visitorFingerprint = widgetVisitorFingerprint(claims);
     await enforceWidgetRateLimit(`${claims.keyFingerprint}:${origin}:feedback`);
     const input = messageFeedbackRequestSchema.parse(await request.json());
     const db = getWebAgentDb();

@@ -7,8 +7,8 @@ import {
   corsHeaders,
   imageFinalizeRequestSchema,
   normalizeOrigin,
-  sessionFingerprint,
   verifyWidgetSession,
+  widgetVisitorFingerprint,
 } from '@/lib/web-agent/security';
 
 export const runtime = 'nodejs';
@@ -38,7 +38,7 @@ export async function POST(request: Request): Promise<Response> {
     };
     const images = await finalizeImageUploads({
       context,
-      sessionFingerprint: sessionFingerprint(claims.visitorSessionId),
+      sessionFingerprint: widgetVisitorFingerprint(claims),
       imageIds: input.imageIds,
     });
     await flushRunEvents(context);

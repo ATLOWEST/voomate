@@ -24,19 +24,27 @@ import {
   webDeploymentPolicyFromAppearance,
   webSurfaceForLocation,
 } from '@voomate/core';
-import { agents, auditLogs, knowledgeChunks, tenantScope } from '@voomate/db';
+import { agents, apiKeys, auditLogs, knowledgeChunks, tenantScope } from '@voomate/db';
 import { DEFAULT_LANGUAGE_CODES, resolveVoice, validateLanguageSet } from '@voomate/i18n';
 import { load } from 'cheerio';
-import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { generateEmbedKey } from '../../lib/keys.js';
+import { generateApiKey, generateEmbedKey } from '../../lib/keys.js';
 import { getDb } from '../../lib/db.js';
 import { FetchError, fetchPage } from '../../lib/crawl/fetch.js';
 import { tenantOf } from '../../plugins/auth.js';
 import { transitionAgentLifecycle } from './lifecycle.js';
+import { WEB_AGENT_IDENTITY_SCOPE } from '../widget/identity.js';
 
 const paramsSchema = z.object({ id: uuidSchema });
+const identityKeyParamsSchema = z.object({ id: uuidSchema, keyId: uuidSchema });
+const createIdentityKeySchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).default('Web Agent identity'),
+    expiresInDays: z.number().int().min(1).max(365).default(90),
+  })
+  .strict();
 
 type DeploymentAuditMetadata = {
   platform?: 'website' | 'web_app' | 'ios' | 'android' | 'web';
@@ -59,7 +67,7 @@ const SETUP_ACTIONS = [
   'agent.sdk_diagnosed',
 ] as const;
 
-type SetupStepId = 'install' | 'knowledge' | 'test' | 'activate';
+type SetupStepId = 'install' | 'identity' | 'knowledge' | 'test' | 'activate';
 
 async function getWebAgentSetup(organizationId: TenantContext['organizationId'], agentId: string) {
   const db = getDb();
@@ -77,13 +85,23 @@ async function getWebAgentSetup(organizationId: TenantContext['organizationId'],
     .limit(1);
   if (!agent) throw notFound('Agent', agentId);
 
-  const [[knowledge], evidence] = await Promise.all([
+  const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
+  const requiresIdentity = policy.surfaces.some(
+    (surface) => surface.enabled && surface.identity === 'required',
+  );
+  const [[knowledge], evidence, verifiedIdentityKeys] = await Promise.all([
     db
       .select({ total: count() })
       .from(knowledgeChunks)
-      .where(and(tenantScope(knowledgeChunks, organizationId), eq(knowledgeChunks.agentId, agentId))),
+      .where(
+        and(tenantScope(knowledgeChunks, organizationId), eq(knowledgeChunks.agentId, agentId)),
+      ),
     db
-      .select({ action: auditLogs.action, metadata: auditLogs.metadata, createdAt: auditLogs.createdAt })
+      .select({
+        action: auditLogs.action,
+        metadata: auditLogs.metadata,
+        createdAt: auditLogs.createdAt,
+      })
       .from(auditLogs)
       .where(
         and(
@@ -94,9 +112,23 @@ async function getWebAgentSetup(organizationId: TenantContext['organizationId'],
         ),
       )
       .orderBy(desc(auditLogs.createdAt)),
+    requiresIdentity
+      ? db
+          .select({ id: apiKeys.id })
+          .from(apiKeys)
+          .where(
+            and(
+              tenantScope(apiKeys, organizationId),
+              eq(apiKeys.agentId, agentId),
+              isNull(apiKeys.revokedAt),
+              isNotNull(apiKeys.lastUsedAt),
+              sql`${WEB_AGENT_IDENTITY_SCOPE} = any(${apiKeys.scopes})`,
+            ),
+          )
+          .limit(1)
+      : Promise.resolve([]),
   ]);
 
-  const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
   const proof = evidence.find((record) => {
     const metadata = record.metadata as SetupAuditMetadata | null;
     return (
@@ -113,6 +145,7 @@ async function getWebAgentSetup(organizationId: TenantContext['organizationId'],
   const diagnosticMetadata = diagnostic?.metadata as SetupAuditMetadata | null | undefined;
   const ready: Record<SetupStepId, boolean> = {
     install: Boolean(proof),
+    identity: !requiresIdentity || verifiedIdentityKeys.length > 0,
     knowledge: Number(knowledge?.total ?? 0) > 0,
     test: Boolean(test),
     activate: agent.status === AgentStatus.ACTIVE,
@@ -128,6 +161,18 @@ async function getWebAgentSetup(organizationId: TenantContext['organizationId'],
           : 'Add your site domain, paste the snippet, then open that page once.',
       href: `/agents/${agentId}/install`,
     },
+    ...(requiresIdentity
+      ? [
+          {
+            id: 'identity' as const,
+            label: ready.identity ? 'Signed-in identity verified' : 'Verify signed-in customers',
+            detail: ready.identity
+              ? 'A real server identity exchange has succeeded.'
+              : 'Create a server key and connect it to your existing customer login.',
+            href: `/agents/${agentId}/install`,
+          },
+        ]
+      : []),
     {
       id: 'knowledge',
       label: ready.knowledge ? 'Knowledge ready' : 'Add what the agent should know',
@@ -160,11 +205,20 @@ async function getWebAgentSetup(organizationId: TenantContext['organizationId'],
     total: order.length,
     percentage: Math.round((order.filter((step) => ready[step.id]).length / order.length) * 100),
     currentStep: current.id,
-    nextAction: { label: ready.activate ? 'Review agent' : `Continue: ${current.label}`, href: current.href },
-    steps: order.map((step) => ({ ...step, complete: ready[step.id], current: step.id === current.id })),
+    nextAction: {
+      label: ready.activate ? 'Review agent' : `Continue: ${current.label}`,
+      href: current.href,
+    },
+    steps: order.map((step) => ({
+      ...step,
+      complete: ready[step.id],
+      current: step.id === current.id,
+    })),
     sdk: {
       verified: ready.install,
-      verifiedOrigin: ready.install ? ((proof?.metadata as SetupAuditMetadata).origin ?? null) : null,
+      verifiedOrigin: ready.install
+        ? ((proof?.metadata as SetupAuditMetadata).origin ?? null)
+        : null,
       verifiedAt: proof?.createdAt ?? null,
       diagnostic: diagnosticMetadata
         ? {
@@ -211,7 +265,9 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     const rows = await getDb()
       .select()
       .from(agents)
-      .where(tenantScope(agents, tenant.organizationId))
+      .where(
+        and(tenantScope(agents, tenant.organizationId), ne(agents.status, AgentStatus.ARCHIVED)),
+      )
       .orderBy(desc(agents.createdAt));
 
     return { agents: rows };
@@ -224,7 +280,13 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     const [agent] = await getDb()
       .select()
       .from(agents)
-      .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
+      .where(
+        and(
+          tenantScope(agents, tenant.organizationId),
+          eq(agents.id, id),
+          ne(agents.status, AgentStatus.ARCHIVED),
+        ),
+      )
       .limit(1);
 
     if (agent === undefined) throw notFound('Agent', id);
@@ -237,6 +299,144 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     return { setup: await getWebAgentSetup(tenant.organizationId, id) };
   });
 
+  /** Safe metadata only. The secret is returned once from the create route and never stored. */
+  app.get(
+    '/:id/identity-keys',
+    { preHandler: app.requireTenant(OrgRole.ADMIN) },
+    async (request) => {
+      const tenant = tenantOf(request);
+      const { id } = paramsSchema.parse(request.params);
+      const [agent] = await getDb()
+        .select({ id: agents.id })
+        .from(agents)
+        .where(
+          and(
+            tenantScope(agents, tenant.organizationId),
+            eq(agents.id, id),
+            ne(agents.status, AgentStatus.ARCHIVED),
+          ),
+        )
+        .limit(1);
+      if (!agent) throw notFound('Agent', id);
+
+      const keys = await getDb()
+        .select({
+          id: apiKeys.id,
+          name: apiKeys.name,
+          keyPrefix: apiKeys.keyPrefix,
+          lastUsedAt: apiKeys.lastUsedAt,
+          expiresAt: apiKeys.expiresAt,
+          createdAt: apiKeys.createdAt,
+        })
+        .from(apiKeys)
+        .where(
+          and(
+            tenantScope(apiKeys, tenant.organizationId),
+            eq(apiKeys.agentId, id),
+            isNull(apiKeys.revokedAt),
+            sql`${WEB_AGENT_IDENTITY_SCOPE} = any(${apiKeys.scopes})`,
+          ),
+        )
+        .orderBy(desc(apiKeys.createdAt));
+      return { keys };
+    },
+  );
+
+  app.post(
+    '/:id/identity-keys',
+    { preHandler: app.requireTenant(OrgRole.ADMIN) },
+    async (request, reply) => {
+      const tenant = tenantOf(request);
+      const { id } = paramsSchema.parse(request.params);
+      const input = createIdentityKeySchema.parse(request.body ?? {});
+      const [agent] = await getDb()
+        .select({ id: agents.id })
+        .from(agents)
+        .where(
+          and(
+            tenantScope(agents, tenant.organizationId),
+            eq(agents.id, id),
+            ne(agents.status, AgentStatus.ARCHIVED),
+          ),
+        )
+        .limit(1);
+      if (!agent) throw notFound('Agent', id);
+
+      const generated = generateApiKey();
+      const expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1_000);
+      const [key] = await getDb()
+        .insert(apiKeys)
+        .values({
+          organizationId: tenant.organizationId,
+          agentId: id,
+          name: input.name,
+          keyHash: generated.hash,
+          keyPrefix: generated.prefix,
+          scopes: [WEB_AGENT_IDENTITY_SCOPE],
+          createdBy: tenant.userId,
+          expiresAt,
+        })
+        .returning({
+          id: apiKeys.id,
+          name: apiKeys.name,
+          keyPrefix: apiKeys.keyPrefix,
+          expiresAt: apiKeys.expiresAt,
+          createdAt: apiKeys.createdAt,
+        });
+      if (!key) throw new Error('Could not create Web Agent identity key.');
+
+      await getDb()
+        .insert(auditLogs)
+        .values({
+          organizationId: tenant.organizationId,
+          actorId: tenant.userId,
+          action: 'web_agent.identity_key_created',
+          resourceType: 'api_key',
+          resourceId: key.id,
+          metadata: { agentId: id, expiresAt: expiresAt.toISOString() },
+          ipAddress: request.ip,
+        });
+      reply.header('Cache-Control', 'no-store').status(201);
+      return { key, secret: generated.key };
+    },
+  );
+
+  app.delete(
+    '/:id/identity-keys/:keyId',
+    { preHandler: app.requireTenant(OrgRole.ADMIN) },
+    async (request, reply) => {
+      const tenant = tenantOf(request);
+      const { id, keyId } = identityKeyParamsSchema.parse(request.params);
+      const [revoked] = await getDb()
+        .update(apiKeys)
+        .set({ revokedAt: new Date(), updatedAt: new Date() })
+        .where(
+          and(
+            tenantScope(apiKeys, tenant.organizationId),
+            eq(apiKeys.agentId, id),
+            eq(apiKeys.id, keyId),
+            isNull(apiKeys.revokedAt),
+            sql`${WEB_AGENT_IDENTITY_SCOPE} = any(${apiKeys.scopes})`,
+          ),
+        )
+        .returning({ id: apiKeys.id });
+      if (!revoked) throw notFound('Web Agent identity key', keyId);
+
+      await getDb()
+        .insert(auditLogs)
+        .values({
+          organizationId: tenant.organizationId,
+          actorId: tenant.userId,
+          action: 'web_agent.identity_key_revoked',
+          resourceType: 'api_key',
+          resourceId: keyId,
+          metadata: { agentId: id },
+          ipAddress: request.ip,
+        });
+      reply.status(204);
+    },
+  );
+
   app.post(
     '/:id/setup/diagnose',
     { preHandler: app.requireTenant(OrgRole.DEVELOPER) },
@@ -244,7 +444,11 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       const tenant = tenantOf(request);
       const { id } = paramsSchema.parse(request.params);
       const [agent] = await getDb()
-        .select({ id: agents.id, websiteUrl: agents.websiteUrl, allowedOrigins: agents.allowedOrigins })
+        .select({
+          id: agents.id,
+          websiteUrl: agents.websiteUrl,
+          allowedOrigins: agents.allowedOrigins,
+        })
         .from(agents)
         .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
         .limit(1);
@@ -265,7 +469,9 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
             src: document(node).attr('src') ?? '',
             key: document(node).attr('data-agent') ?? '',
           }));
-        const expected = scripts.filter((script) => script.key.length > 0 && /\/embed\.js(?:$|[?#])/i.test(script.src));
+        const expected = scripts.filter(
+          (script) => script.key.length > 0 && /\/embed\.js(?:$|[?#])/i.test(script.src),
+        );
         const expectedKey = await getDb()
           .select({ embedKey: agents.embedKey })
           .from(agents)
@@ -274,39 +480,54 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         const matching = expected.filter((script) => script.key === expectedKey[0]?.embedKey);
         const xFrame = page.xFrameOptions?.toLowerCase() ?? '';
         const csp = page.contentSecurityPolicy?.toLowerCase() ?? '';
-        const previewEmbeddable = !xFrame.includes('deny') && !xFrame.includes('sameorigin') && !csp.includes('frame-ancestors');
+        const previewEmbeddable =
+          !xFrame.includes('deny') &&
+          !xFrame.includes('sameorigin') &&
+          !csp.includes('frame-ancestors');
 
         if (matching.length > 1) {
           metadata = {
             code: 'duplicate_sdk',
-            message: 'More than one Voomate snippet was found. Keep only one copy so visitors do not open duplicate sessions.',
+            message:
+              'More than one Voomate snippet was found. Keep only one copy so visitors do not open duplicate sessions.',
             checkedUrl: page.url,
             previewEmbeddable,
-            previewReason: previewEmbeddable ? null : 'Your site blocks embedded previews with its security headers.',
+            previewReason: previewEmbeddable
+              ? null
+              : 'Your site blocks embedded previews with its security headers.',
           };
         } else if (matching.length === 1) {
           metadata = {
             code: 'snippet_found',
-            message: 'The Voomate snippet and this agent key were found. Open the page in a browser to finish verification.',
+            message:
+              'The Voomate snippet and this agent key were found. Open the page in a browser to finish verification.',
             checkedUrl: page.url,
             previewEmbeddable,
-            previewReason: previewEmbeddable ? null : 'Your site blocks embedded previews with its security headers.',
+            previewReason: previewEmbeddable
+              ? null
+              : 'Your site blocks embedded previews with its security headers.',
           };
         } else if (expected.length > 0) {
           metadata = {
             code: 'wrong_agent_key',
-            message: 'A Voomate snippet was found, but it belongs to a different agent. Copy the snippet from this page again.',
+            message:
+              'A Voomate snippet was found, but it belongs to a different agent. Copy the snippet from this page again.',
             checkedUrl: page.url,
             previewEmbeddable,
-            previewReason: previewEmbeddable ? null : 'Your site blocks embedded previews with its security headers.',
+            previewReason: previewEmbeddable
+              ? null
+              : 'Your site blocks embedded previews with its security headers.',
           };
         } else {
           metadata = {
             code: 'sdk_not_found',
-            message: 'No Voomate snippet was found on this page. Paste the snippet before the closing body tag, publish the page, then check again.',
+            message:
+              'No Voomate snippet was found on this page. Paste the snippet before the closing body tag, publish the page, then check again.',
             checkedUrl: page.url,
             previewEmbeddable,
-            previewReason: previewEmbeddable ? null : 'Your site blocks embedded previews with its security headers.',
+            previewReason: previewEmbeddable
+              ? null
+              : 'Your site blocks embedded previews with its security headers.',
           };
         }
       } catch (error) {
@@ -334,62 +555,62 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  app.get(
-    '/:id/deployment',
-    { preHandler: app.requireTenant(OrgRole.VIEWER) },
-    async (request) => {
-      const tenant = tenantOf(request);
-      const { id } = paramsSchema.parse(request.params);
+  app.get('/:id/deployment', { preHandler: app.requireTenant(OrgRole.VIEWER) }, async (request) => {
+    const tenant = tenantOf(request);
+    const { id } = paramsSchema.parse(request.params);
 
-      const [agent] = await getDb()
-        .select({ id: agents.id, allowedOrigins: agents.allowedOrigins, appearance: agents.appearance })
-        .from(agents)
-        .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
-        .limit(1);
-      if (!agent) throw notFound('Agent', id);
+    const [agent] = await getDb()
+      .select({
+        id: agents.id,
+        allowedOrigins: agents.allowedOrigins,
+        appearance: agents.appearance,
+      })
+      .from(agents)
+      .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
+      .limit(1);
+    if (!agent) throw notFound('Agent', id);
 
-      const verified = await getDb()
-        .select({ metadata: auditLogs.metadata, createdAt: auditLogs.createdAt })
-          .from(auditLogs)
-          .where(
-            and(
-              tenantScope(auditLogs, tenant.organizationId),
-              eq(auditLogs.resourceId, id),
-              eq(auditLogs.resourceType, 'agent'),
-              eq(auditLogs.action, 'agent.installation_verified'),
-            ),
-          )
-          .orderBy(desc(auditLogs.createdAt));
+    const verified = await getDb()
+      .select({ metadata: auditLogs.metadata, createdAt: auditLogs.createdAt })
+      .from(auditLogs)
+      .where(
+        and(
+          tenantScope(auditLogs, tenant.organizationId),
+          eq(auditLogs.resourceId, id),
+          eq(auditLogs.resourceType, 'agent'),
+          eq(auditLogs.action, 'agent.installation_verified'),
+        ),
+      )
+      .orderBy(desc(auditLogs.createdAt));
 
-      const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
-      const currentProof = verified.find((record) => {
-        const proof = record.metadata as DeploymentAuditMetadata | undefined;
-        return (
-          proof?.platform === 'web' &&
-          typeof proof.origin === 'string' &&
-          agent.allowedOrigins.includes(proof.origin) &&
-          (typeof proof.pathname !== 'string' ||
-            webSurfaceForLocation(policy, proof.origin, proof.pathname) !== undefined)
-        );
-      });
-      const proof = currentProof?.metadata as DeploymentAuditMetadata | undefined;
-      const proofIsCurrent = currentProof !== undefined;
+    const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
+    const currentProof = verified.find((record) => {
+      const proof = record.metadata as DeploymentAuditMetadata | undefined;
+      return (
+        proof?.platform === 'web' &&
+        typeof proof.origin === 'string' &&
+        agent.allowedOrigins.includes(proof.origin) &&
+        (typeof proof.pathname !== 'string' ||
+          webSurfaceForLocation(policy, proof.origin, proof.pathname) !== undefined)
+      );
+    });
+    const proof = currentProof?.metadata as DeploymentAuditMetadata | undefined;
+    const proofIsCurrent = currentProof !== undefined;
 
-      return {
-        deployment: {
-          // Website and browser Web App share the same signed Web SDK. There is one real
-          // deployment path; historical target records are read only for audit compatibility.
-          platform: 'web',
-          supported: true,
-          verified: proofIsCurrent,
-          verifiedOrigin: proofIsCurrent ? (proof?.origin ?? null) : null,
-          verifiedPathname: proofIsCurrent ? (proof?.pathname ?? null) : null,
-          verifiedAt: proofIsCurrent ? currentProof.createdAt : null,
-          sdkVersion: proofIsCurrent ? (proof?.sdk ?? null) : null,
-        },
-      };
-    },
-  );
+    return {
+      deployment: {
+        // Website and browser Web App share the same signed Web SDK. There is one real
+        // deployment path; historical target records are read only for audit compatibility.
+        platform: 'web',
+        supported: true,
+        verified: proofIsCurrent,
+        verifiedOrigin: proofIsCurrent ? (proof?.origin ?? null) : null,
+        verifiedPathname: proofIsCurrent ? (proof?.pathname ?? null) : null,
+        verifiedAt: proofIsCurrent ? currentProof.createdAt : null,
+        sdkVersion: proofIsCurrent ? (proof?.sdk ?? null) : null,
+      },
+    };
+  });
 
   app.post(
     '/:id/deployment',
@@ -409,17 +630,21 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         throw conflict('Deployment targets are currently available only for the Web Agent.');
       }
       if (input.platform === 'ios' || input.platform === 'android') {
-        throw conflict('Native SDKs are not released yet. The Web Agent uses one Web SDK for websites and browser apps.');
+        throw conflict(
+          'Native SDKs are not released yet. The Web Agent uses one Web SDK for websites and browser apps.',
+        );
       }
 
-      await getDb().insert(auditLogs).values({
-        organizationId: tenant.organizationId,
-        actorId: tenant.userId,
-        action: 'agent.deployment_target_selected',
-        resourceType: 'agent',
-        resourceId: id,
-        metadata: { platform: input.platform },
-      });
+      await getDb()
+        .insert(auditLogs)
+        .values({
+          organizationId: tenant.organizationId,
+          actorId: tenant.userId,
+          action: 'agent.deployment_target_selected',
+          resourceType: 'agent',
+          resourceId: id,
+          metadata: { platform: input.platform },
+        });
 
       return {
         deployment: {
@@ -455,6 +680,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         and(
           tenantScope(agents, tenant.organizationId),
           eq(agents.catalogType, catalog.id),
+          ne(agents.status, AgentStatus.ARCHIVED),
         ),
       )
       .limit(1);
@@ -517,7 +743,10 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       const nextAppearance = input.appearance
         ? { ...(existing.appearance as object), ...input.appearance }
         : existing.appearance;
-      const deploymentPolicy = webDeploymentPolicyFromAppearance(nextAppearance, nextAllowedOrigins);
+      const deploymentPolicy = webDeploymentPolicyFromAppearance(
+        nextAppearance,
+        nextAllowedOrigins,
+      );
       const outsideApprovedOrigins = deploymentPolicy.surfaces.find(
         (surface) => surface.enabled && !nextAllowedOrigins.includes(surface.origin),
       );
@@ -525,6 +754,31 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         throw conflict(
           `${outsideApprovedOrigins.name} must use a domain listed in Allowed domains before it can be enabled.`,
         );
+      }
+      if (
+        active &&
+        deploymentPolicy.surfaces.some(
+          (surface) => surface.enabled && surface.identity === 'required',
+        )
+      ) {
+        const [verifiedIdentityKey] = await tx
+          .select({ id: apiKeys.id })
+          .from(apiKeys)
+          .where(
+            and(
+              tenantScope(apiKeys, tenant.organizationId),
+              eq(apiKeys.agentId, id),
+              isNull(apiKeys.revokedAt),
+              isNotNull(apiKeys.lastUsedAt),
+              sql`${WEB_AGENT_IDENTITY_SCOPE} = any(${apiKeys.scopes})`,
+            ),
+          )
+          .limit(1);
+        if (!verifiedIdentityKey) {
+          throw conflict(
+            'Connect and verify signed-in customer identity before protecting a live area.',
+          );
+        }
       }
       const nextRevision = existing.desiredStateRevision + 1;
       const [updated] = await tx
@@ -534,9 +788,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
           ...(input.persona
             ? { persona: { ...(existing.persona as object), ...input.persona } }
             : {}),
-          ...(input.appearance
-            ? { appearance: nextAppearance }
-            : {}),
+          ...(input.appearance ? { appearance: nextAppearance } : {}),
           desiredStateRevision: nextRevision,
           observedStateRevision: nextRevision,
           executionLeaseId: active ? randomUUID() : null,

@@ -12,7 +12,29 @@
 
   const assetOrigin = new URL(script.src, document.baseURI).origin;
   const apiOrigin = script.dataset.api || assetOrigin;
+  let identityToken = script.dataset.userToken;
+  const identityEndpoint = script.dataset.identityEndpoint;
   const widgetModule = new URL('/embed/v2/widget.js', assetOrigin).href;
+
+  const refreshIdentity = async () => {
+    if (!identityEndpoint) return identityToken;
+    const endpoint = new URL(identityEndpoint, window.location.href);
+    if (endpoint.origin !== window.location.origin) {
+      throw new Error('data-identity-endpoint must use the current site origin.');
+    }
+    const response = await fetch(endpoint.href, {
+      method: 'POST',
+      headers: { accept: 'application/json' },
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || typeof payload.token !== 'string' || payload.token.length > 4_096) {
+      throw new Error('Signed-in customer verification failed.');
+    }
+    identityToken = payload.token;
+    return identityToken;
+  };
 
   // This observes only public, same-origin route hints that the browser is already rendering.
   // It is not a source-code scan and it never changes authorization. A host can make coverage
@@ -112,7 +134,7 @@
         try {
           const { mountWidget } = await import(widgetModule);
           this.loaded = true;
-          await mountWidget(this, { publicKey, apiOrigin });
+          await mountWidget(this, { publicKey, apiOrigin, identityToken, identityEndpoint });
           this.setAttribute('data-voomate-mounted', 'true');
         } catch (error) {
           button.disabled = false;
@@ -153,6 +175,7 @@
   // a misleading button that cannot answer yet.
   const verifyAndMount = async () => {
     try {
+      const verifiedIdentityToken = await refreshIdentity();
       const response = await fetch(`${apiOrigin}/api/web-agent/session`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -160,6 +183,7 @@
           publicKey,
           pageUrl: window.location.href,
           routeInventory: collectRouteInventory(),
+          ...(verifiedIdentityToken ? { identityToken: verifiedIdentityToken } : {}),
         }),
         credentials: 'omit',
         cache: 'no-store',

@@ -12,8 +12,9 @@ import {
   mintWidgetSession,
   normalizeOrigin,
   sessionRequestSchema,
-  sessionFingerprint,
+  verifyWebAgentIdentity,
   verifyWidgetContinuation,
+  widgetVisitorFingerprint,
 } from '@/lib/web-agent/security';
 
 export const runtime = 'nodejs';
@@ -86,6 +87,24 @@ export async function POST(request: Request): Promise<Response> {
         { error: 'This assistant is not enabled on this area of the product.' },
         { status: 403, headers: corsHeaders(origin) },
       );
+    }
+
+    let verifiedUserId: string | undefined;
+    if (input.identityToken) {
+      try {
+        verifiedUserId = (
+          await verifyWebAgentIdentity(input.identityToken, {
+            organizationId: agent.organizationId,
+            agentId: agent.id,
+            origin,
+          })
+        ).userFingerprint;
+      } catch {
+        return Response.json(
+          { error: 'Signed-in user verification failed.' },
+          { status: 401, headers: corsHeaders(origin) },
+        );
+      }
     }
 
     // Installation is proved by a genuine browser request, not by a dashboard checkbox. This
@@ -174,6 +193,13 @@ export async function POST(request: Request): Promise<Response> {
         );
     }
 
+    if (surface.identity === 'required' && verifiedUserId === undefined) {
+      return Response.json(
+        { error: 'Please sign in before opening this assistant.' },
+        { status: 401, headers: corsHeaders(origin) },
+      );
+    }
+
     let visitorSessionId: string = randomUUID();
     let continuationAccepted = false;
     if (input.continuationToken) {
@@ -185,8 +211,13 @@ export async function POST(request: Request): Promise<Response> {
       ) {
         throw new Error('Widget continuation does not match this agent.');
       }
-      visitorSessionId = previous.visitorSessionId;
-      continuationAccepted = true;
+      // Identity state must match exactly. A customer who signs out cannot keep a verified
+      // conversation through its 24-hour continuation token, and an anonymous journey is never
+      // silently merged into a signed-in account.
+      if (previous.verifiedUserId === verifiedUserId) {
+        visitorSessionId = previous.visitorSessionId;
+        continuationAccepted = true;
+      }
     }
 
     const runId = randomUUID();
@@ -200,6 +231,7 @@ export async function POST(request: Request): Promise<Response> {
       origin,
       pathname: pageUrl.pathname,
       surfaceId: surface.id,
+      identityVerified: verifiedUserId !== undefined,
       keyFingerprint: fingerprint,
     });
     const claims = {
@@ -208,6 +240,7 @@ export async function POST(request: Request): Promise<Response> {
       origin,
       keyFingerprint: fingerprint,
       visitorSessionId,
+      ...(verifiedUserId !== undefined ? { verifiedUserId } : {}),
       configurationRevision: agent.desiredStateRevision,
       executionLeaseId: agent.executionLeaseId,
     };
@@ -226,7 +259,7 @@ export async function POST(request: Request): Promise<Response> {
                 eq(conversations.id, input.conversationId),
                 eq(conversations.organizationId, agent.organizationId),
                 eq(conversations.agentId, agent.id),
-                eq(conversations.visitorId, sessionFingerprint(visitorSessionId)),
+                eq(conversations.visitorId, widgetVisitorFingerprint(claims)),
                 eq(messages.organizationId, agent.organizationId),
               ),
             )

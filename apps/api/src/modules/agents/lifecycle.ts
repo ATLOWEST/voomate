@@ -15,14 +15,16 @@ import {
   agentActiveTools,
   agentConnections,
   agents,
+  apiKeys,
   auditLogs,
   knowledgeChunks,
   readOnlyConnections,
   readOnlyConnectionSecrets,
   tenantScope,
 } from '@voomate/db';
-import { and, count, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import { getDb } from '../../lib/db.js';
+import { WEB_AGENT_IDENTITY_SCOPE } from '../widget/identity.js';
 
 export type AgentLifecycleCommand = 'activate' | 'pause' | 'archive' | 'restore';
 
@@ -75,6 +77,23 @@ export async function transitionAgentLifecycle(input: {
     const nextStatus = nextAgentLifecycleStatus(existing.status, input.command);
     const catalogType = existing.catalogType as AgentCatalogType;
     const catalog = getAgentCatalogDefinition(catalogType);
+    if (input.command === 'restore') {
+      const [replacement] = await tx
+        .select({ id: agents.id })
+        .from(agents)
+        .where(
+          and(
+            tenantScope(agents, input.tenant.organizationId),
+            eq(agents.catalogType, existing.catalogType),
+            ne(agents.id, input.agentId),
+            ne(agents.status, AgentStatus.ARCHIVED),
+          ),
+        )
+        .limit(1);
+      if (replacement) {
+        throw conflict(`${catalog.name} already has a replacement in this workspace.`);
+      }
+    }
     if (input.command === 'activate' && !isReleasedAgentType(catalogType)) {
       throw conflict(
         `${catalog.name} cannot be activated until its runtime, policy and evaluation packs are released.`,
@@ -116,13 +135,18 @@ export async function transitionAgentLifecycle(input: {
           ),
         )
         .orderBy(desc(auditLogs.createdAt));
-      const policy = webDeploymentPolicyFromAppearance(existing.appearance, existing.allowedOrigins);
+      const policy = webDeploymentPolicyFromAppearance(
+        existing.appearance,
+        existing.allowedOrigins,
+      );
       const hasCurrentProof = installations.some((installation) => {
-        const proof = installation.metadata as {
-          platform?: string;
-          origin?: string;
-          pathname?: string;
-        } | undefined;
+        const proof = installation.metadata as
+          | {
+              platform?: string;
+              origin?: string;
+              pathname?: string;
+            }
+          | undefined;
         return (
           proof?.platform === 'web' &&
           typeof proof.origin === 'string' &&
@@ -133,6 +157,33 @@ export async function transitionAgentLifecycle(input: {
       });
       if (!hasCurrentProof) {
         throw conflict('Install the SDK and open it once on an approved domain before activation.');
+      }
+    }
+
+    if (input.command === 'activate') {
+      const policy = webDeploymentPolicyFromAppearance(
+        existing.appearance,
+        existing.allowedOrigins,
+      );
+      if (policy.surfaces.some((surface) => surface.enabled && surface.identity === 'required')) {
+        const [verifiedIdentityKey] = await tx
+          .select({ id: apiKeys.id })
+          .from(apiKeys)
+          .where(
+            and(
+              tenantScope(apiKeys, input.tenant.organizationId),
+              eq(apiKeys.agentId, input.agentId),
+              isNull(apiKeys.revokedAt),
+              isNotNull(apiKeys.lastUsedAt),
+              sql`${WEB_AGENT_IDENTITY_SCOPE} = any(${apiKeys.scopes})`,
+            ),
+          )
+          .limit(1);
+        if (!verifiedIdentityKey) {
+          throw conflict(
+            'Verify one signed-in customer through your server before activating protected areas.',
+          );
+        }
       }
     }
 
@@ -227,6 +278,15 @@ export async function transitionAgentLifecycle(input: {
                 eq(agentConnections.sourceAgentId, input.agentId),
                 eq(agentConnections.targetAgentId, input.agentId),
               ),
+            ),
+          ),
+        tx
+          .update(apiKeys)
+          .set({ revokedAt: new Date(), updatedAt: new Date() })
+          .where(
+            and(
+              tenantScope(apiKeys, input.tenant.organizationId),
+              eq(apiKeys.agentId, input.agentId),
             ),
           ),
       ]);

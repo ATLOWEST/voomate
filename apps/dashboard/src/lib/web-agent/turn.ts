@@ -13,7 +13,7 @@ import { logRunEvent, recordRunUsage, type RunContext } from './log';
 import { retrieveWebAgentKnowledge } from './knowledge';
 import { runBedrockInlineAgentTurn } from './bedrock-inline-agent';
 import { createCustomerFacingStream, validateCustomerFacingReply } from './customer-language';
-import { sessionFingerprint, type WidgetClaims } from './security';
+import { widgetVisitorFingerprint, type WidgetClaims } from './security';
 import { decideDialogue } from './dialogue-manager';
 import { listLiveReadCapabilities } from './live-data';
 import { planWebAgentTurn, repairPlatformTranscription } from './orchestration';
@@ -56,7 +56,7 @@ export async function runWebAgentTurn(args: {
   const pageContext = sanitizePageContext(input.pageContext, origin);
   const turnStartedAt = Date.now();
   const db = getWebAgentDb();
-  const visitorFingerprint = sessionFingerprint(claims.visitorSessionId);
+  const visitorFingerprint = widgetVisitorFingerprint(claims);
   const agentQuery = db
     .select({
       id: agents.id,

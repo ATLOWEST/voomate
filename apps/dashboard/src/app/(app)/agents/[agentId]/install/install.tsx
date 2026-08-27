@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Agent } from '@voomate/core';
+import { webDeploymentPolicyFromAppearance } from '@voomate/core';
 import {
   Check,
   CheckCircle2,
@@ -11,6 +12,7 @@ import {
   ExternalLink,
   Globe2,
   LockKeyhole,
+  KeyRound,
   MonitorSmartphone,
   ShieldCheck,
   Smartphone,
@@ -22,8 +24,11 @@ import { Button } from '@/components/ui/button';
 import { Field, TextInput } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { useApiAction } from '@/lib/hooks';
+import { messageFor, useApiAction, useApiQuery } from '@/lib/hooks';
+import { useApiAuth } from '@/lib/session';
 import {
+  buildIdentityAssistantPrompt,
+  buildIdentityServerExample,
   buildWebAgentAssistantPrompt,
   buildWebAgentSnippet,
   toWebOrigin,
@@ -31,6 +36,9 @@ import {
 
 const WIDGET_ORIGIN = (
   process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? 'https://widget.atlowest.in'
+).replace(/\/$/, '');
+const CONTROL_PLANE_ORIGIN = (
+  process.env.NEXT_PUBLIC_CONTROL_PLANE_ORIGIN ?? 'https://app.atlowest.in/api'
 ).replace(/\/$/, '');
 
 interface InstallationDiagnostic {
@@ -43,6 +51,14 @@ interface InstallationDiagnostic {
 export function InstallPanels() {
   const { agent, deployment, refresh, refreshDeployment } = useAgent();
   const [diagnostic, setDiagnostic] = useState<InstallationDiagnostic>();
+  const [identityVerified, setIdentityVerified] = useState(false);
+  const requiresIdentity = useMemo(
+    () =>
+      webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins).surfaces.some(
+        (surface) => surface.enabled && surface.identity === 'required',
+      ),
+    [agent.allowedOrigins, agent.appearance],
+  );
 
   const snippet = useMemo(
     () => buildWebAgentSnippet({ widgetOrigin: WIDGET_ORIGIN, embedKey: agent.embedKey }),
@@ -166,6 +182,19 @@ export function InstallPanels() {
 
         <SetupStep
           number="4"
+          title="Protect signed-in customer areas"
+          description="Optional for public pages. Required when a protected area must know which customer is signed in."
+          complete={!requiresIdentity || identityVerified}
+        >
+          <IdentityVerification
+            agent={agent}
+            required={requiresIdentity}
+            onVerifiedChange={setIdentityVerified}
+          />
+        </SetupStep>
+
+        <SetupStep
+          number="5"
           title="Open your site and verify"
           description="Publish the change, then open one approved public page in a browser."
           complete={deployment.verified}
@@ -340,6 +369,219 @@ function AllowedOrigins({ agent, onChanged }: { agent: Agent; onChanged: () => v
           </Button>
         </div>
       </Field>
+    </div>
+  );
+}
+
+interface IdentityKeySummary {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+function IdentityVerification({
+  agent,
+  required,
+  onVerifiedChange,
+}: {
+  agent: Agent;
+  required: boolean;
+  onVerifiedChange: (verified: boolean) => void;
+}) {
+  const auth = useApiAuth();
+  const keys = useApiQuery<{ keys: IdentityKeySummary[] }>(`/v1/agents/${agent.id}/identity-keys`);
+  const [secret, setSecret] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  useEffect(() => {
+    onVerifiedChange(keys.data?.keys.some((key) => key.lastUsedAt !== null) ?? false);
+  }, [keys.data?.keys, onVerifiedChange]);
+  const serverExample = useMemo(
+    () =>
+      buildIdentityServerExample({
+        controlPlaneOrigin: CONTROL_PLANE_ORIGIN,
+        approvedOrigins: agent.allowedOrigins,
+      }),
+    [agent.allowedOrigins],
+  );
+  const prompt = useMemo(
+    () =>
+      buildIdentityAssistantPrompt({
+        widgetOrigin: WIDGET_ORIGIN,
+        controlPlaneOrigin: CONTROL_PLANE_ORIGIN,
+        embedKey: agent.embedKey,
+        agentName: agent.name,
+        approvedOrigins: agent.allowedOrigins,
+      }),
+    [agent.allowedOrigins, agent.embedKey, agent.name],
+  );
+
+  const createKey = async () => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      const result = await api.post<{ secret: string }>(
+        `/v1/agents/${agent.id}/identity-keys`,
+        { name: 'Web Agent identity', expiresInDays: 90 },
+        await auth(),
+      );
+      setSecret(result.secret);
+      keys.refetch();
+    } catch (caught) {
+      setError(messageFor(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revokeKey = async (keyId: string) => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await api.delete(`/v1/agents/${agent.id}/identity-keys/${keyId}`, await auth());
+      setSecret(undefined);
+      keys.refetch();
+    } catch (caught) {
+      setError(messageFor(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div
+        className={cn(
+          'flex items-start gap-3 rounded-xl border p-3.5',
+          required
+            ? 'border-accent-400/50 bg-accent-50'
+            : 'border-[var(--border-default)] bg-[var(--surface-soft)]',
+        )}
+      >
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-background text-accent-700">
+          <KeyRound className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-semibold text-foreground">
+            {required ? 'Server verification required' : 'Public visitors stay anonymous'}
+          </p>
+          <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
+            {required
+              ? 'Your server proves the signed-in customer. The browser receives only a five-minute, agent-bound token.'
+              : 'Turn on “Signed-in users” for a protected area only when the agent needs customer-specific context.'}
+          </p>
+        </div>
+        <span
+          className={cn(
+            'rounded-md px-2 py-1 text-[10px] font-semibold',
+            required ? 'bg-accent-100 text-accent-700' : 'bg-background text-muted-foreground',
+          )}
+        >
+          {required ? 'Required' : 'Optional'}
+        </span>
+      </div>
+
+      {keys.error ? (
+        <p className="rounded-lg bg-[var(--surface-soft)] px-3 py-2 text-[12px] text-muted-foreground">
+          Identity keys are available to workspace admins. {keys.error}
+        </p>
+      ) : (
+        <div className="rounded-xl border border-[var(--border-default)] p-3.5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[13px] font-semibold text-foreground">Server identity key</p>
+              <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+                Store it only in your backend secret manager. It is never placed in the SDK.
+              </p>
+            </div>
+            {(keys.data?.keys.length ?? 0) === 0 && (
+              <Button loading={busy || keys.loading} onClick={() => void createKey()}>
+                Create server key
+              </Button>
+            )}
+          </div>
+
+          {keys.data?.keys.map((key) => (
+            <div
+              key={key.id}
+              className="mt-3 flex flex-col gap-2 rounded-lg bg-[var(--surface-soft)] px-3 py-2.5 sm:flex-row sm:items-center"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[12px] font-semibold text-foreground">
+                  {key.keyPrefix}••••••••
+                </p>
+                <p className="mt-0.5 text-[10.5px] text-muted-foreground">
+                  {key.lastUsedAt
+                    ? `Last used ${formatVerifiedAt(key.lastUsedAt)}`
+                    : 'Not used yet'}
+                  {key.expiresAt
+                    ? ` · Expires ${new Date(key.expiresAt).toLocaleDateString()}`
+                    : ''}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                loading={busy}
+                onClick={() => void revokeKey(key.id)}
+              >
+                Revoke
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {secret && (
+        <div className="overflow-hidden rounded-xl border border-caution/30 bg-[#151513] text-[#f4f1ea]">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+            <div>
+              <p className="text-[12px] font-semibold text-white">Copy this key now</p>
+              <p className="mt-0.5 text-[10.5px] text-white/55">It will not be shown again.</p>
+            </div>
+            <CopyButton text={secret} label="Copy server key" />
+          </div>
+          <pre className="overflow-x-auto px-4 py-4 font-mono text-[11.5px] text-[#b8d9a6]">
+            <code>{secret}</code>
+          </pre>
+        </div>
+      )}
+
+      <details className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-soft)]">
+        <summary className="cursor-pointer list-none px-4 py-3 text-[12.5px] font-semibold text-foreground">
+          Add customer verification to your server
+        </summary>
+        <div className="border-t border-[var(--border-default)] p-3">
+          <div className="mb-2 flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border-default)] bg-background px-3 text-[11.5px] font-medium text-foreground"
+              onClick={() => void navigator.clipboard.writeText(serverExample)}
+            >
+              <Clipboard className="size-3.5" /> Copy server example
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3 text-[11.5px] font-medium text-background"
+              onClick={() => void navigator.clipboard.writeText(prompt)}
+            >
+              <Sparkles className="size-3.5" /> Copy secure AI prompt
+            </button>
+          </div>
+          <pre className="max-h-72 overflow-auto rounded-lg bg-[#151513] p-4 font-mono text-[11px] leading-5 text-[#f4f1ea]">
+            <code>{serverExample}</code>
+          </pre>
+          <p className="mt-2 text-[11.5px] leading-5 text-muted-foreground">
+            The SDK calls your same-origin endpoint with the customer&apos;s existing session. Your
+            server—not the browser—selects the user ID and exchanges it for a short-lived token.
+          </p>
+        </div>
+      </details>
+
+      {error && <p className="text-[12px] text-critical">{error}</p>}
     </div>
   );
 }

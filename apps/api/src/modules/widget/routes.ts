@@ -16,21 +16,32 @@ import {
   AppError,
   ErrorCode,
   createWidgetSessionSchema,
+  unauthenticated,
   type AgentAppearance,
   type AgentId,
   type AgentLanguageConfig,
   type AgentPersona,
   type OrganizationId,
 } from '@voomate/core';
-import { agents, auditLogs } from '@voomate/db';
+import { agents, apiKeys, auditLogs } from '@voomate/db';
 import { buildTranscribeConfig, findBilingualVoice, resolveVoice } from '@voomate/i18n';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import { getDb } from '../../lib/db.js';
 import { isProduction } from '../../config.js';
-import { normalizeOrigin } from '../../lib/keys.js';
+import { hashApiKey, normalizeOrigin } from '../../lib/keys.js';
 import { RedisRateLimitStore } from '../../lib/redis-rate-limit-store.js';
 import { mintWidgetToken } from './token.js';
+import { mintWebAgentIdentity, WEB_AGENT_IDENTITY_SCOPE } from './identity.js';
+
+const IDENTITY_BEARER = /^Bearer\s+(.+)$/i;
+const identityRequestSchema = z
+  .object({
+    userId: z.string().trim().min(1).max(200),
+    origin: z.string().url().max(2_048),
+  })
+  .strict();
 
 /**
  * Resolve the caller's origin from the request headers.
@@ -49,6 +60,89 @@ const originOf = (request: FastifyRequest): string | undefined => {
 };
 
 export const widgetRoutes: FastifyPluginAsync = async (app) => {
+  /**
+   * Server-to-server identity exchange. The long-lived key stays on the merchant backend;
+   * the browser receives only a five-minute token bound to this agent, tenant and origin.
+   */
+  app.post(
+    '/identity',
+    { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const header = request.headers.authorization;
+      const secret = typeof header === 'string' ? IDENTITY_BEARER.exec(header)?.[1] : undefined;
+      if (!secret?.startsWith('sk_')) {
+        throw unauthenticated('Invalid or expired Web Agent identity key.');
+      }
+
+      const input = identityRequestSchema.parse(request.body);
+      const origin = normalizeOrigin(input.origin);
+      if (!origin) throw unauthenticated('Invalid or expired Web Agent identity key.');
+
+      const now = new Date();
+      const [key] = await getDb()
+        .update(apiKeys)
+        .set({ lastUsedAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(apiKeys.keyHash, hashApiKey(secret)),
+            isNull(apiKeys.revokedAt),
+            or(isNull(apiKeys.expiresAt), gt(apiKeys.expiresAt, now)),
+            isNotNull(apiKeys.agentId),
+            sql`${WEB_AGENT_IDENTITY_SCOPE} = any(${apiKeys.scopes})`,
+          ),
+        )
+        .returning({
+          id: apiKeys.id,
+          organizationId: apiKeys.organizationId,
+          agentId: apiKeys.agentId,
+        });
+      if (!key?.agentId) throw unauthenticated('Invalid or expired Web Agent identity key.');
+
+      const [agent] = await getDb()
+        .select({
+          id: agents.id,
+          status: agents.status,
+          organizationId: agents.organizationId,
+          allowedOrigins: agents.allowedOrigins,
+        })
+        .from(agents)
+        .where(and(eq(agents.id, key.agentId), eq(agents.organizationId, key.organizationId)))
+        .limit(1);
+      const allowed = (agent?.allowedOrigins ?? [])
+        .map(normalizeOrigin)
+        .filter((value): value is string => value !== undefined);
+      if (!agent || agent.status === AgentStatus.ARCHIVED || !allowed.includes(origin)) {
+        throw unauthenticated('Invalid or expired Web Agent identity key.');
+      }
+
+      const identity = await mintWebAgentIdentity({
+        organizationId: agent.organizationId,
+        agentId: agent.id,
+        origin,
+        externalUserId: input.userId,
+      });
+      await getDb()
+        .insert(auditLogs)
+        .values({
+          organizationId: agent.organizationId,
+          actorId: null,
+          action: 'web_agent.identity_token_minted',
+          resourceType: 'agent',
+          resourceId: agent.id,
+          metadata: {
+            keyId: key.id,
+            origin,
+            userFingerprint: identity.userFingerprint,
+            expiresIn: identity.expiresIn,
+          },
+          ipAddress: request.ip,
+        });
+
+      reply.header('Cache-Control', 'no-store').status(201);
+      return { token: identity.token, expiresIn: identity.expiresIn };
+    },
+  );
+
   // Widget routes are reachable from any website, so they get their own, tighter budget
   // rather than inheriting the dashboard's.
   await app.register(async (scope) => {
@@ -115,15 +209,17 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
         return metadata?.platform === 'web' && metadata.origin === origin;
       });
       if (!originAlreadyVerified) {
-        await getDb().insert(auditLogs).values({
-          organizationId: agent!.organizationId,
-          actorId: null,
-          action: 'agent.installation_verified',
-          resourceType: 'agent',
-          resourceId: agent!.id,
-          metadata: { platform: 'web', origin },
-          ipAddress: request.ip,
-        });
+        await getDb()
+          .insert(auditLogs)
+          .values({
+            organizationId: agent!.organizationId,
+            actorId: null,
+            action: 'agent.installation_verified',
+            resourceType: 'agent',
+            resourceId: agent!.id,
+            metadata: { platform: 'web', origin },
+            ipAddress: request.ip,
+          });
       }
 
       if (agent!.status !== AgentStatus.ACTIVE) {

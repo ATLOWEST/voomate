@@ -41,6 +41,16 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
     void save.run(next);
   };
 
+  const setIdentity = (id: string, identity: 'anonymous' | 'required') => {
+    const next = {
+      ...policy,
+      surfaces: policy.surfaces.map((surface) =>
+        surface.id === id ? { ...surface, identity } : surface,
+      ),
+    };
+    void save.run(next);
+  };
+
   const addExclusion = (id: string, path: string) => {
     const normalized = normalisePath(path);
     const next = {
@@ -86,6 +96,7 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
           pathPrefixes: [pathPrefix],
           excludedPathPrefixes: [],
           enabled: true,
+          identity: 'anonymous',
         },
       ],
     };
@@ -120,6 +131,7 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
             surface={surface}
             busy={save.busy}
             onToggle={(enabled) => setEnabled(surface.id, enabled)}
+            onIdentityChange={(identity) => setIdentity(surface.id, identity)}
             onAddExclusion={(path) => addExclusion(surface.id, path)}
             onRemoveExclusion={(path) => removeExclusion(surface.id, path)}
           />
@@ -166,12 +178,14 @@ function SurfaceRow({
   surface,
   busy,
   onToggle,
+  onIdentityChange,
   onAddExclusion,
   onRemoveExclusion,
 }: {
   surface: WebSurfaceRule;
   busy: boolean;
   onToggle: (enabled: boolean) => void;
+  onIdentityChange: (identity: 'anonymous' | 'required') => void;
   onAddExclusion: (path: string) => void;
   onRemoveExclusion: (path: string) => void;
 }) {
@@ -210,11 +224,33 @@ function SurfaceRow({
           {surface.enabled ? 'On' : 'Off'}
         </button>
       </div>
-      <div className="mt-3 flex gap-2 border-t border-[var(--border-default)] pt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--border-default)] pt-3">
+        <button
+          type="button"
+          aria-pressed={surface.identity === 'required'}
+          aria-label={`${surface.identity === 'required' ? 'Allow anonymous visitors on' : 'Require signed-in identity on'} ${surface.name}`}
+          disabled={busy}
+          onClick={() =>
+            onIdentityChange(surface.identity === 'required' ? 'anonymous' : 'required')
+          }
+          className={`inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md border px-2 text-[10.5px] font-semibold transition-colors disabled:opacity-50 ${
+            surface.identity === 'required'
+              ? 'border-accent-500/30 bg-accent-50 text-accent-700'
+              : 'border-[var(--border-default)] bg-[var(--surface)] text-muted-foreground hover:text-foreground'
+          }`}
+          title={
+            surface.identity === 'required'
+              ? 'Only customers verified by your server can use the agent here'
+              : 'Visitors can use the agent without signing in'
+          }
+        >
+          <ShieldCheck className="size-3" />
+          {surface.identity === 'required' ? 'Signed-in users' : 'Public visitors'}
+        </button>
         <input
           value={excludedPath}
           onChange={(event) => setExcludedPath(event.target.value)}
-          className="min-h-8 min-w-0 flex-1 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-2 font-mono text-[11px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent-500"
+          className="min-h-8 min-w-[10rem] flex-1 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-2 font-mono text-[11px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent-500"
           placeholder="Exclude child path, e.g. /billing"
           aria-label={`Exclude a path from ${surface.name}`}
         />

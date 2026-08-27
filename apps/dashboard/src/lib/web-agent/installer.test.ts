@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildWebAgentAssistantPrompt, buildWebAgentSnippet, toWebOrigin } from './installer';
+import {
+  buildIdentityAssistantPrompt,
+  buildIdentityServerExample,
+  buildVerifiedUserSnippet,
+  buildWebAgentAssistantPrompt,
+  buildWebAgentSnippet,
+  toWebOrigin,
+} from './installer';
 
 describe('web-agent installer helpers', () => {
   it('normalizes hostnames and page URLs to browser origins', () => {
@@ -34,5 +41,30 @@ describe('web-agent installer helpers', () => {
     expect(prompt).toContain('data-agent="agent_public_123"');
     expect(prompt).toContain('Do not add it to admin-only');
     expect(prompt).toContain('Do not create, request, log, or expose any private key');
+  });
+
+  it('keeps the server identity key out of the browser SDK', () => {
+    const snippet = buildVerifiedUserSnippet({
+      widgetOrigin: 'https://widget.example.com',
+      embedKey: 'agent_public_123',
+    });
+    const example = buildIdentityServerExample({
+      controlPlaneOrigin: 'https://app.example.com/api',
+      approvedOrigins: ['https://shop.example.com'],
+    });
+    const prompt = buildIdentityAssistantPrompt({
+      widgetOrigin: 'https://widget.example.com',
+      controlPlaneOrigin: 'https://app.example.com/api',
+      embedKey: 'agent_public_123',
+      agentName: 'Support Agent',
+      approvedOrigins: ['https://shop.example.com'],
+    });
+
+    expect(snippet).toContain('data-identity-endpoint="/api/voomate/identity"');
+    expect(snippet).not.toContain('VOOMATE_IDENTITY_KEY');
+    expect(example).toContain('process.env.VOOMATE_IDENTITY_KEY');
+    expect(example).toContain('/v1/widget/identity');
+    expect(prompt).toContain('Never accept a user ID supplied by the browser');
+    expect(prompt).toContain('deployment secret manager');
   });
 });
