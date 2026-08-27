@@ -14,6 +14,7 @@ import {
   LockKeyhole,
   KeyRound,
   MonitorSmartphone,
+  Plus,
   ShieldCheck,
   Smartphone,
   Sparkles,
@@ -21,6 +22,7 @@ import {
 import { useAgent } from '@/components/agent/shell';
 import { PageBody } from '@/components/shell/page-header';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogActions } from '@/components/ui/dialog';
 import { Field, TextInput } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -183,8 +185,8 @@ export function InstallPanels() {
 
         <SetupStep
           number="4"
-          title="Protect signed-in customer areas"
-          description="Optional for public pages. Required when a protected area must know which customer is signed in."
+          title="API setup"
+          description="Create a backend API key only when the agent needs verified signed-in customer context."
           complete={!requiresIdentity || identityVerified}
         >
           <IdentityVerification
@@ -394,11 +396,20 @@ function IdentityVerification({
 }) {
   const auth = useApiAuth();
   const keys = useApiQuery<{ keys: IdentityKeySummary[] }>(`/v1/agents/${agent.id}/identity-keys`);
-  const [secret, setSecret] = useState<string>();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [keyName, setKeyName] = useState('Production backend');
+  const [expiresInDays, setExpiresInDays] = useState(90);
+  const [secret, setSecret] = useState<{ value: string; name: string }>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   useEffect(() => {
-    onVerifiedChange(keys.data?.keys.some((key) => key.lastUsedAt !== null) ?? false);
+    onVerifiedChange(
+      keys.data?.keys.some(
+        (key) =>
+          key.lastUsedAt !== null &&
+          (key.expiresAt === null || new Date(key.expiresAt).getTime() > Date.now()),
+      ) ?? false,
+    );
   }, [keys.data?.keys, onVerifiedChange]);
   const serverExample = useMemo(
     () =>
@@ -426,10 +437,10 @@ function IdentityVerification({
     try {
       const result = await api.post<{ secret: string }>(
         `/v1/agents/${agent.id}/identity-keys`,
-        { name: 'Web Agent identity', expiresInDays: 90 },
+        { name: keyName.trim(), expiresInDays },
         await auth(),
       );
-      setSecret(result.secret);
+      setSecret({ value: result.secret, name: keyName.trim() });
       keys.refetch();
     } catch (caught) {
       setError(messageFor(caught));
@@ -443,7 +454,6 @@ function IdentityVerification({
     setError(undefined);
     try {
       await api.delete(`/v1/agents/${agent.id}/identity-keys/${keyId}`, await auth());
-      setSecret(undefined);
       keys.refetch();
     } catch (caught) {
       setError(messageFor(caught));
@@ -467,12 +477,12 @@ function IdentityVerification({
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-foreground">
-            {required ? 'Server verification required' : 'Public visitors stay anonymous'}
+            {required ? 'API verification required' : 'API verification is optional'}
           </p>
           <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
             {required
               ? 'Your server proves the signed-in customer. The browser receives only a five-minute, agent-bound token.'
-              : 'Turn on “Signed-in users” for a protected area only when the agent needs customer-specific context.'}
+              : 'Public visitors remain anonymous. Create an API key only for pages that need signed-in customer context.'}
           </p>
         </div>
         <span
@@ -487,73 +497,214 @@ function IdentityVerification({
 
       {keys.error ? (
         <p className="rounded-lg bg-[var(--surface-soft)] px-3 py-2 text-[12px] text-muted-foreground">
-          Identity keys are available to workspace admins. {keys.error}
+          API keys are available to workspace admins. {keys.error}
         </p>
       ) : (
         <div className="rounded-xl border border-[var(--border-default)] p-3.5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[13px] font-semibold text-foreground">Server identity key</p>
+              <p className="text-[13px] font-semibold text-foreground">API keys</p>
               <p className="mt-0.5 text-[11.5px] text-muted-foreground">
-                Store it only in your backend secret manager. It is never placed in the SDK.
+                Use these only in your hosting provider or backend environment. Never place one in
+                browser code or the SDK.
               </p>
             </div>
-            {(keys.data?.keys.length ?? 0) === 0 && (
-              <Button loading={busy || keys.loading} onClick={() => void createKey()}>
-                Create server key
-              </Button>
-            )}
+            <Button
+              icon={<Plus className="size-3.5" />}
+              disabled={
+                (keys.data?.keys.filter(
+                  (key) => key.expiresAt === null || new Date(key.expiresAt).getTime() > Date.now(),
+                ).length ?? 0) >= 10
+              }
+              loading={keys.loading}
+              onClick={() => {
+                setError(undefined);
+                setSecret(undefined);
+                setDialogOpen(true);
+              }}
+            >
+              New API key
+            </Button>
           </div>
 
-          {keys.data?.keys.map((key) => (
-            <div
-              key={key.id}
-              className="mt-3 flex flex-col gap-2 rounded-lg bg-[var(--surface-soft)] px-3 py-2.5 sm:flex-row sm:items-center"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="font-mono text-[12px] font-semibold text-foreground">
-                  {key.keyPrefix}••••••••
-                </p>
-                <p className="mt-0.5 text-[10.5px] text-muted-foreground">
-                  {key.lastUsedAt
-                    ? `Last used ${formatVerifiedAt(key.lastUsedAt)}`
-                    : 'Not used yet'}
-                  {key.expiresAt
-                    ? ` · Expires ${new Date(key.expiresAt).toLocaleDateString()}`
-                    : ''}
-                </p>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                loading={busy}
-                onClick={() => void revokeKey(key.id)}
-              >
-                Revoke
-              </Button>
+          {(keys.data?.keys.length ?? 0) === 0 && !keys.loading ? (
+            <div className="mt-3 rounded-lg bg-[var(--surface-soft)] px-4 py-5 text-center">
+              <p className="text-[12.5px] font-medium text-foreground">No API keys yet</p>
+              <p className="mt-1 text-[11.5px] text-muted-foreground">
+                Create one when your backend is ready to identify signed-in customers.
+              </p>
             </div>
-          ))}
+          ) : (
+            <div className="mt-3 divide-y divide-[var(--border-default)] overflow-hidden rounded-lg border border-[var(--border-default)]">
+              {keys.data?.keys.map((key) => {
+                const expired =
+                  key.expiresAt !== null && new Date(key.expiresAt).getTime() <= Date.now();
+                return (
+                  <div
+                    key={key.id}
+                    className="flex flex-col gap-3 bg-[var(--surface-panel)] px-3.5 py-3 sm:flex-row sm:items-center"
+                  >
+                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--surface-soft)] text-muted-foreground">
+                      <KeyRound className="size-3.5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-[12.5px] font-semibold text-foreground">
+                          {key.name}
+                        </p>
+                        <span
+                          className={cn(
+                            'rounded-md px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em]',
+                            expired
+                              ? 'bg-[var(--surface-soft)] text-muted-foreground'
+                              : 'bg-positive-soft text-positive',
+                          )}
+                        >
+                          {expired ? 'Expired' : 'Active'}
+                        </span>
+                      </div>
+                      <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                        {key.keyPrefix}••••••••••••
+                      </p>
+                      <p className="mt-1 text-[10.5px] text-muted-foreground">
+                        Created {new Date(key.createdAt).toLocaleDateString()}
+                        {' · '}
+                        {key.lastUsedAt ? formatVerifiedAt(key.lastUsedAt) : 'Never used'}
+                        {key.expiresAt
+                          ? ` · Expires ${new Date(key.expiresAt).toLocaleDateString()}`
+                          : ''}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      loading={busy}
+                      onClick={() => void revokeKey(key.id)}
+                    >
+                      Revoke
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="mt-2 text-[10.5px] text-muted-foreground">
+            Up to 10 active keys. Full values are shown once and cannot be recovered.
+          </p>
         </div>
       )}
 
-      {secret && (
-        <div className="overflow-hidden rounded-xl border border-caution/30 bg-[#151513] text-[#f4f1ea]">
-          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+      {dialogOpen && (
+        <Dialog
+          title={secret ? 'Save your API key' : 'Create API key'}
+          description={
+            secret
+              ? 'This is the only time the full key will be visible.'
+              : 'Give this key a clear name so you can safely rotate or revoke it later.'
+          }
+          onClose={() => {
+            setSecret(undefined);
+            setDialogOpen(false);
+          }}
+          wide
+        >
+          {secret ? (
             <div>
-              <p className="text-[12px] font-semibold text-white">Copy this key now</p>
-              <p className="mt-0.5 text-[10.5px] text-white/55">It will not be shown again.</p>
+              <div className="rounded-xl border border-caution/30 bg-caution-soft px-4 py-3">
+                <p className="text-[12.5px] font-semibold text-foreground">
+                  Copy it before closing
+                </p>
+                <p className="mt-1 text-[11.5px] leading-5 text-muted-foreground">
+                  Store it in your hosting provider&apos;s secret manager. Voomate stores only a
+                  secure hash, so this value cannot be shown again.
+                </p>
+              </div>
+              <div className="mt-3 overflow-hidden rounded-xl bg-[#151513] text-[#f4f1ea]">
+                <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[12px] font-semibold text-white">{secret.name}</p>
+                    <p className="mt-0.5 text-[10.5px] text-white/55">API key · shown once</p>
+                  </div>
+                  <CopyButton text={secret.value} label="Copy API key" />
+                </div>
+                <pre className="overflow-x-auto px-4 py-4 font-mono text-[11.5px] text-[#b8d9a6]">
+                  <code>{secret.value}</code>
+                </pre>
+              </div>
+              <DialogActions>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setSecret(undefined);
+                    setDialogOpen(false);
+                  }}
+                >
+                  Done
+                </Button>
+              </DialogActions>
             </div>
-            <CopyButton text={secret} label="Copy server key" />
-          </div>
-          <pre className="overflow-x-auto px-4 py-4 font-mono text-[11.5px] text-[#b8d9a6]">
-            <code>{secret}</code>
-          </pre>
-        </div>
+          ) : (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (keyName.trim()) void createKey();
+              }}
+            >
+              <Field
+                label="Key name"
+                htmlFor="identity-key-name"
+                hint="Example: Production backend or Staging server"
+              >
+                <TextInput
+                  id="identity-key-name"
+                  autoFocus
+                  maxLength={80}
+                  value={keyName}
+                  onChange={(event) => setKeyName(event.target.value)}
+                />
+              </Field>
+              <div className="mt-4 space-y-1.5">
+                <label htmlFor="identity-key-expiry" className="block text-[13px] font-medium">
+                  Expires after
+                </label>
+                <select
+                  id="identity-key-expiry"
+                  value={expiresInDays}
+                  onChange={(event) => setExpiresInDays(Number(event.target.value))}
+                  className="h-9.5 w-full rounded-lg border border-[var(--border-default)] bg-[var(--surface-panel)] px-3 text-sm text-foreground focus:border-accent-500"
+                >
+                  <option value={30}>30 days</option>
+                  <option value={90}>90 days</option>
+                  <option value={180}>180 days</option>
+                  <option value={365}>1 year</option>
+                </select>
+                <p className="text-[12px] text-muted-foreground">
+                  Shorter expiry reduces risk. Create a replacement before this key expires.
+                </p>
+              </div>
+              {error && <p className="mt-3 text-[12px] text-critical">{error}</p>}
+              <DialogActions>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setSecret(undefined);
+                    setDialogOpen(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" loading={busy} disabled={!keyName.trim()}>
+                  Create API key
+                </Button>
+              </DialogActions>
+            </form>
+          )}
+        </Dialog>
       )}
 
       <details className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-soft)]">
         <summary className="cursor-pointer list-none px-4 py-3 text-[12.5px] font-semibold text-foreground">
-          Add customer verification to your server
+          Add API verification to your backend
         </summary>
         <div className="border-t border-[var(--border-default)] p-3">
           <div className="mb-2 flex flex-wrap justify-end gap-2">

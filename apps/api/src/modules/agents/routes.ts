@@ -27,7 +27,7 @@ import {
 import { agents, apiKeys, auditLogs, knowledgeChunks, tenantScope } from '@voomate/db';
 import { DEFAULT_LANGUAGE_CODES, resolveVoice, validateLanguageSet } from '@voomate/i18n';
 import { load } from 'cheerio';
-import { and, count, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { generateApiKey, generateEmbedKey } from '../../lib/keys.js';
@@ -41,10 +41,11 @@ const paramsSchema = z.object({ id: uuidSchema });
 const identityKeyParamsSchema = z.object({ id: uuidSchema, keyId: uuidSchema });
 const createIdentityKeySchema = z
   .object({
-    name: z.string().trim().min(1).max(80).default('Web Agent identity'),
+    name: z.string().trim().min(1).max(80).default('Production backend'),
     expiresInDays: z.number().int().min(1).max(365).default(90),
   })
   .strict();
+const MAX_ACTIVE_IDENTITY_KEYS = 10;
 
 type DeploymentAuditMetadata = {
   platform?: 'website' | 'web_app' | 'ios' | 'android' | 'web';
@@ -361,6 +362,25 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         )
         .limit(1);
       if (!agent) throw notFound('Agent', id);
+
+      const now = new Date();
+      const [activeKeys] = await getDb()
+        .select({ total: count() })
+        .from(apiKeys)
+        .where(
+          and(
+            tenantScope(apiKeys, tenant.organizationId),
+            eq(apiKeys.agentId, id),
+            isNull(apiKeys.revokedAt),
+            or(isNull(apiKeys.expiresAt), gt(apiKeys.expiresAt, now)),
+            sql`${WEB_AGENT_IDENTITY_SCOPE} = any(${apiKeys.scopes})`,
+          ),
+        );
+      if ((activeKeys?.total ?? 0) >= MAX_ACTIVE_IDENTITY_KEYS) {
+        throw conflict(
+          `This agent already has ${MAX_ACTIVE_IDENTITY_KEYS} active API keys. Revoke one before creating another.`,
+        );
+      }
 
       const generated = generateApiKey();
       const expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1_000);
