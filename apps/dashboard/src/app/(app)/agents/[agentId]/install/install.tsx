@@ -30,7 +30,6 @@ import { messageFor, useApiAction, useApiQuery } from '@/lib/hooks';
 import { useApiAuth } from '@/lib/session';
 import {
   buildIdentityAssistantPrompt,
-  buildIdentityServerExample,
   buildWebAgentAssistantPrompt,
   buildWebAgentSnippet,
   toWebOrigin,
@@ -67,16 +66,17 @@ export function InstallPanels() {
     () => buildWebAgentSnippet({ widgetOrigin: WIDGET_ORIGIN, embedKey: agent.embedKey }),
     [agent.embedKey],
   );
-  const assistantPrompt = useMemo(
-    () =>
-      buildWebAgentAssistantPrompt({
-        widgetOrigin: WIDGET_ORIGIN,
-        embedKey: agent.embedKey,
-        agentName: agent.name,
-        approvedOrigins: agent.allowedOrigins,
-      }),
-    [agent.allowedOrigins, agent.embedKey, agent.name],
-  );
+  const assistantPrompt = useMemo(() => {
+    const input = {
+      widgetOrigin: WIDGET_ORIGIN,
+      embedKey: agent.embedKey,
+      agentName: agent.name,
+      approvedOrigins: agent.allowedOrigins,
+    };
+    return requiresIdentity
+      ? buildIdentityAssistantPrompt({ ...input, controlPlaneOrigin: CONTROL_PLANE_ORIGIN })
+      : buildWebAgentAssistantPrompt(input);
+  }, [agent.allowedOrigins, agent.embedKey, agent.name, requiresIdentity]);
 
   const checkInstallation = useApiAction(async (auth) => {
     const result = await api.post<{ diagnostic: InstallationDiagnostic }>(
@@ -141,8 +141,13 @@ export function InstallPanels() {
 
         <SetupStep
           number="3"
-          title="Install one script"
-          description="Paste it once in the shared public layout, or let your coding assistant do it."
+          title="Install Voomate"
+          description={
+            requiresIdentity
+              ? 'One prompt installs the SDK and signed-in customer support. Add the API key once in your hosting environment.'
+              : 'Paste one script in the shared public layout, or let your coding assistant install it.'
+          }
+          complete={!requiresIdentity || identityVerified}
         >
           <div className="overflow-hidden rounded-xl border border-[var(--border-default)] bg-[#151513] text-[#f4f1ea]">
             <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
@@ -152,7 +157,11 @@ export function InstallPanels() {
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 <CopyButton text={snippet} label="Copy code" />
-                <CopyButton text={assistantPrompt} label="Copy AI setup prompt" icon="sparkles" />
+                <CopyButton
+                  text={assistantPrompt}
+                  label={requiresIdentity ? 'Copy complete setup' : 'Copy AI setup prompt'}
+                  icon="sparkles"
+                />
               </div>
             </div>
             <pre className="overflow-x-auto px-4 py-4 font-mono text-[12px] leading-6 sm:px-5">
@@ -181,23 +190,15 @@ export function InstallPanels() {
             No private API key is placed in your code. The visible agent ID is public by design and
             only works on approved pages.
           </p>
+          {requiresIdentity && (
+            <div className="mt-4 border-t border-[var(--border-default)] pt-4">
+              <IdentityVerification agent={agent} onVerifiedChange={setIdentityVerified} />
+            </div>
+          )}
         </SetupStep>
 
         <SetupStep
           number="4"
-          title="API setup"
-          description="Create a backend API key only when the agent needs verified signed-in customer context."
-          complete={!requiresIdentity || identityVerified}
-        >
-          <IdentityVerification
-            agent={agent}
-            required={requiresIdentity}
-            onVerifiedChange={setIdentityVerified}
-          />
-        </SetupStep>
-
-        <SetupStep
-          number="5"
           title="Open your site and verify"
           description="Publish the change, then open one approved public page in a browser."
           complete={deployment.verified}
@@ -387,11 +388,9 @@ interface IdentityKeySummary {
 
 function IdentityVerification({
   agent,
-  required,
   onVerifiedChange,
 }: {
   agent: Agent;
-  required: boolean;
   onVerifiedChange: (verified: boolean) => void;
 }) {
   const auth = useApiAuth();
@@ -411,26 +410,6 @@ function IdentityVerification({
       ) ?? false,
     );
   }, [keys.data?.keys, onVerifiedChange]);
-  const serverExample = useMemo(
-    () =>
-      buildIdentityServerExample({
-        controlPlaneOrigin: CONTROL_PLANE_ORIGIN,
-        approvedOrigins: agent.allowedOrigins,
-      }),
-    [agent.allowedOrigins],
-  );
-  const prompt = useMemo(
-    () =>
-      buildIdentityAssistantPrompt({
-        widgetOrigin: WIDGET_ORIGIN,
-        controlPlaneOrigin: CONTROL_PLANE_ORIGIN,
-        embedKey: agent.embedKey,
-        agentName: agent.name,
-        approvedOrigins: agent.allowedOrigins,
-      }),
-    [agent.allowedOrigins, agent.embedKey, agent.name],
-  );
-
   const createKey = async () => {
     setBusy(true);
     setError(undefined);
@@ -464,34 +443,19 @@ function IdentityVerification({
 
   return (
     <div className="space-y-3">
-      <div
-        className={cn(
-          'flex items-start gap-3 rounded-xl border p-3.5',
-          required
-            ? 'border-accent-400/50 bg-accent-50'
-            : 'border-[var(--border-default)] bg-[var(--surface-soft)]',
-        )}
-      >
+      <div className="flex items-start gap-3 rounded-xl bg-[var(--surface-soft)] p-3.5">
         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-background text-accent-700">
           <KeyRound className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold text-foreground">
-            {required ? 'API verification required' : 'API verification is optional'}
-          </p>
+          <p className="text-[13px] font-semibold text-foreground">Server API key</p>
           <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-            {required
-              ? 'Your server proves the signed-in customer. The browser receives only a five-minute, agent-bound token.'
-              : 'Public visitors remain anonymous. Create an API key only for pages that need signed-in customer context.'}
+            The copied setup creates the verified-user endpoint. Add this key to your hosting
+            environment as <span className="font-mono text-foreground">VOOMATE_IDENTITY_KEY</span>.
           </p>
         </div>
-        <span
-          className={cn(
-            'rounded-md px-2 py-1 text-[10px] font-semibold',
-            required ? 'bg-accent-100 text-accent-700' : 'bg-background text-muted-foreground',
-          )}
-        >
-          {required ? 'Required' : 'Optional'}
+        <span className="rounded-md bg-positive-soft px-2 py-1 text-[10px] font-semibold text-positive">
+          Auto-detected
         </span>
       </div>
 
@@ -701,37 +665,6 @@ function IdentityVerification({
           )}
         </Dialog>
       )}
-
-      <details className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-soft)]">
-        <summary className="cursor-pointer list-none px-4 py-3 text-[12.5px] font-semibold text-foreground">
-          Add API verification to your backend
-        </summary>
-        <div className="border-t border-[var(--border-default)] p-3">
-          <div className="mb-2 flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border-default)] bg-background px-3 text-[11.5px] font-medium text-foreground"
-              onClick={() => void navigator.clipboard.writeText(serverExample)}
-            >
-              <Clipboard className="size-3.5" /> Copy server example
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3 text-[11.5px] font-medium text-background"
-              onClick={() => void navigator.clipboard.writeText(prompt)}
-            >
-              <Sparkles className="size-3.5" /> Copy secure AI prompt
-            </button>
-          </div>
-          <pre className="max-h-72 overflow-auto rounded-lg bg-[#151513] p-4 font-mono text-[11px] leading-5 text-[#f4f1ea]">
-            <code>{serverExample}</code>
-          </pre>
-          <p className="mt-2 text-[11.5px] leading-5 text-muted-foreground">
-            The SDK calls your same-origin endpoint with the customer&apos;s existing session. Your
-            server—not the browser—selects the user ID and exchanges it for a short-lived token.
-          </p>
-        </div>
-      </details>
 
       {error && <p className="text-[12px] text-critical">{error}</p>}
     </div>
