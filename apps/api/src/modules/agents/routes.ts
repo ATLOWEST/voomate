@@ -43,8 +43,8 @@ type DeploymentAuditMetadata = {
   origin?: string;
   pathname?: string;
   surfaceId?: string;
+  sdk?: string;
 };
-
 type SetupAuditMetadata = DeploymentAuditMetadata & {
   code?: string;
   message?: string;
@@ -383,7 +383,9 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
           supported: true,
           verified: proofIsCurrent,
           verifiedOrigin: proofIsCurrent ? (proof?.origin ?? null) : null,
+          verifiedPathname: proofIsCurrent ? (proof?.pathname ?? null) : null,
           verifiedAt: proofIsCurrent ? currentProof.createdAt : null,
+          sdkVersion: proofIsCurrent ? (proof?.sdk ?? null) : null,
         },
       };
     },
@@ -425,7 +427,9 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
           supported: true,
           verified: false,
           verifiedOrigin: null,
+          verifiedPathname: null,
           verifiedAt: null,
+          sdkVersion: null,
         },
       };
     },

@@ -5,7 +5,6 @@ import type { Agent } from '@voomate/core';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Book,
   Bot,
   ChevronLeft,
   FlaskConical,
@@ -33,7 +32,9 @@ export interface AgentDeployment {
   supported: boolean;
   verified: boolean;
   verifiedOrigin: string | null;
+  verifiedPathname: string | null;
   verifiedAt: string | null;
+  sdkVersion: string | null;
 }
 
 const EMPTY_DEPLOYMENT: AgentDeployment = {
@@ -41,7 +42,9 @@ const EMPTY_DEPLOYMENT: AgentDeployment = {
   supported: false,
   verified: false,
   verifiedOrigin: null,
+  verifiedPathname: null,
   verifiedAt: null,
+  sdkVersion: null,
 };
 
 const AgentContext = createContext<AgentContextValue | undefined>(undefined);
@@ -70,12 +73,11 @@ export function AgentShell({ agentId, children }: { agentId: string; children: R
   } = useApiQuery<{ agents: Agent[] }>(
     organization === undefined || agentId !== 'web' ? null : '/v1/agents',
   );
-  const {
-    data: deploymentData,
-    refetch: refreshDeployment,
-  } = useApiQuery<{ deployment: AgentDeployment }>(
-    organization === undefined || isFixedSlot ? null : `/v1/agents/${agentId}/deployment`,
-  );
+  const { data: deploymentData, refetch: refreshDeployment } = useApiQuery<{
+    deployment: AgentDeployment;
+  }>(organization === undefined || isFixedSlot ? null : `/v1/agents/${agentId}/deployment`, {
+    pollMs: 3_000,
+  });
 
   const value = useMemo<AgentContextValue | undefined>(() => {
     if (agentId === 'web' && webAgentsData?.agents[0] !== undefined) {
@@ -188,9 +190,8 @@ function AgentNav({ agentId, isPlaceholder }: { agentId: string; isPlaceholder: 
 
   const items = [
     { name: 'Info', href: basePath, icon: LayoutDashboard },
-    { name: 'Knowledge', href: basePath + '/knowledge', icon: Book },
+    { name: 'Setup', href: basePath + '/install', icon: Globe2 },
     { name: 'Test', href: basePath + '/playground', icon: FlaskConical },
-    { name: 'Install', href: basePath + '/install', icon: Globe2 },
     { name: 'Settings', href: basePath + '/configuration', icon: Settings },
   ];
 
