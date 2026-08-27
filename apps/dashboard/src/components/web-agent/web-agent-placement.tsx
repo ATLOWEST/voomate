@@ -1,27 +1,63 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Agent, WebDeploymentPolicy, WebSurfaceRule } from '@voomate/core';
-import { webDeploymentPolicyFromAppearance } from '@voomate/core';
-import { Globe2, Plus, ShieldCheck } from 'lucide-react';
+import { isPathWithinPrefix, webDeploymentPolicyFromAppearance } from '@voomate/core';
+import { Globe2, Route, ShieldCheck } from 'lucide-react';
 import { api } from '@/lib/api';
-import { useApiAction } from '@/lib/hooks';
+import { cn } from '@/lib/cn';
+import { useApiAction, useApiQuery } from '@/lib/hooks';
 
-type Props = { agent: Agent; onChanged: () => void };
+type DiscoveredPage = {
+  pathname: string;
+  name: string | null;
+  source: string;
+  lastSeenAt: string;
+};
+type DiscoveredLocation = {
+  origin: string;
+  enabled: boolean;
+  identity: 'anonymous' | 'required';
+  lastSeenAt: string;
+  pages: DiscoveredPage[];
+};
+type Props = { agent: Agent; onChanged: () => void; embedded?: boolean };
 
-export function WebAgentPlacement({ agent, onChanged }: Props) {
-  const [newName, setNewName] = useState('');
-  const [newUrl, setNewUrl] = useState('');
-  const [newPath, setNewPath] = useState('/');
+export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props) {
   const browserOrigin = typeof window === 'undefined' ? undefined : window.location.origin;
-  const policy = useMemo(() => editablePolicy(agent, browserOrigin), [agent, browserOrigin]);
-  const save = useApiAction(async (auth, next: WebDeploymentPolicy) => {
-    const allowedOrigins = Array.from(
-      new Set([
-        ...agent.allowedOrigins,
-        ...next.surfaces.filter((surface) => surface.enabled).map((surface) => surface.origin),
-      ]),
+  const discovery = useApiQuery<{ locations: DiscoveredLocation[] }>(
+    `/v1/agents/${agent.id}/web-locations`,
+  );
+  const policy = useMemo(() => {
+    const base = editablePolicy(agent, browserOrigin);
+    const missing = (discovery.data?.locations ?? []).filter(
+      (location) => !base.surfaces.some((surface) => surface.origin === location.origin),
     );
+    return {
+      ...base,
+      surfaces: [
+        ...base.surfaces,
+        ...missing.map((location, index) => ({
+          id: `observed_ui_${index + 1}`,
+          name: new URL(location.origin).hostname,
+          kind: 'observed' as const,
+          origin: location.origin,
+          pathPrefixes: ['/'],
+          excludedPathPrefixes: [],
+          identity: location.identity,
+          enabled: location.enabled,
+        })),
+      ],
+    };
+  }, [agent, browserOrigin, discovery.data?.locations]);
+  useEffect(() => {
+    const timer = window.setInterval(() => discovery.refetch(), 5_000);
+    return () => window.clearInterval(timer);
+  }, [discovery.refetch]);
+  const save = useApiAction(async (auth, next: WebDeploymentPolicy) => {
+    // Keep detected origins bound to this tenant so an off surface stays observable, while the
+    // path policy remains the final runtime authorization gate.
+    const allowedOrigins = Array.from(new Set(next.surfaces.map((surface) => surface.origin)));
     await api.patch(
       `/v1/agents/${agent.id}`,
       { allowedOrigins, appearance: { webDeployment: next } },
@@ -79,44 +115,21 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
     void save.run(next);
   };
 
-  const addCustom = () => {
-    const origin = originFrom(newUrl);
-    const name = newName.trim();
-    if (!origin || name.length < 2) return;
-    const pathPrefix = normalisePath(newPath);
-    const next: WebDeploymentPolicy = {
-      ...policy,
-      surfaces: [
-        ...policy.surfaces,
-        {
-          id: `custom_${Date.now()}`,
-          name,
-          kind: 'manual',
-          origin,
-          pathPrefixes: [pathPrefix],
-          excludedPathPrefixes: [],
-          enabled: true,
-          identity: 'anonymous',
-        },
-      ],
-    };
-    void save.run(next).then((saved) => {
-      if (saved) {
-        setNewName('');
-        setNewUrl('');
-        setNewPath('/');
-      }
-    });
-  };
-
   return (
-    <section className="mt-6 rounded-xl border border-[var(--border-default)] bg-[var(--surface)] p-5 sm:p-6">
+    <section
+      className={cn(
+        !embedded &&
+          'mt-6 rounded-xl border border-[var(--border-default)] bg-[var(--surface)] p-5 sm:p-6',
+      )}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[16px] font-semibold text-foreground">Where {agent.name} can help</p>
+          {!embedded && (
+            <p className="text-[16px] font-semibold text-foreground">Where {agent.name} can help</p>
+          )}
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-muted-foreground">
-            Your team controls every allowed and excluded path. The SDK can report pages it sees,
-            but exact coverage comes from your route manifest or the areas you approve here.
+            Domains, subdomains, and browser routes are detected by real SDK traffic. Switch off
+            anything where the agent should stay hidden.
           </p>
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-md bg-[var(--surface-soft)] px-2.5 py-1.5 text-[11.5px] font-semibold text-muted-foreground">
@@ -124,51 +137,47 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
         </span>
       </div>
 
-      <div className="mt-5 grid gap-3 lg:grid-cols-2">
-        {policy.surfaces.map((surface) => (
-          <SurfaceRow
-            key={surface.id}
-            surface={surface}
-            busy={save.busy}
-            onToggle={(enabled) => setEnabled(surface.id, enabled)}
-            onIdentityChange={(identity) => setIdentity(surface.id, identity)}
-            onAddExclusion={(path) => addExclusion(surface.id, path)}
-            onRemoveExclusion={(path) => removeExclusion(surface.id, path)}
-          />
-        ))}
-      </div>
-
-      <div className="mt-4 grid gap-2 rounded-lg bg-[var(--surface-soft)] p-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(12rem,1fr)_minmax(6rem,0.45fr)_auto]">
-        <input
-          value={newName}
-          onChange={(event) => setNewName(event.target.value)}
-          className="min-h-10 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-3 text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent-500"
-          placeholder="Name people recognise"
-          aria-label="New area name"
-        />
-        <input
-          value={newUrl}
-          onChange={(event) => setNewUrl(event.target.value)}
-          className="min-h-10 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-3 text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent-500"
-          placeholder="https://your-app.example.com"
-          aria-label="New area domain"
-        />
-        <input
-          value={newPath}
-          onChange={(event) => setNewPath(event.target.value)}
-          className="min-h-10 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-3 font-mono text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent-500"
-          placeholder="/support or /admin"
-          aria-label="New area path"
-        />
-        <button
-          type="button"
-          onClick={addCustom}
-          disabled={save.busy || !originFrom(newUrl) || newName.trim().length < 2}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-foreground px-3 text-[12px] font-semibold text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          <Plus className="size-3.5" /> Add area
-        </button>
-      </div>
+      {policy.surfaces.length === 0 ? (
+        <div className="mt-4 flex items-center gap-3 rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--surface-soft)] p-4">
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--surface)] text-muted-foreground">
+            <Globe2 className="size-4" />
+          </span>
+          <div>
+            <p className="text-[12.5px] font-semibold text-foreground">
+              Waiting for the first live connection
+            </p>
+            <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+              Publish the setup and open the site once. The exact domain appears automatically.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+          {policy.surfaces.map((surface) => (
+            <SurfaceRow
+              key={surface.id}
+              surface={surface}
+              pages={
+                discovery.data?.locations.find((location) => location.origin === surface.origin)
+                  ?.pages ?? []
+              }
+              busy={save.busy}
+              onToggle={(enabled) => setEnabled(surface.id, enabled)}
+              onIdentityChange={(identity) => setIdentity(surface.id, identity)}
+              onAddExclusion={(path) => addExclusion(surface.id, path)}
+              onRemoveExclusion={(path) => removeExclusion(surface.id, path)}
+            />
+          ))}
+        </div>
+      )}
+      {discovery.loading && (
+        <p className="mt-3 text-[11px] text-muted-foreground">Checking live route evidence…</p>
+      )}
+      {discovery.error && (
+        <p className="mt-3 text-[12px] text-critical">
+          Could not load detected pages. {discovery.error}
+        </p>
+      )}
       {save.error && <p className="mt-2 text-[12px] text-critical">{save.error}</p>}
     </section>
   );
@@ -176,6 +185,7 @@ export function WebAgentPlacement({ agent, onChanged }: Props) {
 
 function SurfaceRow({
   surface,
+  pages,
   busy,
   onToggle,
   onIdentityChange,
@@ -183,14 +193,16 @@ function SurfaceRow({
   onRemoveExclusion,
 }: {
   surface: WebSurfaceRule;
+  pages: DiscoveredPage[];
   busy: boolean;
   onToggle: (enabled: boolean) => void;
   onIdentityChange: (identity: 'anonymous' | 'required') => void;
   onAddExclusion: (path: string) => void;
   onRemoveExclusion: (path: string) => void;
 }) {
-  const [excludedPath, setExcludedPath] = useState('');
   const Icon = Globe2;
+  const [showAllPages, setShowAllPages] = useState(false);
+  const visiblePages = showAllPages ? pages : pages.slice(0, 12);
   return (
     <article className="min-w-0 rounded-lg bg-[var(--surface-soft)] p-4">
       <div className="flex items-center gap-3">
@@ -247,39 +259,84 @@ function SurfaceRow({
           <ShieldCheck className="size-3" />
           {surface.identity === 'required' ? 'Signed-in users' : 'Public visitors'}
         </button>
-        <input
-          value={excludedPath}
-          onChange={(event) => setExcludedPath(event.target.value)}
-          className="min-h-8 min-w-[10rem] flex-1 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-2 font-mono text-[11px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent-500"
-          placeholder="Exclude child path, e.g. /billing"
-          aria-label={`Exclude a path from ${surface.name}`}
-        />
-        <button
-          type="button"
-          disabled={busy || !excludedPath.trim().startsWith('/')}
-          onClick={() => {
-            onAddExclusion(excludedPath);
-            setExcludedPath('');
-          }}
-          className="rounded-md border border-[var(--border-default)] px-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground disabled:opacity-45"
-        >
-          Exclude
-        </button>
       </div>
-      {surface.excludedPathPrefixes.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {surface.excludedPathPrefixes.map((path) => (
+      {pages.length > 0 && (
+        <div className="mt-3 overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--surface)]">
+          {visiblePages.map((page) => {
+            const enabled = !surface.excludedPathPrefixes.some((prefix) =>
+              isPathWithinPrefix(page.pathname, prefix),
+            );
+            return (
+              <div
+                key={page.pathname}
+                className="flex min-h-10 items-center gap-2 border-b border-[var(--border-default)] px-3 last:border-b-0"
+              >
+                <Route className="size-3.5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-mono text-[10.5px] text-foreground">
+                    {page.pathname}
+                  </p>
+                  {page.name && page.name !== page.pathname && (
+                    <p className="truncate text-[9.5px] text-muted-foreground">{page.name}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  aria-pressed={enabled}
+                  aria-label={`${enabled ? 'Turn off' : 'Turn on'} ${page.pathname}`}
+                  disabled={busy}
+                  onClick={() =>
+                    enabled
+                      ? onAddExclusion(page.pathname)
+                      : onRemoveExclusion(
+                          surface.excludedPathPrefixes.find((prefix) =>
+                            isPathWithinPrefix(page.pathname, prefix),
+                          ) ?? normalisePath(page.pathname),
+                        )
+                  }
+                  className={cn(
+                    'grid size-8 shrink-0 place-items-center rounded-md border text-[9px] font-semibold disabled:opacity-50',
+                    enabled
+                      ? 'border-positive/25 bg-positive-soft text-positive'
+                      : 'border-[var(--border-default)] bg-[var(--surface-soft)] text-muted-foreground',
+                  )}
+                >
+                  {enabled ? 'On' : 'Off'}
+                </button>
+              </div>
+            );
+          })}
+          {pages.length > visiblePages.length && (
             <button
-              key={path}
               type="button"
-              disabled={busy}
-              onClick={() => onRemoveExclusion(path)}
-              className="rounded-md bg-[var(--surface)] px-2 py-1 font-mono text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-45"
-              title="Remove exclusion"
+              onClick={() => setShowAllPages(true)}
+              className="w-full border-t border-[var(--border-default)] px-3 py-2 text-left text-[10.5px] font-semibold text-accent-700 hover:bg-[var(--surface-soft)]"
             >
-              {normalisePath(path)} ×
+              Show all {pages.length} detected routes
             </button>
-          ))}
+          )}
+        </div>
+      )}
+      {surface.excludedPathPrefixes.some(
+        (path) => !pages.some((page) => normalisePath(page.pathname) === normalisePath(path)),
+      ) && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {surface.excludedPathPrefixes
+            .filter(
+              (path) => !pages.some((page) => normalisePath(page.pathname) === normalisePath(path)),
+            )
+            .map((path) => (
+              <button
+                key={path}
+                type="button"
+                disabled={busy}
+                onClick={() => onRemoveExclusion(path)}
+                className="rounded-md bg-[var(--surface)] px-2 py-1 font-mono text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-45"
+                title="Remove exclusion"
+              >
+                {normalisePath(path)} ×
+              </button>
+            ))}
         </div>
       )}
     </article>
@@ -291,17 +348,6 @@ function editablePolicy(agent: Agent, _dashboardOrigin: string | undefined): Web
   // Do not invent product areas such as “merchant dashboard” from Voomate's own routing.
   // A surface is supplied by the merchant's manifest, an observed route, or this explicit form.
   return { version: 1, surfaces: [...base.surfaces] };
-}
-
-function originFrom(value: string): string | undefined {
-  const trimmed = value.trim();
-  if (!trimmed) return undefined;
-  try {
-    const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
-    return url.protocol === 'http:' || url.protocol === 'https:' ? url.origin : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function normalisePath(value: string): string {

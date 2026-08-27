@@ -1,4 +1,4 @@
-/* global CSSStyleSheet, HTMLElement, URL, console, customElements, document, window */
+/* global CSS, CSSStyleSheet, HTMLElement, URL, console, customElements, document, fetch, window */
 (() => {
   'use strict';
 
@@ -14,6 +14,7 @@
   const apiOrigin = script.dataset.api || assetOrigin;
   let identityToken = script.dataset.userToken;
   const identityEndpoint = script.dataset.identityEndpoint;
+  const setupEndpoint = script.dataset.setupEndpoint;
   const widgetModule = new URL('/embed/v2/widget.js', assetOrigin).href;
 
   const refreshIdentity = async () => {
@@ -82,6 +83,34 @@
       }
     }
     return { version: 1, routes };
+  };
+
+  const callSameOriginEndpoint = async (value, body) => {
+    const endpoint = new URL(value, window.location.href);
+    if (endpoint.origin !== window.location.origin) {
+      throw new Error('Voomate setup endpoints must use the current site origin.');
+    }
+    const response = await fetch(endpoint.href, {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error('Voomate server setup verification failed.');
+    return payload;
+  };
+
+  const announceInstallation = async (inventory) => {
+    if (!setupEndpoint) return;
+    const payload = await callSameOriginEndpoint(setupEndpoint, {
+      pageUrl: window.location.href,
+      routes: inventory.routes,
+    });
+    if (typeof payload.token === 'string' && payload.token.length <= 4_096) {
+      identityToken = payload.token;
+    }
   };
 
   class VoomateAgent extends HTMLElement {
@@ -168,6 +197,11 @@
     element.setAttribute('data-voomate-agent', publicKey);
     document.body.append(element);
   };
+  const unmountLauncher = () => {
+    document
+      .querySelector(`voomate-agent[data-voomate-agent="${CSS.escape(publicKey)}"]`)
+      ?.remove();
+  };
 
   // This request is both the real installation verification and the policy gate. The launcher
   // is not shown until the control plane confirms that this exact origin and page are allowed
@@ -175,6 +209,8 @@
   // a misleading button that cannot answer yet.
   const verifyAndMount = async () => {
     try {
+      const routeInventory = collectRouteInventory();
+      await announceInstallation(routeInventory);
       const verifiedIdentityToken = await refreshIdentity();
       const response = await fetch(`${apiOrigin}/api/web-agent/session`, {
         method: 'POST',
@@ -182,7 +218,7 @@
         body: JSON.stringify({
           publicKey,
           pageUrl: window.location.href,
-          routeInventory: collectRouteInventory(),
+          routeInventory,
           ...(verifiedIdentityToken ? { identityToken: verifiedIdentityToken } : {}),
         }),
         credentials: 'omit',
@@ -190,12 +226,33 @@
       });
       script.dataset.voomateStatus = response.ok ? 'active' : 'not-active';
       if (response.ok) mountLauncher();
+      else unmountLauncher();
     } catch {
       // A temporary network failure must not interrupt the host product. The next page load
       // retries verification; the agent never renders a broken or unauthorized launcher.
       script.dataset.voomateStatus = 'unavailable';
+      unmountLauncher();
     }
   };
 
-  void verifyAndMount();
+  let verificationTimer;
+  let lastScheduledUrl = '';
+  const scheduleVerification = () => {
+    const nextUrl = window.location.href;
+    if (nextUrl === lastScheduledUrl) return;
+    lastScheduledUrl = nextUrl;
+    window.clearTimeout(verificationTimer);
+    verificationTimer = window.setTimeout(() => void verifyAndMount(), 120);
+  };
+  for (const method of ['pushState', 'replaceState']) {
+    const original = window.history[method];
+    window.history[method] = function voomateHistoryUpdate(...args) {
+      const result = original.apply(this, args);
+      scheduleVerification();
+      return result;
+    };
+  }
+  window.addEventListener('popstate', scheduleVerification);
+  window.addEventListener('hashchange', scheduleVerification);
+  scheduleVerification();
 })();

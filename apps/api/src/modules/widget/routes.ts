@@ -11,12 +11,14 @@
  *     exchanged for a short-lived, tightly-scoped session token.
  *   - Tight rate limits — a voice session costs real money per minute.
  */
+import { randomUUID } from 'node:crypto';
 import {
   AgentStatus,
   AppError,
   ErrorCode,
   createWidgetSessionSchema,
   unauthenticated,
+  webDeploymentPolicyFromAppearance,
   type AgentAppearance,
   type AgentId,
   type AgentLanguageConfig,
@@ -33,13 +35,33 @@ import { isProduction } from '../../config.js';
 import { hashApiKey, normalizeOrigin } from '../../lib/keys.js';
 import { RedisRateLimitStore } from '../../lib/redis-rate-limit-store.js';
 import { mintWidgetToken } from './token.js';
-import { mintWebAgentIdentity, WEB_AGENT_IDENTITY_SCOPE } from './identity.js';
+import {
+  mintWebAgentIdentity,
+  WEB_AGENT_IDENTITY_SCOPE,
+  WEB_AGENT_INSTALL_SCOPE,
+} from './identity.js';
 
 const IDENTITY_BEARER = /^Bearer\s+(.+)$/i;
 const identityRequestSchema = z
   .object({
     userId: z.string().trim().min(1).max(200),
     origin: z.string().url().max(2_048),
+  })
+  .strict();
+const installationClaimSchema = z
+  .object({
+    origin: z.string().url().max(2_048),
+    pathname: z.string().min(1).max(240).optional(),
+    routes: z
+      .array(
+        z.object({
+          pathname: z.string().min(1).max(240),
+          name: z.string().trim().min(1).max(120).optional(),
+          source: z.enum(['current', 'manifest', 'navigation']),
+        }),
+      )
+      .max(80)
+      .default([]),
   })
   .strict();
 
@@ -60,6 +82,139 @@ const originOf = (request: FastifyRequest): string | undefined => {
 };
 
 export const widgetRoutes: FastifyPluginAsync = async (app) => {
+  /**
+   * A merchant backend uses its server-only API key to claim the exact origin on which the SDK
+   * is running. This is the automatic replacement for asking a person to type an allowlist.
+   * The public embed key can never call this endpoint.
+   */
+  app.post(
+    '/installations/claim',
+    { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const header = request.headers.authorization;
+      const secret = typeof header === 'string' ? IDENTITY_BEARER.exec(header)?.[1] : undefined;
+      if (!secret?.startsWith('sk_'))
+        throw unauthenticated('Invalid or expired Web Agent API key.');
+
+      const input = installationClaimSchema.parse(request.body);
+      const origin = normalizeOrigin(input.origin);
+      if (!origin) throw unauthenticated('Invalid or expired Web Agent API key.');
+      const now = new Date();
+      const [key] = await getDb()
+        .update(apiKeys)
+        .set({ lastUsedAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(apiKeys.keyHash, hashApiKey(secret)),
+            isNull(apiKeys.revokedAt),
+            or(isNull(apiKeys.expiresAt), gt(apiKeys.expiresAt, now)),
+            isNotNull(apiKeys.agentId),
+            or(
+              sql`${WEB_AGENT_INSTALL_SCOPE} = any(${apiKeys.scopes})`,
+              // Keys created before automatic setup remain usable and can be rotated normally.
+              sql`${WEB_AGENT_IDENTITY_SCOPE} = any(${apiKeys.scopes})`,
+            ),
+          ),
+        )
+        .returning({
+          id: apiKeys.id,
+          organizationId: apiKeys.organizationId,
+          agentId: apiKeys.agentId,
+        });
+      if (!key?.agentId) throw unauthenticated('Invalid or expired Web Agent API key.');
+
+      const result = await getDb().transaction(async (tx) => {
+        const [agent] = await tx
+          .select({
+            id: agents.id,
+            status: agents.status,
+            organizationId: agents.organizationId,
+            allowedOrigins: agents.allowedOrigins,
+            appearance: agents.appearance,
+          })
+          .from(agents)
+          .where(and(eq(agents.id, key.agentId!), eq(agents.organizationId, key.organizationId)))
+          .limit(1);
+        if (!agent || agent.status === AgentStatus.ARCHIVED) {
+          throw unauthenticated('Invalid or expired Web Agent API key.');
+        }
+
+        const currentPolicy = webDeploymentPolicyFromAppearance(
+          agent.appearance,
+          agent.allowedOrigins,
+        );
+        const existingSurface = currentPolicy.surfaces.find((surface) => surface.origin === origin);
+        const hostname = new URL(origin).hostname;
+        const policy = existingSurface
+          ? currentPolicy
+          : {
+              ...currentPolicy,
+              surfaces: [
+                ...currentPolicy.surfaces,
+                {
+                  id: `observed_${randomUUID().replace(/-/g, '').slice(0, 20)}`,
+                  name: hostname,
+                  kind: 'observed' as const,
+                  origin,
+                  pathPrefixes: ['/'],
+                  excludedPathPrefixes: [],
+                  identity: 'anonymous' as const,
+                  enabled: true,
+                },
+              ],
+            };
+        const allowedOrigins = Array.from(new Set([...agent.allowedOrigins, origin]));
+        if (!existingSurface || !agent.allowedOrigins.includes(origin)) {
+          await tx
+            .update(agents)
+            .set({
+              allowedOrigins,
+              appearance: {
+                ...(agent.appearance as object),
+                webDeployment: policy,
+              },
+              updatedAt: now,
+            })
+            .where(and(eq(agents.id, agent.id), eq(agents.organizationId, agent.organizationId)));
+        }
+
+        const sanitizedRoutes = input.routes
+          .filter((route) => route.pathname.startsWith('/') && !route.pathname.includes('..'))
+          .map((route) => ({
+            pathname: route.pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/',
+            ...(route.name ? { name: route.name } : {}),
+            source: route.source,
+          }));
+        const pathname =
+          input.pathname?.startsWith('/') && !input.pathname.includes('..')
+            ? input.pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/'
+            : '/';
+        await tx.insert(auditLogs).values({
+          organizationId: agent.organizationId,
+          actorId: null,
+          action: 'agent.installation_verified',
+          resourceType: 'agent',
+          resourceId: agent.id,
+          metadata: {
+            platform: 'web',
+            origin,
+            pathname,
+            surfaceId: existingSurface?.id ?? policy.surfaces.at(-1)?.id,
+            surfaceName: existingSurface?.name ?? hostname,
+            sdk: 'embed-v2',
+            routeInventory: sanitizedRoutes,
+            claimedWithServerKey: true,
+          },
+          ipAddress: request.ip,
+        });
+        return { claimed: !existingSurface, enabled: existingSurface?.enabled ?? true };
+      });
+
+      reply.header('Cache-Control', 'no-store').status(result.claimed ? 201 : 200);
+      return { ok: true, origin, ...result };
+    },
+  );
+
   /**
    * Server-to-server identity exchange. The long-lived key stays on the merchant backend;
    * the browser receives only a five-minute token bound to this agent, tenant and origin.

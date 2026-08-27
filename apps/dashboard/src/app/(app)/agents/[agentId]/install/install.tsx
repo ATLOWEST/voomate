@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Agent } from '@voomate/core';
-import { webDeploymentPolicyFromAppearance } from '@voomate/core';
 import {
   Check,
   CheckCircle2,
@@ -20,6 +19,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAgent } from '@/components/agent/shell';
+import { WebAgentPlacement } from '@/components/web-agent/web-agent-placement';
 import { PageBody } from '@/components/shell/page-header';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogActions } from '@/components/ui/dialog';
@@ -28,12 +28,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { messageFor, useApiAction, useApiQuery } from '@/lib/hooks';
 import { useApiAuth } from '@/lib/session';
-import {
-  buildIdentityAssistantPrompt,
-  buildWebAgentAssistantPrompt,
-  buildWebAgentSnippet,
-  toWebOrigin,
-} from '@/lib/web-agent/installer';
+import { buildIdentityAssistantPrompt, buildWebAgentSnippet } from '@/lib/web-agent/installer';
 
 const WIDGET_ORIGIN = (
   process.env.NEXT_PUBLIC_WIDGET_ORIGIN ??
@@ -54,14 +49,6 @@ export function InstallPanels() {
   const { agent, deployment, refresh, refreshDeployment } = useAgent();
   const [diagnostic, setDiagnostic] = useState<InstallationDiagnostic>();
   const [identityVerified, setIdentityVerified] = useState(false);
-  const requiresIdentity = useMemo(
-    () =>
-      webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins).surfaces.some(
-        (surface) => surface.enabled && surface.identity === 'required',
-      ),
-    [agent.allowedOrigins, agent.appearance],
-  );
-
   const snippet = useMemo(
     () => buildWebAgentSnippet({ widgetOrigin: WIDGET_ORIGIN, embedKey: agent.embedKey }),
     [agent.embedKey],
@@ -73,10 +60,8 @@ export function InstallPanels() {
       agentName: agent.name,
       approvedOrigins: agent.allowedOrigins,
     };
-    return requiresIdentity
-      ? buildIdentityAssistantPrompt({ ...input, controlPlaneOrigin: CONTROL_PLANE_ORIGIN })
-      : buildWebAgentAssistantPrompt(input);
-  }, [agent.allowedOrigins, agent.embedKey, agent.name, requiresIdentity]);
+    return buildIdentityAssistantPrompt({ ...input, controlPlaneOrigin: CONTROL_PLANE_ORIGIN });
+  }, [agent.allowedOrigins, agent.embedKey, agent.name]);
 
   const checkInstallation = useApiAction(async (auth) => {
     const result = await api.post<{ diagnostic: InstallationDiagnostic }>(
@@ -98,8 +83,8 @@ export function InstallPanels() {
           Add Voomate to your public pages
         </h1>
         <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-          Approve a domain, add one script, then open the published page. Verification happens
-          automatically from the real browser connection.
+          Add one script and one server API key. Voomate then detects the live domains and pages
+          automatically from real SDK connections.
         </p>
       </div>
 
@@ -132,22 +117,9 @@ export function InstallPanels() {
 
         <SetupStep
           number="2"
-          title="Approve your public domain"
-          description="The agent is rejected everywhere else, even if someone copies your script."
-          complete={agent.allowedOrigins.length > 0}
-        >
-          <AllowedOrigins agent={agent} onChanged={refresh} />
-        </SetupStep>
-
-        <SetupStep
-          number="3"
-          title="Install Voomate"
-          description={
-            requiresIdentity
-              ? 'One prompt installs the SDK and signed-in customer support. Add the API key once in your hosting environment.'
-              : 'Paste one script in the shared public layout, or let your coding assistant install it.'
-          }
-          complete={!requiresIdentity || identityVerified}
+          title="Install one script and API setup"
+          description="One copied setup adds the browser SDK and a server-only key. No domain entry is required."
+          complete={identityVerified}
         >
           <div className="overflow-hidden rounded-xl border border-[var(--border-default)] bg-[#151513] text-[#f4f1ea]">
             <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
@@ -157,11 +129,7 @@ export function InstallPanels() {
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 <CopyButton text={snippet} label="Copy code" />
-                <CopyButton
-                  text={assistantPrompt}
-                  label={requiresIdentity ? 'Copy complete setup' : 'Copy AI setup prompt'}
-                  icon="sparkles"
-                />
+                <CopyButton text={assistantPrompt} label="Copy complete setup" icon="sparkles" />
               </div>
             </div>
             <pre className="overflow-x-auto px-4 py-4 font-mono text-[12px] leading-6 sm:px-5">
@@ -173,6 +141,9 @@ export function InstallPanels() {
                 {'\n  '}
                 <span className="text-[#b8b5ad]">data-agent=</span>
                 <span className="text-[#b8d9a6]">&quot;{agent.embedKey}&quot;</span>
+                {'\n  '}
+                <span className="text-[#b8b5ad]">data-setup-endpoint=</span>
+                <span className="text-[#b8d9a6]">&quot;/api/voomate/setup&quot;</span>
                 {'\n  '}
                 <span className="text-[#d9c58a]">async</span>
                 {'\n'}
@@ -187,14 +158,21 @@ export function InstallPanels() {
             <SecurityFact icon={<ShieldCheck className="size-4" />} label="Server rate limits" />
           </div>
           <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
-            No private API key is placed in your code. The visible agent ID is public by design and
-            only works on approved pages.
+            The API key stays only on your hosting server. The visible Agent ID cannot approve a
+            domain or bypass page controls.
           </p>
-          {requiresIdentity && (
-            <div className="mt-4 border-t border-[var(--border-default)] pt-4">
-              <IdentityVerification agent={agent} onVerifiedChange={setIdentityVerified} />
-            </div>
-          )}
+          <div className="mt-4 border-t border-[var(--border-default)] pt-4">
+            <IdentityVerification agent={agent} onVerifiedChange={setIdentityVerified} />
+          </div>
+        </SetupStep>
+
+        <SetupStep
+          number="3"
+          title="Detected domains and pages"
+          description="Live SDK connections appear here automatically. Turn off any whole domain or route you do not want the agent to use."
+          complete={agent.allowedOrigins.length > 0}
+        >
+          <WebAgentPlacement agent={agent} onChanged={refresh} embedded />
         </SetupStep>
 
         <SetupStep
@@ -306,77 +284,6 @@ function PlatformCard({
   );
 }
 
-function AllowedOrigins({ agent, onChanged }: { agent: Agent; onChanged: () => void }) {
-  const [draft, setDraft] = useState('');
-  const normalizedDraft = toWebOrigin(draft);
-
-  const save = useApiAction(async (auth, origins: string[]) => {
-    await api.patch(`/v1/agents/${agent.id}`, { allowedOrigins: origins }, auth);
-    onChanged();
-  });
-
-  const add = async () => {
-    if (normalizedDraft === undefined) return;
-    if (agent.allowedOrigins.includes(normalizedDraft)) {
-      setDraft('');
-      return;
-    }
-    if (await save.run([...agent.allowedOrigins, normalizedDraft])) setDraft('');
-  };
-
-  return (
-    <div className="space-y-3">
-      {agent.allowedOrigins.length > 0 && (
-        <ul className="divide-y divide-[var(--border-default)] overflow-hidden rounded-xl border border-[var(--border-default)]">
-          {agent.allowedOrigins.map((origin) => (
-            <li key={origin} className="flex min-h-11 items-center gap-3 px-3.5 py-2">
-              <Globe2 className="size-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1 truncate font-mono text-[12px]">{origin}</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                loading={save.busy}
-                onClick={() => {
-                  void save.run(agent.allowedOrigins.filter((value) => value !== origin));
-                }}
-              >
-                Remove
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <Field
-        label={agent.allowedOrigins.length === 0 ? 'Your public domain' : 'Add another domain'}
-        htmlFor="origin-new"
-        hint="A full page URL is okay—we save only its secure origin."
-        error={save.error}
-      >
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <TextInput
-            id="origin-new"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="https://www.example.com"
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') void add();
-            }}
-          />
-          <Button
-            className="sm:shrink-0"
-            loading={save.busy}
-            disabled={normalizedDraft === undefined}
-            onClick={() => void add()}
-          >
-            Approve domain
-          </Button>
-        </div>
-      </Field>
-    </div>
-  );
-}
-
 interface IdentityKeySummary {
   id: string;
   name: string;
@@ -448,14 +355,14 @@ function IdentityVerification({
           <KeyRound className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold text-foreground">Server API key</p>
+          <p className="text-[13px] font-semibold text-foreground">API setup</p>
           <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
             The copied setup creates the verified-user endpoint. Add this key to your hosting
-            environment as <span className="font-mono text-foreground">VOOMATE_IDENTITY_KEY</span>.
+            environment as <span className="font-mono text-foreground">VOOMATE_API_KEY</span>.
           </p>
         </div>
         <span className="rounded-md bg-positive-soft px-2 py-1 text-[10px] font-semibold text-positive">
-          Auto-detected
+          Server only
         </span>
       </div>
 
@@ -495,7 +402,7 @@ function IdentityVerification({
             <div className="mt-3 rounded-lg bg-[var(--surface-soft)] px-4 py-5 text-center">
               <p className="text-[12.5px] font-medium text-foreground">No API keys yet</p>
               <p className="mt-1 text-[11.5px] text-muted-foreground">
-                Create one when your backend is ready to identify signed-in customers.
+                Create one before copying the complete setup into your project.
               </p>
             </div>
           ) : (

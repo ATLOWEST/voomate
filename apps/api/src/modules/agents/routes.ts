@@ -35,7 +35,7 @@ import { getDb } from '../../lib/db.js';
 import { FetchError, fetchPage } from '../../lib/crawl/fetch.js';
 import { tenantOf } from '../../plugins/auth.js';
 import { transitionAgentLifecycle } from './lifecycle.js';
-import { WEB_AGENT_IDENTITY_SCOPE } from '../widget/identity.js';
+import { WEB_AGENT_IDENTITY_SCOPE, WEB_AGENT_INSTALL_SCOPE } from '../widget/identity.js';
 
 const paramsSchema = z.object({ id: uuidSchema });
 const identityKeyParamsSchema = z.object({ id: uuidSchema, keyId: uuidSchema });
@@ -53,6 +53,11 @@ type DeploymentAuditMetadata = {
   pathname?: string;
   surfaceId?: string;
   sdk?: string;
+  routeInventory?: Array<{
+    pathname?: string;
+    name?: string;
+    source?: 'current' | 'manifest' | 'navigation';
+  }>;
 };
 type SetupAuditMetadata = DeploymentAuditMetadata & {
   code?: string;
@@ -392,7 +397,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
           name: input.name,
           keyHash: generated.hash,
           keyPrefix: generated.prefix,
-          scopes: [WEB_AGENT_IDENTITY_SCOPE],
+          scopes: [WEB_AGENT_IDENTITY_SCOPE, WEB_AGENT_INSTALL_SCOPE],
           createdBy: tenant.userId,
           expiresAt,
         })
@@ -631,6 +636,105 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       },
     };
   });
+
+  /**
+   * Real browser evidence grouped for the merchant. These paths are observations only; the
+   * saved deployment policy remains the authorization source of truth.
+   */
+  app.get(
+    '/:id/web-locations',
+    { preHandler: app.requireTenant(OrgRole.VIEWER) },
+    async (request) => {
+      const tenant = tenantOf(request);
+      const { id } = paramsSchema.parse(request.params);
+      const [agent] = await getDb()
+        .select({
+          id: agents.id,
+          allowedOrigins: agents.allowedOrigins,
+          appearance: agents.appearance,
+        })
+        .from(agents)
+        .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
+        .limit(1);
+      if (!agent) throw notFound('Agent', id);
+
+      const records = await getDb()
+        .select({ metadata: auditLogs.metadata, createdAt: auditLogs.createdAt })
+        .from(auditLogs)
+        .where(
+          and(
+            tenantScope(auditLogs, tenant.organizationId),
+            eq(auditLogs.resourceId, id),
+            eq(auditLogs.resourceType, 'agent'),
+            eq(auditLogs.action, 'agent.installation_verified'),
+          ),
+        )
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(500);
+      const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
+      const locations = new Map<
+        string,
+        {
+          origin: string;
+          lastSeenAt: Date;
+          pages: Map<
+            string,
+            { pathname: string; name: string | null; source: string; lastSeenAt: Date }
+          >;
+        }
+      >();
+
+      for (const record of records) {
+        const metadata = record.metadata as DeploymentAuditMetadata | undefined;
+        if (metadata?.platform !== 'web' || typeof metadata.origin !== 'string') continue;
+        const existing = locations.get(metadata.origin) ?? {
+          origin: metadata.origin,
+          lastSeenAt: record.createdAt,
+          pages: new Map(),
+        };
+        if (record.createdAt > existing.lastSeenAt) existing.lastSeenAt = record.createdAt;
+        const observed = [
+          ...(typeof metadata.pathname === 'string'
+            ? [{ pathname: metadata.pathname, name: undefined, source: 'current' as const }]
+            : []),
+          ...(metadata.routeInventory ?? []),
+        ];
+        for (const route of observed) {
+          if (
+            typeof route.pathname !== 'string' ||
+            !route.pathname.startsWith('/') ||
+            route.pathname.includes('..')
+          ) {
+            continue;
+          }
+          const pathname = route.pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/';
+          if (existing.pages.has(pathname)) continue;
+          existing.pages.set(pathname, {
+            pathname,
+            name: typeof route.name === 'string' ? route.name.slice(0, 120) : null,
+            source: route.source ?? 'current',
+            lastSeenAt: record.createdAt,
+          });
+        }
+        locations.set(metadata.origin, existing);
+      }
+
+      return {
+        locations: Array.from(locations.values()).map((location) => {
+          const surface = policy.surfaces.find((entry) => entry.origin === location.origin);
+          return {
+            origin: location.origin,
+            lastSeenAt: location.lastSeenAt,
+            enabled: surface?.enabled ?? false,
+            identity: surface?.identity ?? 'anonymous',
+            pages: Array.from(location.pages.values()).sort((a, b) =>
+              a.pathname.localeCompare(b.pathname),
+            ),
+          };
+        }),
+      };
+    },
+  );
 
   app.post(
     '/:id/deployment',

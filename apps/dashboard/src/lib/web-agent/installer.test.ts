@@ -25,6 +25,7 @@ describe('web-agent installer helpers', () => {
     expect(snippet.match(/<script/g)).toHaveLength(1);
     expect(snippet).toContain('src="https://widget.example.com/embed.js"');
     expect(snippet).toContain('data-agent="agent_public_123"');
+    expect(snippet).toContain('data-setup-endpoint="/api/voomate/setup"');
     expect(snippet.toLowerCase()).not.toContain('secret');
   });
 
@@ -37,9 +38,9 @@ describe('web-agent installer helpers', () => {
     });
 
     expect(prompt).toContain('Support Agent');
-    expect(prompt).toContain('https://www.example.com');
     expect(prompt).toContain('data-agent="agent_public_123"');
-    expect(prompt).toContain('Do not add it to admin-only');
+    expect(prompt).toContain('VOOMATE_API_KEY');
+    expect(prompt).toContain('installation-claim API');
     expect(prompt).toContain('Do not create, request, log, or expose any private key');
   });
 
@@ -60,11 +61,12 @@ describe('web-agent installer helpers', () => {
       approvedOrigins: ['https://shop.example.com'],
     });
 
-    expect(snippet).toContain('data-identity-endpoint="/api/voomate/identity"');
-    expect(snippet).not.toContain('VOOMATE_IDENTITY_KEY');
-    expect(example).toContain('process.env.VOOMATE_IDENTITY_KEY');
-    expect(example).toContain('/v1/widget/identity');
-    expect(prompt).toContain('Never accept a user ID supplied by the browser');
-    expect(prompt).toContain('deployment secret manager');
+    expect(snippet).toContain('data-setup-endpoint="/api/voomate/setup"');
+    expect(snippet).not.toContain('VOOMATE_API_KEY');
+    expect(example).toContain('process.env.VOOMATE_API_KEY');
+    expect(example).toContain('/v1/widget/installations/claim');
+    expect(example).toContain('pageUrl.origin !== deployedOrigin');
+    expect(prompt).toContain('Never accept a user ID from the browser');
+    expect(prompt).toContain('hosting provider');
   });
 });
