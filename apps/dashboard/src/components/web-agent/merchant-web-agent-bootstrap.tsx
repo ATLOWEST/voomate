@@ -7,7 +7,8 @@ import { useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 
 const WIDGET_ORIGIN = (
-  process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? 'https://widget.atlowest.in'
+  process.env.NEXT_PUBLIC_WIDGET_ORIGIN ??
+  (process.env.NODE_ENV === 'production' ? 'https://app.atlowest.in' : 'http://localhost:3001')
 ).replace(/\/$/, '');
 
 /**
@@ -32,7 +33,10 @@ export function MerchantWebAgentBootstrap() {
     const currentPath = window.location.pathname;
     const agent = data?.agents.find((candidate) => {
       if (candidate.catalogType !== 'web' || !candidate.embedKey) return false;
-      const policy = webDeploymentPolicyFromAppearance(candidate.appearance, candidate.allowedOrigins);
+      const policy = webDeploymentPolicyFromAppearance(
+        candidate.appearance,
+        candidate.allowedOrigins,
+      );
       return webSurfaceForLocation(policy, currentOrigin, currentPath) !== undefined;
     });
 

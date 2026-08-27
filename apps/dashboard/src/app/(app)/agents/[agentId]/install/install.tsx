@@ -35,7 +35,8 @@ import {
 } from '@/lib/web-agent/installer';
 
 const WIDGET_ORIGIN = (
-  process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? 'https://widget.atlowest.in'
+  process.env.NEXT_PUBLIC_WIDGET_ORIGIN ??
+  (process.env.NODE_ENV === 'production' ? 'https://app.atlowest.in' : 'http://localhost:3001')
 ).replace(/\/$/, '');
 const CONTROL_PLANE_ORIGIN = (
   process.env.NEXT_PUBLIC_CONTROL_PLANE_ORIGIN ?? 'https://app.atlowest.in/api'
