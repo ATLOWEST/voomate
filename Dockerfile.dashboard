@@ -9,7 +9,12 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
     NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/connect-store-example/package.json apps/connect-store-example/package.json
 COPY apps/dashboard/package.json apps/dashboard/package.json
+COPY apps/landing/package.json apps/landing/package.json
+COPY apps/widget/package.json apps/widget/package.json
+COPY infra/package.json infra/package.json
 COPY packages/config/package.json packages/config/package.json
 COPY packages/connect/package.json packages/connect/package.json
 COPY packages/core/package.json packages/core/package.json
