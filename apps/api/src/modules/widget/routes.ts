@@ -82,6 +82,17 @@ const installationObservationSchema = z
   .strict();
 
 /**
+ * A browser installation receipt intentionally uses a CORS-safelisted content type. The SDK
+ * must work on a merchant's domain before that domain is allowlisted, so an application/json
+ * request would be stopped by a preflight against the dashboard-only API CORS policy. Fastify
+ * gives text/plain requests to us as a string; the payload is still strictly parsed below.
+ */
+const parseInstallationObservation = (body: unknown) => {
+  if (typeof body !== 'string') return installationObservationSchema.parse(body);
+  return installationObservationSchema.parse(JSON.parse(body));
+};
+
+/**
  * Resolve the caller's origin from the request headers.
  *
  * `Origin` is set by the browser on cross-origin requests and cannot be forged by page
@@ -108,7 +119,7 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
     '/installations/observe',
     { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },
     async (request, reply) => {
-      const input = installationObservationSchema.parse(request.body);
+      const input = parseInstallationObservation(request.body);
       const origin = originOf(request);
       if (origin === undefined) {
         // Do not reveal whether an embed key exists to a caller without browser origin evidence.

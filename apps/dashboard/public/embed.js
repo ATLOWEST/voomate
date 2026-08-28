@@ -113,14 +113,19 @@
     }
   };
 
-  // A public observation gives the merchant instant installation feedback. It is intentionally
+  // A public observation gives the merchant instant installation feedback. It deliberately uses
+  // a CORS-safelisted request: before a domain is verified it cannot be in the API's dashboard
+  // CORS allowlist, and a JSON preflight would prevent the receipt from ever reaching Voomate.
+  // `data-agent` is the unique public installation ID for exactly one agent and tenant. It is
   // not an approval: only the same-origin server endpoint below can use the secret API key to
   // claim the domain and make the agent eligible to run.
   const observeInstallation = async (inventory) => {
     const endpoint = new URL('/api/v1/widget/installations/observe', apiOrigin);
     await fetch(endpoint.href, {
       method: 'POST',
-      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      // no-cors + a string body is intentionally fire-and-forget. The browser sends an Origin
+      // header, while the API never needs to reveal any response to this public operation.
+      mode: 'no-cors',
       body: JSON.stringify({
         embedKey: publicKey,
         pathname: window.location.pathname,
@@ -128,6 +133,7 @@
       }),
       credentials: 'omit',
       cache: 'no-store',
+      keepalive: true,
     });
   };
 
