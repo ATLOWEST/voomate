@@ -97,15 +97,19 @@ export function buildIdentityAssistantPrompt({
 }: IdentityInstallInput): string {
   const snippet = buildVerifiedUserSnippet({ widgetOrigin, embedKey, identityEndpoint });
   const serverExample = buildIdentityServerExample({ controlPlaneOrigin, approvedOrigins: [] });
-  return `Install the Voomate Web Agent “${agentName}” completely in this project.
+  return `Complete the Voomate Web Agent installation for “${agentName}” in this project.
 
-1. Add the exact script below once to the shared website/web-app layout.
-2. Create the same-origin POST endpoint ${identityEndpoint}. It must derive the deployed origin from the server request URL—not from an untrusted browser header—and call ${controlPlaneOrigin.replace(/\/$/, '')}/v1/widget/installations/claim with Authorization: Bearer process.env.VOOMATE_API_KEY.
-3. Forward only pageUrl.pathname and the SDK's path-only route list. Never forward query strings, cookies, form values, source code, or browser storage.
-4. Add VOOMATE_API_KEY only to the hosting provider's server secret manager. Never expose, log, return, or prefix it with NEXT_PUBLIC/VITE_PUBLIC.
-5. If this project has signed-in customer pages, reuse its EXISTING server auth and exchange the server user ID through /v1/widget/identity. Never accept a user ID from the browser and do not create another login system.
-6. Read the project's real router configuration and add a path-only data-voomate-route-manifest JSON block to the same layout so lazy and parameterized routes are represented without crawling private data. Do not invent route names.
-7. Keep the SDK out of payment, admin, health, authentication, and other sensitive layouts. Run the project checks and report the changed files plus a live URL.
+The business owner should not have to make technical decisions. Inspect this project's real framework, layouts, router, and hosting pattern, then make the smallest safe production change.
+
+Do this end-to-end:
+1. Add the exact browser script below once to the shared public website/web-app layout.
+2. Never add it to admin, staff, sign-in, account-security, payment, checkout, health, or other sensitive layouts.
+3. Create the same-origin POST endpoint ${identityEndpoint}. It must derive the deployed origin from the server request URL—not from an untrusted browser header—and call ${controlPlaneOrigin.replace(/\/$/, '')}/v1/widget/installations/claim with Authorization: Bearer process.env.VOOMATE_API_KEY.
+4. Tell the owner exactly where to add the private VOOMATE_API_KEY in this hosting provider. The key belongs only in the server secret manager: never browser code, source files, Git, logs, a public environment variable, or this chat.
+5. Forward only pageUrl.pathname and the SDK's path-only route list. Never forward query strings, cookies, form values, source code, browser storage, or customer data.
+6. If the project has signed-in customer pages, reuse its existing server authentication and exchange the server user ID through /v1/widget/identity. Never accept a user ID from the browser and do not create another login system.
+7. Read the real router configuration and add a path-only data-voomate-route-manifest JSON block to the same public layout so lazy and parameterized routes are represented without reading private data. Do not invent route names.
+8. Run the project checks, deploy the change, and report: changed files, the hosting-secret location, and one approved public URL. Do not expose private values in the report.
 
 Exact shared-layout script:
 ${snippet}

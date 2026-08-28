@@ -4,18 +4,11 @@ import { useMemo, useState, type ReactNode } from 'react';
 import type { Agent } from '@voomate/core';
 import {
   Check,
-  CheckCircle2,
   CircleDashed,
   Clipboard,
   Code2,
-  ExternalLink,
-  Globe2,
-  LockKeyhole,
   KeyRound,
-  MonitorSmartphone,
   Plus,
-  ShieldCheck,
-  Smartphone,
   Sparkles,
 } from 'lucide-react';
 import { useAgent } from '@/components/agent/shell';
@@ -26,7 +19,7 @@ import { Dialog, DialogActions } from '@/components/ui/dialog';
 import { Field, TextInput } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { messageFor, useApiAction, useApiQuery } from '@/lib/hooks';
+import { messageFor, useApiQuery } from '@/lib/hooks';
 import { useApiAuth } from '@/lib/session';
 import { buildIdentityAssistantPrompt, buildWebAgentSnippet } from '@/lib/web-agent/installer';
 
@@ -38,16 +31,8 @@ const CONTROL_PLANE_ORIGIN = (
   process.env.NEXT_PUBLIC_CONTROL_PLANE_ORIGIN ?? 'https://app.atlowest.in/api'
 ).replace(/\/$/, '');
 
-interface InstallationDiagnostic {
-  code:
-    'duplicate_sdk' | 'snippet_found' | 'wrong_agent_key' | 'sdk_not_found' | 'site_unreachable';
-  message: string;
-  checkedUrl: string;
-}
-
 export function InstallPanels() {
-  const { agent, deployment, refresh, refreshDeployment } = useAgent();
-  const [diagnostic, setDiagnostic] = useState<InstallationDiagnostic>();
+  const { agent, deployment, refresh } = useAgent();
   const snippet = useMemo(
     () => buildWebAgentSnippet({ widgetOrigin: WIDGET_ORIGIN, embedKey: agent.embedKey }),
     [agent.embedKey],
@@ -61,138 +46,79 @@ export function InstallPanels() {
     };
     return buildIdentityAssistantPrompt({ ...input, controlPlaneOrigin: CONTROL_PLANE_ORIGIN });
   }, [agent.allowedOrigins, agent.embedKey, agent.name]);
-
-  const checkInstallation = useApiAction(async (auth) => {
-    const result = await api.post<{ diagnostic: InstallationDiagnostic }>(
-      `/v1/agents/${agent.id}/setup/diagnose`,
-      {},
-      auth,
-    );
-    setDiagnostic(result.diagnostic);
-    refreshDeployment();
-  });
+  const sdkConnected = deployment.observed;
+  const serverConnected = deployment.verified;
+  const agentReady = deployment.verified && agent.status === 'active';
 
   return (
     <PageBody>
-      <div className="mb-7 max-w-2xl">
+      <div className="mb-7 max-w-3xl">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-600">
           Web Agent setup
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-foreground">
-          Add Voomate to your public pages
+          Get your agent live
         </h1>
         <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-          Add one script and one server API key. Voomate then detects the live domains and pages
-          automatically from real SDK connections.
+          Send one guided request to your developer or coding assistant, add one private key to
+          your hosting service, and Voomate confirms the live connection automatically.
         </p>
       </div>
+
+      <InstallationStatus
+        sdkConnected={sdkConnected}
+        serverConnected={serverConnected}
+        agentReady={agentReady}
+      />
 
       <div className="relative space-y-3 before:absolute before:bottom-8 before:left-[17px] before:top-8 before:w-px before:bg-[var(--border-default)]">
         <SetupStep
           number="1"
-          title="Choose where it runs"
-          description="Websites and browser apps use the same secure SDK."
-          complete
+          title="Send one setup request"
+          description="Copy this and paste it into your coding assistant, or send it to your developer. It explains exactly where Voomate may run and what must stay private."
+          complete={sdkConnected}
         >
-          <div className="grid gap-2 sm:grid-cols-3">
-            <PlatformCard
-              icon={<MonitorSmartphone className="size-4" />}
-              title="Website / web app"
-              detail="Available now"
-              active
-            />
-            <PlatformCard
-              icon={<Smartphone className="size-4" />}
-              title="iOS"
-              detail="Coming soon"
-            />
-            <PlatformCard
-              icon={<Smartphone className="size-4" />}
-              title="Android"
-              detail="Coming soon"
-            />
+          <div className="flex flex-col gap-3 rounded-xl bg-[var(--surface-soft)] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-foreground">Install Voomate safely</p>
+              <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                Your developer adds Voomate only to public customer pages. Admin, sign-in,
+                payment, and other sensitive pages remain excluded.
+              </p>
+            </div>
+            <CopyButton text={assistantPrompt} label="Copy setup request" icon="sparkles" prominent />
           </div>
+          <details className="mt-3 rounded-lg border border-[var(--border-default)] bg-[var(--surface-panel)]">
+            <summary className="cursor-pointer list-none px-3.5 py-3 text-[12px] font-semibold text-muted-foreground marker:content-none">
+              Need the code instead?
+            </summary>
+            <div className="border-t border-[var(--border-default)] p-3.5">
+              <div className="mb-2 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5"><Code2 className="size-3.5" /> Public layout</span>
+                <CopyButton text={snippet} label="Copy code" />
+              </div>
+              <pre className="overflow-x-auto rounded-lg bg-[#151513] px-3 py-3 font-mono text-[11px] leading-5 text-[#b8d9a6]"><code>{snippet}</code></pre>
+            </div>
+          </details>
         </SetupStep>
 
         <SetupStep
           number="2"
-          title="Install one script and API setup"
-          description="One copied setup adds the browser SDK and a server-only key. No domain entry is required."
-          complete={deployment.observed}
+          title="Add your private key"
+          description="Create one key and place it in your hosting service. It proves the installed code belongs to your business; it is never added to a browser page."
+          complete={serverConnected}
         >
-          <div className="overflow-hidden rounded-xl border border-[var(--border-default)] bg-[#151513] text-[#f4f1ea]">
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-              <div className="flex items-center gap-2 text-[12px] text-white/65">
-                <Code2 className="size-3.5" />
-                Public layout
-              </div>
-              <div className="flex flex-wrap justify-end gap-2">
-                <CopyButton text={snippet} label="Copy code" />
-                <CopyButton text={assistantPrompt} label="Copy complete setup" icon="sparkles" />
-              </div>
-            </div>
-            <pre className="overflow-x-auto px-4 py-4 font-mono text-[12px] leading-6 sm:px-5">
-              <code>
-                <span className="text-[#f09a74]">&lt;script</span>
-                {'\n  '}
-                <span className="text-[#b8b5ad]">src=</span>
-                <span className="text-[#b8d9a6]">&quot;{WIDGET_ORIGIN}/embed.js&quot;</span>
-                {'\n  '}
-                <span className="text-[#b8b5ad]">data-agent=</span>
-                <span className="text-[#b8d9a6]">&quot;{agent.embedKey}&quot;</span>
-                {'\n  '}
-                <span className="text-[#b8b5ad]">data-setup-endpoint=</span>
-                <span className="text-[#b8d9a6]">&quot;/api/voomate/setup&quot;</span>
-                {'\n  '}
-                <span className="text-[#d9c58a]">async</span>
-                {'\n'}
-                <span className="text-[#f09a74]">&gt;&lt;/script&gt;</span>
-              </code>
-            </pre>
-          </div>
-
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <SecurityFact icon={<Globe2 className="size-4" />} label="Domain allowlist" />
-            <SecurityFact icon={<LockKeyhole className="size-4" />} label="Signed short sessions" />
-            <SecurityFact icon={<ShieldCheck className="size-4" />} label="Server rate limits" />
-          </div>
-          <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
-            The API key stays only on your hosting server. The visible Agent ID cannot approve a
-            domain or bypass page controls.
-          </p>
-          <div className="mt-4 border-t border-[var(--border-default)] pt-4">
-            <IdentityVerification agent={agent} />
-          </div>
+          <IdentityVerification agent={agent} />
         </SetupStep>
 
         <SetupStep
           number="3"
-          title="Detected domains and pages"
-          description="Live SDK connections appear here automatically. Turn off any whole domain or route you do not want the agent to use."
-          complete={deployment.verified}
-        >
-          <WebAgentPlacement agent={agent} onChanged={refresh} embedded />
-        </SetupStep>
-
-        <SetupStep
-          number="4"
-          title="Open your site and verify"
-          description="Publish the change, then open one approved public page in a browser."
-          complete={deployment.verified}
+          title="Voomate connects automatically"
+          description="As soon as the deployed site loads Voomate, this page updates by itself. You do not need to refresh this dashboard or type a domain."
+          complete={agentReady}
           last
         >
-          <VerificationCard
-            verified={deployment.verified}
-            origin={deployment.verifiedOrigin}
-            pathname={deployment.verifiedPathname}
-            verifiedAt={deployment.verifiedAt}
-            sdkVersion={deployment.sdkVersion}
-            diagnostic={diagnostic}
-            error={checkInstallation.error}
-            checking={checkInstallation.busy}
-            firstOrigin={agent.allowedOrigins[0]}
-            onCheck={() => void checkInstallation.run()}
-          />
+          <WebAgentPlacement agent={agent} onChanged={refresh} embedded />
         </SetupStep>
       </div>
 
@@ -203,6 +129,65 @@ export function InstallPanels() {
         </div>
       )}
     </PageBody>
+  );
+}
+
+function InstallationStatus({
+  sdkConnected,
+  serverConnected,
+  agentReady,
+}: {
+  sdkConnected: boolean;
+  serverConnected: boolean;
+  agentReady: boolean;
+}) {
+  const states = [
+    {
+      label: 'Voomate code',
+      detail: sdkConnected ? 'Connected' : 'Setup needed',
+      complete: sdkConnected,
+    },
+    {
+      label: 'Private connection',
+      detail: serverConnected ? 'Verified' : 'Private key needed',
+      complete: serverConnected,
+    },
+    {
+      label: 'Agent',
+      detail: agentReady ? 'Live' : 'Turn on when ready',
+      complete: agentReady,
+    },
+  ];
+
+  return (
+    <section className="mb-5 grid gap-2 sm:grid-cols-3" aria-live="polite">
+      {states.map((state) => (
+        <div
+          key={state.label}
+          className={cn(
+            'flex items-center gap-3 rounded-xl border px-3.5 py-3',
+            state.complete
+              ? 'border-positive/25 bg-positive-soft'
+              : 'border-critical/25 bg-critical-soft',
+          )}
+        >
+          <span
+            className={cn(
+              'grid size-8 shrink-0 place-items-center rounded-lg',
+              state.complete ? 'bg-positive text-white' : 'bg-[var(--surface-panel)] text-critical',
+            )}
+          >
+            {state.complete ? <Check className="size-4" /> : <CircleDashed className="size-4" />}
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[12px] font-semibold text-foreground">{state.label}</span>
+            <span className={cn('mt-0.5 block text-[10.5px] font-medium', state.complete ? 'text-positive' : 'text-critical')}>
+              {state.detail}
+            </span>
+          </span>
+        </div>
+      ))}
+    </section>
   );
 }
 
@@ -243,43 +228,6 @@ function SetupStep({
         {children}
       </div>
     </section>
-  );
-}
-
-function PlatformCard({
-  icon,
-  title,
-  detail,
-  active = false,
-}: {
-  icon: ReactNode;
-  title: string;
-  detail: string;
-  active?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        'flex min-h-20 items-center gap-3 rounded-xl border px-3.5 py-3',
-        active
-          ? 'border-accent-400 bg-accent-50 text-foreground'
-          : 'border-[var(--border-default)] bg-[var(--surface-soft)] text-muted-foreground',
-      )}
-      aria-disabled={!active}
-    >
-      <span
-        className={cn(
-          'grid size-8 shrink-0 place-items-center rounded-lg',
-          active ? 'bg-accent-100 text-accent-700' : 'bg-[var(--surface-sunken)]',
-        )}
-      >
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-[13px] font-medium">{title}</span>
-        <span className="mt-0.5 block text-[11px] opacity-75">{detail}</span>
-      </span>
-    </div>
   );
 }
 
@@ -343,8 +291,9 @@ function IdentityVerification({ agent }: { agent: Agent }) {
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-foreground">API setup</p>
           <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-            The copied setup creates the verified-user endpoint. Add this key to your hosting
-            environment as <span className="font-mono text-foreground">VOOMATE_API_KEY</span>.
+            This private key confirms that Voomate is running on your real site. Copy it once into
+            your hosting service as <span className="font-mono text-foreground">VOOMATE_API_KEY</span>.
+            Your setup request tells your developer exactly where it belongs.
           </p>
         </div>
         <span className="rounded-md bg-positive-soft px-2 py-1 text-[10px] font-semibold text-positive">
@@ -360,10 +309,10 @@ function IdentityVerification({ agent }: { agent: Agent }) {
         <div className="rounded-xl border border-[var(--border-default)] p-3.5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[13px] font-semibold text-foreground">API keys</p>
+              <p className="text-[13px] font-semibold text-foreground">Private keys</p>
               <p className="mt-0.5 text-[11.5px] text-muted-foreground">
-                Use these only in your hosting provider or backend environment. Never place one in
-                browser code or the SDK.
+                Keep these in your hosting provider only. Never put one in a website page or share
+                it in a coding-assistant conversation.
               </p>
             </div>
             <Button
@@ -380,15 +329,15 @@ function IdentityVerification({ agent }: { agent: Agent }) {
                 setDialogOpen(true);
               }}
             >
-              New API key
+              Create private key
             </Button>
           </div>
 
           {(keys.data?.keys.length ?? 0) === 0 && !keys.loading ? (
             <div className="mt-3 rounded-lg bg-[var(--surface-soft)] px-4 py-5 text-center">
-              <p className="text-[12.5px] font-medium text-foreground">No API keys yet</p>
+              <p className="text-[12.5px] font-medium text-foreground">Create your private key</p>
               <p className="mt-1 text-[11.5px] text-muted-foreground">
-                Create one before copying the complete setup into your project.
+                Create it now, then place it in your hosting service when your developer asks.
               </p>
             </div>
           ) : (
@@ -453,11 +402,11 @@ function IdentityVerification({ agent }: { agent: Agent }) {
 
       {dialogOpen && (
         <Dialog
-          title={secret ? 'Save your API key' : 'Create API key'}
+          title={secret ? 'Save your private key' : 'Create private key'}
           description={
             secret
               ? 'This is the only time the full key will be visible.'
-              : 'Give this key a clear name so you can safely rotate or revoke it later.'
+              : 'Give this key a clear name so you can safely replace or revoke it later.'
           }
           onClose={() => {
             setSecret(undefined);
@@ -480,9 +429,9 @@ function IdentityVerification({ agent }: { agent: Agent }) {
                 <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-[12px] font-semibold text-white">{secret.name}</p>
-                    <p className="mt-0.5 text-[10.5px] text-white/55">API key · shown once</p>
+                    <p className="mt-0.5 text-[10.5px] text-white/55">Private key · shown once</p>
                   </div>
-                  <CopyButton text={secret.value} label="Copy API key" />
+                  <CopyButton text={secret.value} label="Copy private key" />
                 </div>
                 <pre className="overflow-x-auto px-4 py-4 font-mono text-[11.5px] text-[#b8d9a6]">
                   <code>{secret.value}</code>
@@ -551,7 +500,7 @@ function IdentityVerification({ agent }: { agent: Agent }) {
                   Cancel
                 </Button>
                 <Button type="submit" variant="primary" loading={busy} disabled={!keyName.trim()}>
-                  Create API key
+                  Create private key
                 </Button>
               </DialogActions>
             </form>
@@ -564,115 +513,16 @@ function IdentityVerification({ agent }: { agent: Agent }) {
   );
 }
 
-function SecurityFact({ icon, label }: { icon: ReactNode; label: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-lg bg-[var(--surface-soft)] px-3 py-2.5 text-[12px] text-muted-foreground">
-      <span className="text-positive">{icon}</span>
-      {label}
-    </div>
-  );
-}
-
-function VerificationCard({
-  verified,
-  origin,
-  pathname,
-  verifiedAt,
-  sdkVersion,
-  diagnostic,
-  error,
-  checking,
-  firstOrigin,
-  onCheck,
-}: {
-  verified: boolean;
-  origin: string | null;
-  pathname: string | null;
-  verifiedAt: string | null;
-  sdkVersion: string | null;
-  diagnostic?: InstallationDiagnostic;
-  error?: string;
-  checking: boolean;
-  firstOrigin?: string;
-  onCheck: () => void;
-}) {
-  if (verified) {
-    return (
-      <div
-        className="flex flex-col items-center rounded-2xl border border-positive/25 bg-positive-soft px-5 py-7 text-center"
-        aria-live="polite"
-      >
-        <span className="grid size-16 place-items-center rounded-2xl bg-positive text-white shadow-[0_10px_30px_rgba(16,185,129,0.2)]">
-          <CheckCircle2 className="size-9" strokeWidth={2} />
-        </span>
-        <h3 className="mt-4 text-lg font-semibold text-foreground">Live installation verified</h3>
-        <p className="mt-1 max-w-lg text-[13px] leading-5 text-muted-foreground">
-          Voomate received a genuine SDK request from an approved public page. This status is
-          checked by the server, not set manually.
-        </p>
-        <div className="mt-4 flex max-w-full flex-wrap justify-center gap-x-4 gap-y-1 font-mono text-[11px] text-positive">
-          <span className="max-w-full truncate">
-            {origin}
-            {pathname ?? ''}
-          </span>
-          {sdkVersion !== null && <span>{sdkVersion}</span>}
-          {verifiedAt !== null && <span>{formatVerifiedAt(verifiedAt)}</span>}
-        </div>
-      </div>
-    );
-  }
-
-  const found = diagnostic?.code === 'snippet_found';
-  return (
-    <div
-      className="flex flex-col gap-4 rounded-2xl border border-[var(--border-default)] bg-[var(--surface-soft)] p-4 sm:flex-row sm:items-center sm:p-5"
-      aria-live="polite"
-    >
-      <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-background text-accent-600">
-        <CircleDashed className={cn('size-6', checking && 'animate-spin')} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <h3 className="text-[14px] font-semibold text-foreground">
-          {found ? 'Script found—open the page once' : 'Waiting for your live site'}
-        </h3>
-        <p
-          className={cn(
-            'mt-1 text-[12.5px] leading-5',
-            error ? 'text-critical' : 'text-muted-foreground',
-          )}
-        >
-          {error ??
-            diagnostic?.message ??
-            'After publishing, open an approved public page. This screen checks again automatically every few seconds.'}
-        </p>
-      </div>
-      <div className="flex shrink-0 flex-wrap gap-2">
-        {firstOrigin !== undefined && (
-          <a
-            href={firstOrigin}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-9.5 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90"
-          >
-            Open site <ExternalLink className="size-3.5" />
-          </a>
-        )}
-        <Button loading={checking} onClick={onCheck}>
-          Check installation
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 function CopyButton({
   text,
   label,
   icon = 'clipboard',
+  prominent = false,
 }: {
   text: string;
   label: string;
   icon?: 'clipboard' | 'sparkles';
+  prominent?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const Icon = icon === 'sparkles' ? Sparkles : Clipboard;
@@ -680,7 +530,12 @@ function CopyButton({
   return (
     <button
       type="button"
-      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-[11.5px] font-medium text-white transition-colors hover:bg-white/15"
+      className={cn(
+        'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-colors',
+        prominent
+          ? 'h-10 shrink-0 bg-foreground px-4 text-background hover:opacity-90'
+          : 'bg-white/10 text-white hover:bg-white/15',
+      )}
       onClick={() => {
         void navigator.clipboard.writeText(text).then(() => {
           setCopied(true);
