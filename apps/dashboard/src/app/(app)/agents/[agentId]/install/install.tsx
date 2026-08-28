@@ -70,6 +70,7 @@ export function InstallPanels() {
         serverConnected={serverConnected}
         agentReady={agentReady}
       />
+      <SetupAnswer agent={agent} deployment={deployment} />
 
       <div className="relative space-y-3 before:absolute before:bottom-8 before:left-[17px] before:top-8 before:w-px before:bg-[var(--border-default)]">
         <SetupStep
@@ -129,6 +130,87 @@ export function InstallPanels() {
         </div>
       )}
     </PageBody>
+  );
+}
+
+function SetupAnswer({ agent, deployment }: { agent: Agent; deployment: ReturnType<typeof useAgent>['deployment'] }) {
+  const keys = useApiQuery<{ keys: IdentityKeySummary[] }>(`/v1/agents/${agent.id}/identity-keys`, {
+    pollMs: 3_000,
+  });
+  const usableKeys = (keys.data?.keys ?? []).filter(
+    (key) => key.expiresAt === null || new Date(key.expiresAt).getTime() > Date.now(),
+  );
+  const keyUsed = usableKeys.some((key) => key.lastUsedAt !== null);
+
+  const answer = (() => {
+    if (deployment.verified && agent.status === 'active') {
+      return {
+        title: 'Everything is connected and live',
+        detail: `Voomate verified ${deployment.verifiedOrigin ?? 'your site'} from the server. The agent can now answer visitors only on the pages you allow.`,
+        complete: true,
+      };
+    }
+    if (deployment.verified) {
+      return {
+        title: 'Your site is connected',
+        detail: 'The private server check is complete. Turn on the agent whenever you are ready for visitors to use it.',
+        complete: true,
+      };
+    }
+    if (deployment.observed) {
+      return {
+        title: 'Voomate code is installed, but the private server check is missing',
+        detail: keyUsed
+          ? 'Your server contacted Voomate, but it did not complete a valid domain claim. Check that the setup endpoint uses the same active private key for this agent.'
+          : 'We saw the code on your live site, but no private key has reached Voomate. The server setup endpoint is missing, returning an error, or cannot read VOOMATE_API_KEY.',
+        complete: false,
+      };
+    }
+    if (usableKeys.length > 0) {
+      return {
+        title: 'We have not received the Voomate code from a live page yet',
+        detail: 'Your private key exists, but it has not been used. Voomate cannot detect a local or unpublished file: the public site must deploy the script and a visitor must load an approved page once.',
+        complete: false,
+      };
+    }
+    return {
+      title: 'Start with the setup request',
+      detail: 'No private key or live Voomate code has been detected. Complete Step 1, then create the private key in Step 2.',
+      complete: false,
+    };
+  })();
+
+  return (
+    <section
+      className={cn(
+        'mb-5 rounded-xl border p-4',
+        answer.complete ? 'border-positive/25 bg-positive-soft' : 'border-critical/25 bg-critical-soft',
+      )}
+      aria-live="polite"
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={cn(
+            'grid size-9 shrink-0 place-items-center rounded-lg',
+            answer.complete ? 'bg-positive text-white' : 'bg-[var(--surface-panel)] text-critical',
+          )}
+        >
+          {answer.complete ? <Check className="size-4" /> : <CircleDashed className="size-4" />}
+        </span>
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold text-foreground">What&apos;s blocking setup?</p>
+          <p className="mt-1 text-[12.5px] font-medium text-foreground">{answer.title}</p>
+          <p className="mt-1 text-[12px] leading-5 text-muted-foreground">{answer.detail}</p>
+          {!keys.loading && (
+            <p className="mt-2 text-[10.5px] text-muted-foreground">
+              Checked live: Voomate code {deployment.observed ? 'received' : 'not received'} · private key{' '}
+              {usableKeys.length > 0 ? (keyUsed ? 'used by a server' : 'not used by a server') : 'not created'} · domain{' '}
+              {deployment.verified ? 'verified' : 'not verified'}
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
