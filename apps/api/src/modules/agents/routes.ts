@@ -493,13 +493,46 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         .limit(1);
       if (!agent) throw notFound('Agent', id);
 
-      const startUrl = agent.websiteUrl || agent.allowedOrigins[0];
-      if (!startUrl) {
-        throw conflict('Add your website domain before checking the SDK installation.');
-      }
+      // The public SDK is the discovery mechanism. Do not ask a merchant to type a domain:
+      // a browser receipt tells us the exact origin and path where this agent's snippet ran.
+      // The receipt alone is not authorization (the server-key claim still is), but it is safe
+      // evidence to use as the diagnostic target through our SSRF-protected fetch helper.
+      const [observation] = await getDb()
+        .select({ metadata: auditLogs.metadata })
+        .from(auditLogs)
+        .where(
+          and(
+            tenantScope(auditLogs, tenant.organizationId),
+            eq(auditLogs.resourceId, id),
+            eq(auditLogs.resourceType, 'agent'),
+            eq(auditLogs.action, 'agent.installation_observed'),
+          ),
+        )
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(1);
+      const receipt = observation?.metadata as DeploymentAuditMetadata | undefined;
+      const observedOrigin = normalizeOrigin(receipt?.origin ?? '');
+      const observedPathname =
+        typeof receipt?.pathname === 'string' &&
+        receipt.pathname.startsWith('/') &&
+        !receipt.pathname.includes('..')
+          ? receipt.pathname
+          : '/';
 
       let metadata: SetupAuditMetadata;
-      try {
+      if (!observedOrigin) {
+        metadata = {
+          code: 'waiting_for_sdk',
+          message:
+            'Waiting for the live Voomate SDK signal. Publish the script on a public customer page; Voomate will discover its domain automatically.',
+          checkedUrl: '',
+          previewEmbeddable: false,
+          previewReason: null,
+        };
+      } else {
+        const startUrl = new URL(observedPathname, `${observedOrigin}/`).toString();
+
+        try {
         const page = await fetchPage(startUrl, { timeoutMs: 10_000 });
         const document = load(page.body);
         const scripts = document('script[src]')
@@ -569,17 +602,18 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
               : 'Your site blocks embedded previews with its security headers.',
           };
         }
-      } catch (error) {
-        metadata = {
-          code: 'site_unreachable',
-          message:
-            error instanceof FetchError
-              ? `We could not check the site: ${error.message}`
-              : 'We could not check this site right now. Confirm the URL is public, then try again.',
-          checkedUrl: startUrl,
-          previewEmbeddable: false,
-          previewReason: 'The site could not be loaded safely from Voomate.',
-        };
+        } catch (error) {
+          metadata = {
+            code: 'site_unreachable',
+            message:
+              error instanceof FetchError
+                ? `We could not check the SDK page: ${error.message}`
+                : 'We could not check the SDK page right now. Voomate will keep listening for the next live SDK signal.',
+            checkedUrl: startUrl,
+            previewEmbeddable: false,
+            previewReason: 'The site could not be loaded safely from Voomate.',
+          };
+        }
       }
 
       await getDb().insert(auditLogs).values({

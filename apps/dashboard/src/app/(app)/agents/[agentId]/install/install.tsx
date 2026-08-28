@@ -37,7 +37,13 @@ const CONTROL_PLANE_ORIGIN = (
 ).replace(/\/$/, '');
 
 interface InstallationDiagnostic {
-  code: 'duplicate_sdk' | 'snippet_found' | 'wrong_agent_key' | 'sdk_not_found' | 'site_unreachable';
+  code:
+    | 'duplicate_sdk'
+    | 'snippet_found'
+    | 'wrong_agent_key'
+    | 'sdk_not_found'
+    | 'site_unreachable'
+    | 'waiting_for_sdk';
   message: string;
   checkedUrl: string;
 }
@@ -229,7 +235,14 @@ function SetupAnswer({ agent, deployment }: { agent: Agent; deployment: ReturnTy
             </p>
           )}
           {diagnostic && (
-            <p className={cn('mt-2 text-[11.5px] leading-5', diagnostic.code === 'snippet_found' ? 'text-positive' : 'text-critical')}>
+            <p className={cn(
+              'mt-2 text-[11.5px] leading-5',
+              diagnostic.code === 'snippet_found'
+                ? 'text-positive'
+                : diagnostic.code === 'waiting_for_sdk'
+                  ? 'text-caution'
+                  : 'text-critical',
+            )}>
               Latest website check: {diagnostic.message}
             </p>
           )}
