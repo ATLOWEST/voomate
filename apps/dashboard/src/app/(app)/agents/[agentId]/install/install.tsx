@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { Agent } from '@voomate/core';
 import {
   Check,
@@ -48,7 +48,6 @@ interface InstallationDiagnostic {
 export function InstallPanels() {
   const { agent, deployment, refresh, refreshDeployment } = useAgent();
   const [diagnostic, setDiagnostic] = useState<InstallationDiagnostic>();
-  const [identityVerified, setIdentityVerified] = useState(false);
   const snippet = useMemo(
     () => buildWebAgentSnippet({ widgetOrigin: WIDGET_ORIGIN, embedKey: agent.embedKey }),
     [agent.embedKey],
@@ -119,7 +118,7 @@ export function InstallPanels() {
           number="2"
           title="Install one script and API setup"
           description="One copied setup adds the browser SDK and a server-only key. No domain entry is required."
-          complete={identityVerified}
+          complete={deployment.observed}
         >
           <div className="overflow-hidden rounded-xl border border-[var(--border-default)] bg-[#151513] text-[#f4f1ea]">
             <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
@@ -162,7 +161,7 @@ export function InstallPanels() {
             domain or bypass page controls.
           </p>
           <div className="mt-4 border-t border-[var(--border-default)] pt-4">
-            <IdentityVerification agent={agent} onVerifiedChange={setIdentityVerified} />
+            <IdentityVerification agent={agent} />
           </div>
         </SetupStep>
 
@@ -170,7 +169,7 @@ export function InstallPanels() {
           number="3"
           title="Detected domains and pages"
           description="Live SDK connections appear here automatically. Turn off any whole domain or route you do not want the agent to use."
-          complete={agent.allowedOrigins.length > 0}
+          complete={deployment.verified}
         >
           <WebAgentPlacement agent={agent} onChanged={refresh} embedded />
         </SetupStep>
@@ -293,30 +292,17 @@ interface IdentityKeySummary {
   createdAt: string;
 }
 
-function IdentityVerification({
-  agent,
-  onVerifiedChange,
-}: {
-  agent: Agent;
-  onVerifiedChange: (verified: boolean) => void;
-}) {
+function IdentityVerification({ agent }: { agent: Agent }) {
   const auth = useApiAuth();
-  const keys = useApiQuery<{ keys: IdentityKeySummary[] }>(`/v1/agents/${agent.id}/identity-keys`);
+  const keys = useApiQuery<{ keys: IdentityKeySummary[] }>(`/v1/agents/${agent.id}/identity-keys`, {
+    pollMs: 2_000,
+  });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [keyName, setKeyName] = useState('Production backend');
   const [expiresInDays, setExpiresInDays] = useState(90);
   const [secret, setSecret] = useState<{ value: string; name: string }>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  useEffect(() => {
-    onVerifiedChange(
-      keys.data?.keys.some(
-        (key) =>
-          key.lastUsedAt !== null &&
-          (key.expiresAt === null || new Date(key.expiresAt).getTime() > Date.now()),
-      ) ?? false,
-    );
-  }, [keys.data?.keys, onVerifiedChange]);
   const createKey = async () => {
     setBusy(true);
     setError(undefined);

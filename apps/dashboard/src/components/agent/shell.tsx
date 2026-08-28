@@ -30,6 +30,12 @@ interface AgentContextValue {
 export interface AgentDeployment {
   platform: 'web' | null;
   supported: boolean;
+  /** The SDK executed with this agent's unique public installation ID. */
+  observed: boolean;
+  observedOrigin: string | null;
+  observedPathname: string | null;
+  observedAt: string | null;
+  /** A server-only API key claim is required before an observed origin can run the agent. */
   verified: boolean;
   verifiedOrigin: string | null;
   verifiedPathname: string | null;
@@ -40,6 +46,10 @@ export interface AgentDeployment {
 const EMPTY_DEPLOYMENT: AgentDeployment = {
   platform: null,
   supported: false,
+  observed: false,
+  observedOrigin: null,
+  observedPathname: null,
+  observedAt: null,
   verified: false,
   verifiedOrigin: null,
   verifiedPathname: null,
@@ -65,6 +75,7 @@ export function AgentShell({ agentId, children }: { agentId: string; children: R
     refetch: refresh,
   } = useApiQuery<{ agent: Agent }>(
     organization === undefined || isFixedSlot ? null : '/v1/agents/' + agentId,
+    { pollMs: 2_000 },
   );
   const {
     data: webAgentsData,

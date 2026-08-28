@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Agent, WebDeploymentPolicy, WebSurfaceRule } from '@voomate/core';
 import { isPathWithinPrefix, webDeploymentPolicyFromAppearance } from '@voomate/core';
 import { CircleAlert, Globe2, RefreshCw, Route, ShieldCheck } from 'lucide-react';
@@ -28,6 +28,7 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
   const browserOrigin = typeof window === 'undefined' ? undefined : window.location.origin;
   const discovery = useApiQuery<{ locations: DiscoveredLocation[] }>(
     `/v1/agents/${agent.id}/web-locations`,
+    { pollMs: 2_000 },
   );
   const policy = useMemo(() => {
     const base = editablePolicy(agent, browserOrigin);
@@ -53,10 +54,6 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
       ],
     };
   }, [agent, browserOrigin, discovery.data?.locations]);
-  useEffect(() => {
-    const timer = window.setInterval(() => discovery.refetch(), 5_000);
-    return () => window.clearInterval(timer);
-  }, [discovery.refetch]);
   const save = useApiAction(async (auth, next: WebDeploymentPolicy) => {
     // Keep detected origins bound to this tenant so an off surface stays observable, while the
     // path policy remains the final runtime authorization gate.

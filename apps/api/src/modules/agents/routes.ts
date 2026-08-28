@@ -609,23 +609,28 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       .limit(1);
     if (!agent) throw notFound('Agent', id);
 
-    const verified = await getDb()
-      .select({ metadata: auditLogs.metadata, createdAt: auditLogs.createdAt })
+    const installationEvidence = await getDb()
+      .select({
+        action: auditLogs.action,
+        metadata: auditLogs.metadata,
+        createdAt: auditLogs.createdAt,
+      })
       .from(auditLogs)
       .where(
         and(
           tenantScope(auditLogs, tenant.organizationId),
           eq(auditLogs.resourceId, id),
           eq(auditLogs.resourceType, 'agent'),
-          eq(auditLogs.action, 'agent.installation_verified'),
+          inArray(auditLogs.action, ['agent.installation_observed', 'agent.installation_verified']),
         ),
       )
       .orderBy(desc(auditLogs.createdAt));
 
     const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
-    const currentProof = verified.find((record) => {
+    const currentProof = installationEvidence.find((record) => {
       const proof = record.metadata as DeploymentAuditMetadata | undefined;
       return (
+        record.action === 'agent.installation_verified' &&
         proof?.platform === 'web' &&
         typeof proof.origin === 'string' &&
         agent.allowedOrigins.includes(proof.origin) &&
@@ -635,6 +640,18 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     });
     const proof = currentProof?.metadata as DeploymentAuditMetadata | undefined;
     const proofIsCurrent = currentProof !== undefined;
+    // This is a browser receipt only. It is useful immediate feedback for the merchant, but
+    // cannot authorize a domain: a copied public embed key is never a credential.
+    const observation = installationEvidence.find((record) => {
+      const evidence = record.metadata as DeploymentAuditMetadata | undefined;
+      return (
+        evidence?.platform === 'web' &&
+        typeof evidence.origin === 'string' &&
+        (record.action === 'agent.installation_observed' ||
+          record.action === 'agent.installation_verified')
+      );
+    });
+    const observationMetadata = observation?.metadata as DeploymentAuditMetadata | undefined;
 
     return {
       deployment: {
@@ -642,6 +659,10 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         // deployment path; historical target records are read only for audit compatibility.
         platform: 'web',
         supported: true,
+        observed: observation !== undefined,
+        observedOrigin: observation ? (observationMetadata?.origin ?? null) : null,
+        observedPathname: observation ? (observationMetadata?.pathname ?? null) : null,
+        observedAt: observation?.createdAt ?? null,
         verified: proofIsCurrent,
         verifiedOrigin: proofIsCurrent ? (proof?.origin ?? null) : null,
         verifiedPathname: proofIsCurrent ? (proof?.pathname ?? null) : null,
