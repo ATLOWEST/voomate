@@ -14,7 +14,9 @@
   const apiOrigin = script.dataset.api || assetOrigin;
   let identityToken = script.dataset.userToken;
   const identityEndpoint = script.dataset.identityEndpoint;
-  const setupEndpoint = script.dataset.setupEndpoint;
+  // Every host uses one predictable, same-origin setup path. Merchants never need to configure
+  // this in the public snippet; framework guides create the server route at this address.
+  const setupEndpoint = script.dataset.setupEndpoint || '/voomate/setup';
   const widgetModule = new URL('/embed/v2/widget.js', assetOrigin).href;
 
   const refreshIdentity = async () => {

@@ -1,7 +1,6 @@
 interface WebAgentInstallInput {
   widgetOrigin: string;
   embedKey: string;
-  setupEndpoint?: string;
 }
 
 interface AssistantPromptInput extends WebAgentInstallInput {
@@ -38,54 +37,110 @@ export function toWebOrigin(value: string): string | undefined {
 export function buildWebAgentSnippet({
   widgetOrigin,
   embedKey,
-  setupEndpoint = '/api/voomate/setup',
 }: WebAgentInstallInput): string {
   return `<script
   src="${widgetOrigin.replace(/\/$/, '')}/embed.js"
   data-agent="${embedKey}"
-  data-setup-endpoint="${setupEndpoint}"
   async
 ></script>`;
 }
 
-export function buildVerifiedUserSnippet({
-  widgetOrigin,
-  embedKey,
-  identityEndpoint = '/api/voomate/setup',
-}: WebAgentInstallInput & { identityEndpoint?: string }): string {
-  return buildWebAgentSnippet({ widgetOrigin, embedKey, setupEndpoint: identityEndpoint });
+/** Compatibility helper: Web setup always uses the standard same-origin /voomate/setup path. */
+export function buildVerifiedUserSnippet(input: WebAgentInstallInput): string {
+  return buildWebAgentSnippet(input);
+}
+
+export type ServerFramework = 'nextjs' | 'express' | 'php';
+
+export function buildServerSetupSnippet({
+  framework,
+  controlPlaneOrigin,
+}: {
+  framework: ServerFramework;
+  controlPlaneOrigin: string;
+}): string {
+  const claimUrl = `${controlPlaneOrigin.replace(/\/$/, '')}/v1/widget/installations/claim`;
+  if (framework === 'express') {
+    return `// Add to your existing Express server
+app.post('/voomate/setup', async (req, res) => {
+  const pageUrl = new URL(req.body.pageUrl);
+  const origin = \`\${req.protocol}://\${req.get('host')}\`;
+  if (pageUrl.origin !== origin) return res.status(400).json({ error: 'Origin mismatch' });
+
+  const response = await fetch('${claimUrl}', {
+    method: 'POST',
+    headers: {
+      Authorization: \`Bearer ${'${process.env.VOOMATE_API_KEY}'}\`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ origin, pathname: pageUrl.pathname, routes: req.body.routes ?? [] }),
+  });
+  if (!response.ok) return res.sendStatus(response.status);
+  return res.status(200).json(await response.json());
+});`;
+  }
+  if (framework === 'php') {
+    return `<?php
+// Create public/voomate/setup/index.php (or route POST /voomate/setup here).
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+$origin = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+$page = parse_url($input['pageUrl'] ?? '');
+$pageOrigin = is_array($page) && isset($page['scheme'], $page['host'])
+  ? $page['scheme'] . '://' . $page['host'] . (isset($page['port']) ? ':' . $page['port'] : '')
+  : '';
+if ($pageOrigin !== $origin) { http_response_code(400); exit; }
+
+$request = curl_init('${claimUrl}');
+curl_setopt_array($request, [
+  CURLOPT_POST => true,
+  CURLOPT_HTTPHEADER => [
+    'Authorization: Bearer ' . getenv('VOOMATE_API_KEY'),
+    'Content-Type: application/json',
+  ],
+  CURLOPT_POSTFIELDS => json_encode([
+    'origin' => $origin,
+    'pathname' => $page['path'] ?? '/',
+    'routes' => $input['routes'] ?? [],
+  ]),
+  CURLOPT_RETURNTRANSFER => true,
+]);
+$body = curl_exec($request);
+$status = curl_getinfo($request, CURLINFO_RESPONSE_CODE);
+curl_close($request);
+http_response_code($status ?: 502);
+header('Content-Type: application/json');
+echo $body ?: '{}';`;
+  }
+  return `// Create: app/voomate/setup/route.ts
+export async function POST(request: Request) {
+  const input = await request.json();
+  const pageUrl = new URL(input.pageUrl);
+  const origin = new URL(request.url).origin;
+  if (pageUrl.origin !== origin) {
+    return Response.json({ error: 'Origin mismatch' }, { status: 400 });
+  }
+
+  const response = await fetch('${claimUrl}', {
+    method: 'POST',
+    headers: {
+      Authorization: \`Bearer ${'${process.env.VOOMATE_API_KEY}'}\`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      origin,
+      pathname: pageUrl.pathname,
+      routes: Array.isArray(input.routes) ? input.routes : [],
+    }),
+  });
+  if (!response.ok) return new Response(null, { status: response.status });
+  return Response.json(await response.json(), { headers: { 'Cache-Control': 'no-store' } });
+}`;
 }
 
 export function buildIdentityServerExample({
   controlPlaneOrigin,
 }: Pick<IdentityInstallInput, 'controlPlaneOrigin' | 'approvedOrigins'>): string {
-  return `// Server-only endpoint: POST /api/voomate/setup
-export async function POST(request) {
-  const input = await request.json();
-  const pageUrl = new URL(input.pageUrl);
-  const deployedOrigin = new URL(request.url).origin;
-  if (pageUrl.origin !== deployedOrigin) {
-    return Response.json({ error: "Origin mismatch" }, { status: 400 });
-  }
-
-  const response = await fetch("${controlPlaneOrigin.replace(/\/$/, '')}/v1/widget/installations/claim", {
-    method: "POST",
-    headers: {
-      "Authorization": \`Bearer \${process.env.VOOMATE_API_KEY}\`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      origin: deployedOrigin,
-      pathname: pageUrl.pathname,
-      routes: Array.isArray(input.routes) ? input.routes : []
-    })
-  });
-
-  if (!response.ok) return new Response(null, { status: response.status });
-  return Response.json(await response.json(), {
-    headers: { "Cache-Control": "no-store" }
-  });
-}`;
+  return buildServerSetupSnippet({ framework: 'nextjs', controlPlaneOrigin });
 }
 
 export function buildIdentityAssistantPrompt({
@@ -93,9 +148,9 @@ export function buildIdentityAssistantPrompt({
   controlPlaneOrigin,
   embedKey,
   agentName,
-  identityEndpoint = '/api/voomate/setup',
+  identityEndpoint = '/voomate/setup',
 }: IdentityInstallInput): string {
-  const snippet = buildVerifiedUserSnippet({ widgetOrigin, embedKey, identityEndpoint });
+  const snippet = buildWebAgentSnippet({ widgetOrigin, embedKey });
   const serverExample = buildIdentityServerExample({ controlPlaneOrigin, approvedOrigins: [] });
   return `Complete the Voomate Web Agent installation for “${agentName}” in this project.
 

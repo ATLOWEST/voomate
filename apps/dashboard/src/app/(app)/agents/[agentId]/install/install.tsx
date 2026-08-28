@@ -19,9 +19,14 @@ import { Dialog, DialogActions } from '@/components/ui/dialog';
 import { Field, TextInput } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { messageFor, useApiQuery } from '@/lib/hooks';
+import { messageFor, useApiAction, useApiQuery } from '@/lib/hooks';
 import { useApiAuth } from '@/lib/session';
-import { buildIdentityAssistantPrompt, buildWebAgentSnippet } from '@/lib/web-agent/installer';
+import {
+  buildIdentityAssistantPrompt,
+  buildServerSetupSnippet,
+  buildWebAgentSnippet,
+  type ServerFramework,
+} from '@/lib/web-agent/installer';
 
 const WIDGET_ORIGIN = (
   process.env.NEXT_PUBLIC_WIDGET_ORIGIN ??
@@ -30,6 +35,12 @@ const WIDGET_ORIGIN = (
 const CONTROL_PLANE_ORIGIN = (
   process.env.NEXT_PUBLIC_CONTROL_PLANE_ORIGIN ?? 'https://app.atlowest.in/api'
 ).replace(/\/$/, '');
+
+interface InstallationDiagnostic {
+  code: 'duplicate_sdk' | 'snippet_found' | 'wrong_agent_key' | 'sdk_not_found' | 'site_unreachable';
+  message: string;
+  checkedUrl: string;
+}
 
 export function InstallPanels() {
   const { agent, deployment, refresh } = useAgent();
@@ -137,6 +148,15 @@ function SetupAnswer({ agent, deployment }: { agent: Agent; deployment: ReturnTy
   const keys = useApiQuery<{ keys: IdentityKeySummary[] }>(`/v1/agents/${agent.id}/identity-keys`, {
     pollMs: 3_000,
   });
+  const [diagnostic, setDiagnostic] = useState<InstallationDiagnostic>();
+  const verify = useApiAction(async (auth) => {
+    const result = await api.post<{ diagnostic: InstallationDiagnostic }>(
+      `/v1/agents/${agent.id}/setup/diagnose`,
+      {},
+      auth,
+    );
+    setDiagnostic(result.diagnostic);
+  });
   const usableKeys = (keys.data?.keys ?? []).filter(
     (key) => key.expiresAt === null || new Date(key.expiresAt).getTime() > Date.now(),
   );
@@ -208,6 +228,15 @@ function SetupAnswer({ agent, deployment }: { agent: Agent; deployment: ReturnTy
               {deployment.verified ? 'verified' : 'not verified'}
             </p>
           )}
+          {diagnostic && (
+            <p className={cn('mt-2 text-[11.5px] leading-5', diagnostic.code === 'snippet_found' ? 'text-positive' : 'text-critical')}>
+              Latest website check: {diagnostic.message}
+            </p>
+          )}
+          {verify.error && <p className="mt-2 text-[11.5px] text-critical">{verify.error}</p>}
+          <Button className="mt-3" size="sm" loading={verify.busy} onClick={() => void verify.run()}>
+            Verify installation
+          </Button>
         </div>
       </div>
     </section>
@@ -228,16 +257,19 @@ function InstallationStatus({
       label: 'Voomate code',
       detail: sdkConnected ? 'Connected' : 'Setup needed',
       complete: sdkConnected,
+      waitingTone: 'critical' as const,
     },
     {
       label: 'Private connection',
       detail: serverConnected ? 'Verified' : 'Private key needed',
       complete: serverConnected,
+      waitingTone: sdkConnected ? ('caution' as const) : ('critical' as const),
     },
     {
       label: 'Agent',
       detail: agentReady ? 'Live' : 'Turn on when ready',
       complete: agentReady,
+      waitingTone: serverConnected ? ('caution' as const) : ('critical' as const),
     },
   ];
 
@@ -250,20 +282,35 @@ function InstallationStatus({
             'flex items-center gap-3 rounded-xl border px-3.5 py-3',
             state.complete
               ? 'border-positive/25 bg-positive-soft'
-              : 'border-critical/25 bg-critical-soft',
+              : state.waitingTone === 'caution'
+                ? 'border-caution/25 bg-caution-soft'
+                : 'border-critical/25 bg-critical-soft',
           )}
         >
           <span
             className={cn(
               'grid size-8 shrink-0 place-items-center rounded-lg',
-              state.complete ? 'bg-positive text-white' : 'bg-[var(--surface-panel)] text-critical',
+              state.complete
+                ? 'bg-positive text-white'
+                : state.waitingTone === 'caution'
+                  ? 'bg-[var(--surface-panel)] text-caution'
+                  : 'bg-[var(--surface-panel)] text-critical',
             )}
           >
             {state.complete ? <Check className="size-4" /> : <CircleDashed className="size-4" />}
           </span>
           <span className="min-w-0">
             <span className="block text-[12px] font-semibold text-foreground">{state.label}</span>
-            <span className={cn('mt-0.5 block text-[10.5px] font-medium', state.complete ? 'text-positive' : 'text-critical')}>
+            <span
+              className={cn(
+                'mt-0.5 block text-[10.5px] font-medium',
+                state.complete
+                  ? 'text-positive'
+                  : state.waitingTone === 'caution'
+                    ? 'text-caution'
+                    : 'text-critical',
+              )}
+            >
               {state.detail}
             </span>
           </span>
@@ -333,6 +380,11 @@ function IdentityVerification({ agent }: { agent: Agent }) {
   const [secret, setSecret] = useState<{ value: string; name: string }>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [framework, setFramework] = useState<ServerFramework>('nextjs');
+  const serverSnippet = useMemo(
+    () => buildServerSetupSnippet({ framework, controlPlaneOrigin: CONTROL_PLANE_ORIGIN }),
+    [framework],
+  );
   const createKey = async () => {
     setBusy(true);
     setError(undefined);
@@ -481,6 +533,44 @@ function IdentityVerification({ agent }: { agent: Agent }) {
           </p>
         </div>
       )}
+
+      <div className="overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--surface-panel)]">
+        <div className="flex flex-col gap-2 border-b border-[var(--border-default)] p-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[13px] font-semibold text-foreground">Add one server file</p>
+            <p className="mt-0.5 text-[11.5px] leading-5 text-muted-foreground">
+              Choose your framework, copy the complete file, and keep your private key in the
+              hosting service. The browser script uses this standard path automatically.
+            </p>
+          </div>
+          <CopyButton text={serverSnippet} label="Copy server file" />
+        </div>
+        <div className="flex gap-1 overflow-x-auto border-b border-[var(--border-default)] px-3.5 pt-2">
+          {(
+            [
+              ['nextjs', 'Next.js'],
+              ['express', 'Express'],
+              ['php', 'PHP'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={framework === value}
+              onClick={() => setFramework(value)}
+              className={cn(
+                'shrink-0 rounded-t-md px-3 py-2 text-[11.5px] font-semibold transition-colors',
+                framework === value
+                  ? 'bg-[var(--surface-soft)] text-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <pre className="max-h-80 overflow-auto bg-[#151513] px-4 py-4 font-mono text-[11px] leading-5 text-[#b8d9a6]"><code>{serverSnippet}</code></pre>
+      </div>
 
       {dialogOpen && (
         <Dialog

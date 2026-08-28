@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildIdentityAssistantPrompt,
   buildIdentityServerExample,
+  buildServerSetupSnippet,
   buildVerifiedUserSnippet,
   buildWebAgentAssistantPrompt,
   buildWebAgentSnippet,
@@ -25,7 +26,7 @@ describe('web-agent installer helpers', () => {
     expect(snippet.match(/<script/g)).toHaveLength(1);
     expect(snippet).toContain('src="https://widget.example.com/embed.js"');
     expect(snippet).toContain('data-agent="agent_public_123"');
-    expect(snippet).toContain('data-setup-endpoint="/api/voomate/setup"');
+    expect(snippet).not.toContain('data-setup-endpoint');
     expect(snippet.toLowerCase()).not.toContain('secret');
   });
 
@@ -61,12 +62,23 @@ describe('web-agent installer helpers', () => {
       approvedOrigins: ['https://shop.example.com'],
     });
 
-    expect(snippet).toContain('data-setup-endpoint="/api/voomate/setup"');
+    expect(snippet).not.toContain('data-setup-endpoint');
     expect(snippet).not.toContain('VOOMATE_API_KEY');
     expect(example).toContain('process.env.VOOMATE_API_KEY');
     expect(example).toContain('/v1/widget/installations/claim');
-    expect(example).toContain('pageUrl.origin !== deployedOrigin');
+    expect(example).toContain('pageUrl.origin !== origin');
     expect(prompt).toContain('Never accept a user ID from the browser');
     expect(prompt).toContain('hosting provider');
+  });
+
+  it('generates complete server-only setup files for supported frameworks', () => {
+    const input = { controlPlaneOrigin: 'https://app.example.com/api' };
+    expect(buildServerSetupSnippet({ ...input, framework: 'nextjs' })).toContain(
+      'app/voomate/setup/route.ts',
+    );
+    expect(buildServerSetupSnippet({ ...input, framework: 'express' })).toContain(
+      "app.post('/voomate/setup'",
+    );
+    expect(buildServerSetupSnippet({ ...input, framework: 'php' })).toContain('curl_init');
   });
 });
