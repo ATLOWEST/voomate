@@ -7,7 +7,6 @@ import { AppShell } from '@/components/shell/app-shell';
 import { getOrganizations } from '@/lib/organizations';
 
 import { ConversationDrawer } from '@/components/ui/premium/conversation-drawer';
-import { MerchantWebAgentBootstrap } from '@/components/web-agent/merchant-web-agent-bootstrap';
 import { Suspense } from 'react';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -44,7 +43,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     >
       <AppShell>
         {children}
-        <MerchantWebAgentBootstrap />
         <Suspense fallback={null}>
           <ConversationDrawer />
         </Suspense>
