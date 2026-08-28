@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Agent, WebDeploymentPolicy, WebSurfaceRule } from '@voomate/core';
 import { isPathWithinPrefix, webDeploymentPolicyFromAppearance } from '@voomate/core';
-import { Globe2, Route, ShieldCheck } from 'lucide-react';
+import { Globe2, RefreshCw, Route, ShieldCheck } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
@@ -66,6 +66,11 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
     window.dispatchEvent(new Event('voomate:agent-configuration-updated'));
     onChanged();
   });
+  const scan = useApiAction(async (auth, origin: string) => {
+    await api.post(`/v1/agents/${agent.id}/web-locations/scan`, { origin }, auth);
+    await discovery.refetch();
+    onChanged();
+  });
 
   const setEnabled = (id: string, enabled: boolean) => {
     const next = {
@@ -86,6 +91,29 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
     };
     void save.run(next);
   };
+
+  const setDetectedDomainsEnabled = (enabled: boolean) => {
+    const detectedOrigins = new Set(
+      (discovery.data?.locations ?? []).map((location) => location.origin),
+    );
+    const next = {
+      ...policy,
+      surfaces: policy.surfaces.map((surface) =>
+        detectedOrigins.has(surface.origin) ? { ...surface, enabled } : surface,
+      ),
+    };
+    void save.run(next);
+  };
+  const detectedSurfaceCount = policy.surfaces.filter((surface) =>
+    (discovery.data?.locations ?? []).some((location) => location.origin === surface.origin),
+  ).length;
+  const allDetectedDomainsEnabled =
+    detectedSurfaceCount > 0 &&
+    policy.surfaces
+      .filter((surface) =>
+        (discovery.data?.locations ?? []).some((location) => location.origin === surface.origin),
+      )
+      .every((surface) => surface.enabled);
 
   const addExclusion = (id: string, path: string) => {
     const normalized = normalisePath(path);
@@ -128,13 +156,28 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
             <p className="text-[16px] font-semibold text-foreground">Where {agent.name} can help</p>
           )}
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-muted-foreground">
-            Domains, subdomains, and browser routes are detected by real SDK traffic. Switch off
-            anything where the agent should stay hidden.
+            Live SDK reports verify exact domains. Scan finds public sitemap and linked routes; your
+            router manifest covers private or app-only routes. Only server-verified domains can be
+            turned on.
           </p>
         </div>
-        <span className="inline-flex w-fit items-center gap-2 rounded-md bg-[var(--surface-soft)] px-2.5 py-1.5 text-[11.5px] font-semibold text-muted-foreground">
-          <ShieldCheck className="size-3.5" /> Tenant-controlled access
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {detectedSurfaceCount > 0 && (
+            <button
+              type="button"
+              disabled={save.busy}
+              onClick={() => setDetectedDomainsEnabled(!allDetectedDomainsEnabled)}
+              className="min-h-8 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-2.5 text-[10.5px] font-semibold text-foreground transition-colors hover:bg-[var(--surface-soft)] disabled:opacity-50"
+            >
+              {allDetectedDomainsEnabled
+                ? 'Block all detected domains'
+                : 'Turn on all detected domains'}
+            </button>
+          )}
+          <span className="inline-flex w-fit items-center gap-2 rounded-md bg-[var(--surface-soft)] px-2.5 py-1.5 text-[11.5px] font-semibold text-muted-foreground">
+            <ShieldCheck className="size-3.5" /> Tenant-controlled access
+          </span>
+        </div>
       </div>
 
       {policy.surfaces.length === 0 ? (
@@ -157,15 +200,15 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
             <SurfaceRow
               key={surface.id}
               surface={surface}
-              pages={
-                discovery.data?.locations.find((location) => location.origin === surface.origin)
-                  ?.pages ?? []
-              }
-              busy={save.busy}
+              location={discovery.data?.locations.find(
+                (location) => location.origin === surface.origin,
+              )}
+              busy={save.busy || scan.busy}
               onToggle={(enabled) => setEnabled(surface.id, enabled)}
               onIdentityChange={(identity) => setIdentity(surface.id, identity)}
               onAddExclusion={(path) => addExclusion(surface.id, path)}
               onRemoveExclusion={(path) => removeExclusion(surface.id, path)}
+              onScan={() => scan.run(surface.origin)}
             />
           ))}
         </div>
@@ -179,28 +222,32 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
         </p>
       )}
       {save.error && <p className="mt-2 text-[12px] text-critical">{save.error}</p>}
+      {scan.error && <p className="mt-2 text-[12px] text-critical">{scan.error}</p>}
     </section>
   );
 }
 
 function SurfaceRow({
   surface,
-  pages,
+  location,
   busy,
   onToggle,
   onIdentityChange,
   onAddExclusion,
   onRemoveExclusion,
+  onScan,
 }: {
   surface: WebSurfaceRule;
-  pages: DiscoveredPage[];
+  location: DiscoveredLocation | undefined;
   busy: boolean;
   onToggle: (enabled: boolean) => void;
   onIdentityChange: (identity: 'anonymous' | 'required') => void;
   onAddExclusion: (path: string) => void;
   onRemoveExclusion: (path: string) => void;
+  onScan: () => void;
 }) {
   const Icon = Globe2;
+  const pages = location?.pages ?? [];
   const [showAllPages, setShowAllPages] = useState(false);
   const visiblePages = showAllPages ? pages : pages.slice(0, 12);
   return (
@@ -237,6 +284,19 @@ function SurfaceRow({
         </button>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--border-default)] pt-3">
+        <button
+          type="button"
+          disabled={busy || location === undefined}
+          onClick={onScan}
+          className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-2 text-[10.5px] font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          title={
+            location
+              ? 'Scan this verified domain’s public sitemap and linked pages'
+              : 'This domain can be scanned after the SDK has verified it with your server'
+          }
+        >
+          <RefreshCw className="size-3" /> Scan public routes
+        </button>
         <button
           type="button"
           aria-pressed={surface.identity === 'required'}
@@ -279,6 +339,13 @@ function SurfaceRow({
                   {page.name && page.name !== page.pathname && (
                     <p className="truncate text-[9.5px] text-muted-foreground">{page.name}</p>
                   )}
+                  <p className="mt-0.5 text-[9px] font-medium text-muted-foreground">
+                    {page.source === 'crawl'
+                      ? 'Public scan'
+                      : page.source === 'manifest'
+                        ? 'Router manifest'
+                        : 'Live SDK'}
+                  </p>
                 </div>
                 <button
                   type="button"

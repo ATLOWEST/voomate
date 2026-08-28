@@ -32,6 +32,11 @@ export interface CrawlOptions {
   readonly excludePatterns?: readonly string[];
   /** Awaited per page. Throwing here aborts the crawl — it means we cannot store results. */
   readonly onPage: (page: CrawledPage) => Promise<void>;
+  /**
+   * Called for every safely fetched HTML page before readability filtering. Discovery uses this
+   * for route inventory, while knowledge ingestion can continue ignoring empty SPA shells.
+   */
+  readonly onDiscoveredPage?: (page: CrawledPage) => Promise<void>;
   /** Progress and diagnostics. Never throws the crawl off course. */
   readonly onEvent?: (event: CrawlEvent) => void;
   readonly signal?: AbortSignal;
@@ -311,6 +316,10 @@ export const crawlSite = async (options: CrawlOptions): Promise<CrawlSummary> =>
       }
 
       if (extracted.looksLikeAppShell) appShells += 1;
+
+      // A route is still a real route when it is a client-rendered shell. Keep discovery
+      // separate from readability so we never pollute a knowledge base with empty documents.
+      await options.onDiscoveredPage?.(extracted);
 
       if (extracted.text.length < 120) {
         skipped += 1;

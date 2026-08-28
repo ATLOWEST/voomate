@@ -30,8 +30,9 @@ import { load } from 'cheerio';
 import { and, count, desc, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { generateApiKey, generateEmbedKey } from '../../lib/keys.js';
+import { generateApiKey, generateEmbedKey, normalizeOrigin } from '../../lib/keys.js';
 import { getDb } from '../../lib/db.js';
+import { crawlSite } from '../../lib/crawl/crawl.js';
 import { FetchError, fetchPage } from '../../lib/crawl/fetch.js';
 import { tenantOf } from '../../plugins/auth.js';
 import { transitionAgentLifecycle } from './lifecycle.js';
@@ -46,6 +47,12 @@ const createIdentityKeySchema = z
   })
   .strict();
 const MAX_ACTIVE_IDENTITY_KEYS = 10;
+const scanWebLocationsSchema = z
+  .object({
+    origin: z.string().url().optional(),
+    maxPages: z.number().int().min(1).max(50).default(50),
+  })
+  .strict();
 
 type DeploymentAuditMetadata = {
   platform?: 'website' | 'web_app' | 'ios' | 'android' | 'web';
@@ -56,8 +63,15 @@ type DeploymentAuditMetadata = {
   routeInventory?: Array<{
     pathname?: string;
     name?: string;
-    source?: 'current' | 'manifest' | 'navigation';
+    source?: 'current' | 'manifest' | 'navigation' | 'crawl';
   }>;
+  crawl?: {
+    pages: number;
+    skipped: number;
+    failed: number;
+    appShells: number;
+    usedSitemap: boolean;
+  };
 };
 type SetupAuditMetadata = DeploymentAuditMetadata & {
   code?: string;
@@ -641,6 +655,96 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
    * Real browser evidence grouped for the merchant. These paths are observations only; the
    * saved deployment policy remains the authorization source of truth.
    */
+  app.post(
+    '/:id/web-locations/scan',
+    {
+      preHandler: app.requireTenant(OrgRole.DEVELOPER),
+      config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
+    },
+    async (request) => {
+      const tenant = tenantOf(request);
+      const { id } = paramsSchema.parse(request.params);
+      const input = scanWebLocationsSchema.parse(request.body ?? {});
+      const [agent] = await getDb()
+        .select({ id: agents.id, allowedOrigins: agents.allowedOrigins })
+        .from(agents)
+        .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
+        .limit(1);
+      if (!agent) throw notFound('Agent', id);
+
+      // Crawling is discovery, never proof of domain ownership. A location only becomes
+      // scannable after the customer's own backend has claimed this exact origin with the
+      // server-only API key. This prevents a copied public embed key from enrolling a domain.
+      const claims = await getDb()
+        .select({ metadata: auditLogs.metadata })
+        .from(auditLogs)
+        .where(
+          and(
+            tenantScope(auditLogs, tenant.organizationId),
+            eq(auditLogs.resourceId, id),
+            eq(auditLogs.resourceType, 'agent'),
+            eq(auditLogs.action, 'agent.installation_verified'),
+          ),
+        )
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(100);
+      const verifiedOrigins = new Set(
+        claims
+          .map((record) =>
+            normalizeOrigin((record.metadata as DeploymentAuditMetadata)?.origin ?? ''),
+          )
+          .filter((origin): origin is string => origin !== undefined),
+      );
+      const origin = normalizeOrigin(input.origin ?? [...verifiedOrigins][0] ?? '');
+      if (!origin || !verifiedOrigins.has(origin) || !agent.allowedOrigins.includes(origin)) {
+        throw conflict(
+          'Choose a domain that has been verified by your server before scanning its public routes.',
+        );
+      }
+
+      const routes = new Map<string, { pathname: string; name?: string; source: 'crawl' }>();
+      const summary = await crawlSite({
+        rootUrl: origin,
+        maxPages: input.maxPages,
+        maxDepth: 3,
+        onPage: async () => undefined,
+        onDiscoveredPage: async (page) => {
+          const pageUrl = new URL(page.url);
+          // `crawlSite` permits www redirects so knowledge imports do not duplicate a site.
+          // Here we keep the policy exact: a redirected hostname is shown only after its own
+          // server-key claim, never silently added to this agent's allowed origins.
+          if (pageUrl.origin.toLowerCase() !== origin) return;
+          const pathname = pageUrl.pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/';
+          routes.set(pathname, {
+            pathname,
+            ...(page.title.trim().length > 0 ? { name: page.title.trim().slice(0, 120) } : {}),
+            source: 'crawl',
+          });
+        },
+      });
+
+      const metadata: DeploymentAuditMetadata = {
+        platform: 'web',
+        origin,
+        routeInventory: Array.from(routes.values()).sort((a, b) =>
+          a.pathname.localeCompare(b.pathname),
+        ),
+        crawl: summary,
+      };
+      await getDb().insert(auditLogs).values({
+        organizationId: tenant.organizationId,
+        actorId: tenant.userId,
+        action: 'agent.web_routes_scanned',
+        resourceType: 'agent',
+        resourceId: id,
+        metadata,
+        ipAddress: request.ip,
+      });
+
+      return { scan: { origin, routes: routes.size, ...summary } };
+    },
+  );
+
   app.get(
     '/:id/web-locations',
     { preHandler: app.requireTenant(OrgRole.VIEWER) },
@@ -666,7 +770,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
             tenantScope(auditLogs, tenant.organizationId),
             eq(auditLogs.resourceId, id),
             eq(auditLogs.resourceType, 'agent'),
-            eq(auditLogs.action, 'agent.installation_verified'),
+            inArray(auditLogs.action, ['agent.installation_verified', 'agent.web_routes_scanned']),
           ),
         )
         .orderBy(desc(auditLogs.createdAt))
