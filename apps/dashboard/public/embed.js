@@ -113,6 +113,24 @@
     }
   };
 
+  // A public observation gives the merchant instant installation feedback. It is intentionally
+  // not an approval: only the same-origin server endpoint below can use the secret API key to
+  // claim the domain and make the agent eligible to run.
+  const observeInstallation = async (inventory) => {
+    const endpoint = new URL('/api/v1/widget/installations/observe', apiOrigin);
+    await fetch(endpoint.href, {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        embedKey: publicKey,
+        pathname: window.location.pathname,
+        routes: inventory.routes,
+      }),
+      credentials: 'omit',
+      cache: 'no-store',
+    });
+  };
+
   class VoomateAgent extends HTMLElement {
     constructor() {
       super();
@@ -210,6 +228,9 @@
   const verifyAndMount = async () => {
     try {
       const routeInventory = collectRouteInventory();
+      // This does not block the merchant's page if a network extension or an offline browser
+      // prevents reporting. The next route change or page load tries again.
+      await observeInstallation(routeInventory).catch(() => undefined);
       await announceInstallation(routeInventory);
       const verifiedIdentityToken = await refreshIdentity();
       const response = await fetch(`${apiOrigin}/api/web-agent/session`, {

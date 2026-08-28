@@ -64,6 +64,22 @@ const installationClaimSchema = z
       .default([]),
   })
   .strict();
+const installationObservationSchema = z
+  .object({
+    embedKey: z.string().trim().min(8).max(160),
+    pathname: z.string().min(1).max(240).optional(),
+    routes: z
+      .array(
+        z.object({
+          pathname: z.string().min(1).max(240),
+          name: z.string().trim().min(1).max(120).optional(),
+          source: z.enum(['current', 'manifest', 'navigation']),
+        }),
+      )
+      .max(80)
+      .default([]),
+  })
+  .strict();
 
 /**
  * Resolve the caller's origin from the request headers.
@@ -82,6 +98,66 @@ const originOf = (request: FastifyRequest): string | undefined => {
 };
 
 export const widgetRoutes: FastifyPluginAsync = async (app) => {
+  /**
+   * The public SDK reports that it is present before a merchant has completed server setup.
+   * This is deliberately observation-only: a public embed key cannot add an allowlisted origin,
+   * enable a surface, or mint a session. It gives the dashboard immediate, truthful feedback
+   * instead of an empty screen while the server-only API key has not been used yet.
+   */
+  app.post(
+    '/installations/observe',
+    { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const input = installationObservationSchema.parse(request.body);
+      const origin = originOf(request);
+      if (origin === undefined) {
+        // Do not reveal whether an embed key exists to a caller without browser origin evidence.
+        reply.status(204);
+        return;
+      }
+      const [agent] = await getDb()
+        .select({ id: agents.id, organizationId: agents.organizationId, status: agents.status })
+        .from(agents)
+        .where(eq(agents.embedKey, input.embedKey))
+        .limit(1);
+      if (!agent || agent.status === AgentStatus.ARCHIVED) {
+        reply.status(204);
+        return;
+      }
+
+      const pathname =
+        input.pathname?.startsWith('/') && !input.pathname.includes('..')
+          ? input.pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/'
+          : '/';
+      const routeInventory = input.routes
+        .filter((route) => route.pathname.startsWith('/') && !route.pathname.includes('..'))
+        .map((route) => ({
+          pathname: route.pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/',
+          ...(route.name ? { name: route.name } : {}),
+          source: route.source,
+        }));
+      await getDb()
+        .insert(auditLogs)
+        .values({
+          organizationId: agent.organizationId,
+          actorId: null,
+          action: 'agent.installation_observed',
+          resourceType: 'agent',
+          resourceId: agent.id,
+          metadata: {
+            platform: 'web',
+            origin,
+            pathname,
+            sdk: 'embed-v2',
+            routeInventory,
+            claimedWithServerKey: false,
+          },
+          ipAddress: request.ip,
+        });
+      reply.status(204);
+    },
+  );
+
   /**
    * A merchant backend uses its server-only API key to claim the exact origin on which the SDK
    * is running. This is the automatic replacement for asking a person to type an allowlist.

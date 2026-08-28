@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Agent, WebDeploymentPolicy, WebSurfaceRule } from '@voomate/core';
 import { isPathWithinPrefix, webDeploymentPolicyFromAppearance } from '@voomate/core';
-import { Globe2, RefreshCw, Route, ShieldCheck } from 'lucide-react';
+import { CircleAlert, Globe2, RefreshCw, Route, ShieldCheck } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
@@ -16,6 +16,7 @@ type DiscoveredPage = {
 };
 type DiscoveredLocation = {
   origin: string;
+  verification: 'pending' | 'verified';
   enabled: boolean;
   identity: 'anonymous' | 'required';
   lastSeenAt: string;
@@ -31,7 +32,9 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
   const policy = useMemo(() => {
     const base = editablePolicy(agent, browserOrigin);
     const missing = (discovery.data?.locations ?? []).filter(
-      (location) => !base.surfaces.some((surface) => surface.origin === location.origin),
+      (location) =>
+        location.verification === 'verified' &&
+        !base.surfaces.some((surface) => surface.origin === location.origin),
     );
     return {
       ...base,
@@ -114,6 +117,9 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
         (discovery.data?.locations ?? []).some((location) => location.origin === surface.origin),
       )
       .every((surface) => surface.enabled);
+  const pendingLocations = (discovery.data?.locations ?? []).filter(
+    (location) => location.verification === 'pending',
+  );
 
   const addExclusion = (id: string, path: string) => {
     const normalized = normalisePath(path);
@@ -156,9 +162,9 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
             <p className="text-[16px] font-semibold text-foreground">Where {agent.name} can help</p>
           )}
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-muted-foreground">
-            Live SDK reports verify exact domains. Scan finds public sitemap and linked routes; your
-            router manifest covers private or app-only routes. Only server-verified domains can be
-            turned on.
+            The script reports immediately. Your server API key then verifies the exact domain and
+            turns it on. Public scans find sitemap and linked routes; the router manifest covers
+            private or app-only routes.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -180,7 +186,7 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
         </div>
       </div>
 
-      {policy.surfaces.length === 0 ? (
+      {policy.surfaces.length === 0 && pendingLocations.length === 0 ? (
         <div className="mt-4 flex items-center gap-3 rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--surface-soft)] p-4">
           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--surface)] text-muted-foreground">
             <Globe2 className="size-4" />
@@ -194,7 +200,7 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
             </p>
           </div>
         </div>
-      ) : (
+      ) : policy.surfaces.length > 0 ? (
         <div className="mt-5 grid gap-3 lg:grid-cols-2">
           {policy.surfaces.map((surface) => (
             <SurfaceRow
@@ -210,6 +216,33 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
               onRemoveExclusion={(path) => removeExclusion(surface.id, path)}
               onScan={() => scan.run(surface.origin)}
             />
+          ))}
+        </div>
+      ) : null}
+      {pendingLocations.length > 0 && (
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {pendingLocations.map((location) => (
+            <article
+              key={location.origin}
+              className="min-w-0 rounded-lg border border-caution/25 bg-caution-soft p-4"
+            >
+              <div className="flex items-start gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-md bg-[var(--surface)] text-caution">
+                  <CircleAlert className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-foreground">SDK detected</p>
+                  <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                    {location.origin}
+                  </p>
+                  <p className="mt-2 text-[11.5px] leading-5 text-muted-foreground">
+                    The browser script is working, but this domain is still blocked until your
+                    server uses the API key. Check that <code>VOOMATE_API_KEY</code> and
+                    <code> /api/voomate/setup</code> are deployed, then reload this page.
+                  </p>
+                </div>
+              </div>
+            </article>
           ))}
         </div>
       )}

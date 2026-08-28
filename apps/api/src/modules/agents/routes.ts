@@ -652,8 +652,9 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
   });
 
   /**
-   * Real browser evidence grouped for the merchant. These paths are observations only; the
-   * saved deployment policy remains the authorization source of truth.
+   * Browser SDK evidence grouped for the merchant. An observed location means the script really
+   * loaded; a verified location additionally has the merchant's server-key proof. The saved
+   * deployment policy remains the authorization source of truth in both cases.
    */
   app.post(
     '/:id/web-locations/scan',
@@ -763,14 +764,22 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       if (!agent) throw notFound('Agent', id);
 
       const records = await getDb()
-        .select({ metadata: auditLogs.metadata, createdAt: auditLogs.createdAt })
+        .select({
+          action: auditLogs.action,
+          metadata: auditLogs.metadata,
+          createdAt: auditLogs.createdAt,
+        })
         .from(auditLogs)
         .where(
           and(
             tenantScope(auditLogs, tenant.organizationId),
             eq(auditLogs.resourceId, id),
             eq(auditLogs.resourceType, 'agent'),
-            inArray(auditLogs.action, ['agent.installation_verified', 'agent.web_routes_scanned']),
+            inArray(auditLogs.action, [
+              'agent.installation_observed',
+              'agent.installation_verified',
+              'agent.web_routes_scanned',
+            ]),
           ),
         )
         .orderBy(desc(auditLogs.createdAt))
@@ -781,6 +790,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         {
           origin: string;
           lastSeenAt: Date;
+          verified: boolean;
           pages: Map<
             string,
             { pathname: string; name: string | null; source: string; lastSeenAt: Date }
@@ -794,9 +804,11 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         const existing = locations.get(metadata.origin) ?? {
           origin: metadata.origin,
           lastSeenAt: record.createdAt,
+          verified: record.action === 'agent.installation_verified',
           pages: new Map(),
         };
         if (record.createdAt > existing.lastSeenAt) existing.lastSeenAt = record.createdAt;
+        if (record.action === 'agent.installation_verified') existing.verified = true;
         const observed = [
           ...(typeof metadata.pathname === 'string'
             ? [{ pathname: metadata.pathname, name: undefined, source: 'current' as const }]
@@ -829,6 +841,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
           return {
             origin: location.origin,
             lastSeenAt: location.lastSeenAt,
+            verification: location.verified ? 'verified' : 'pending',
             enabled: surface?.enabled ?? false,
             identity: surface?.identity ?? 'anonymous',
             pages: Array.from(location.pages.values()).sort((a, b) =>
