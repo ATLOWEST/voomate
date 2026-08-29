@@ -60,7 +60,7 @@ const installationClaimSchema = z
           source: z.enum(['current', 'manifest', 'navigation']),
         }),
       )
-      .max(80)
+      .max(240)
       .default([]),
   })
   .strict();
@@ -76,7 +76,7 @@ const installationObservationSchema = z
           source: z.enum(['current', 'manifest', 'navigation']),
         }),
       )
-      .max(80)
+      .max(240)
       .default([]),
   })
   .strict();
@@ -244,6 +244,7 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
                   kind: 'observed' as const,
                   origin,
                   pathPrefixes: ['/'],
+                  excludedPaths: [],
                   excludedPathPrefixes: [],
                   identity: 'anonymous' as const,
                   // A server claim proves ownership; it does not publish an agent. The
@@ -297,7 +298,10 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
           },
           ipAddress: request.ip,
         });
-        return { claimed: !existingSurface, enabled: existingSurface?.enabled ?? true };
+        return {
+          claimed: !existingSurface,
+          enabled: existingSurface?.enabled ?? policy.surfaces.at(-1)?.enabled ?? false,
+        };
       });
 
       reply.header('Cache-Control', 'no-store').status(result.claimed ? 201 : 200);

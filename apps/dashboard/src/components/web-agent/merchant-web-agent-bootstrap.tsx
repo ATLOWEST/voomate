@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import type { Agent } from '@voomate/core';
-import { webDeploymentPolicyFromAppearance, webSurfaceForLocation } from '@voomate/core';
+import { webDeploymentPolicyFromAppearance } from '@voomate/core';
 import { useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 
@@ -30,14 +30,15 @@ export function MerchantWebAgentBootstrap() {
 
   useEffect(() => {
     const currentOrigin = window.location.origin;
-    const currentPath = window.location.pathname;
     const agent = data?.agents.find((candidate) => {
       if (candidate.catalogType !== 'web' || !candidate.embedKey) return false;
       const policy = webDeploymentPolicyFromAppearance(
         candidate.appearance,
         candidate.allowedOrigins,
       );
-      return webSurfaceForLocation(policy, currentOrigin, currentPath) !== undefined;
+      // Keep the path-only detector present across this tenant-owned domain. The public access
+      // gate below decides whether a launcher may render; disabled pages never receive a session.
+      return policy.surfaces.some((surface) => surface.origin === currentOrigin);
     });
 
     if (!agent || !WIDGET_ORIGIN) return;

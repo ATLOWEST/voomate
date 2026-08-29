@@ -1,4 +1,4 @@
-/* global CSS, CSSStyleSheet, HTMLElement, URL, console, customElements, document, fetch, window */
+/* global CSS, CSSStyleSheet, HTMLElement, MutationObserver, URL, console, customElements, document, fetch, window */
 (() => {
   'use strict';
 
@@ -19,26 +19,6 @@
   const setupEndpoint = script.dataset.setupEndpoint || '/voomate/setup';
   const widgetModule = new URL('/embed/v2/widget.js', assetOrigin).href;
 
-  const refreshIdentity = async () => {
-    if (!identityEndpoint) return identityToken;
-    const endpoint = new URL(identityEndpoint, window.location.href);
-    if (endpoint.origin !== window.location.origin) {
-      throw new Error('data-identity-endpoint must use the current site origin.');
-    }
-    const response = await fetch(endpoint.href, {
-      method: 'POST',
-      headers: { accept: 'application/json' },
-      credentials: 'same-origin',
-      cache: 'no-store',
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || typeof payload.token !== 'string' || payload.token.length > 4_096) {
-      throw new Error('Signed-in customer verification failed.');
-    }
-    identityToken = payload.token;
-    return identityToken;
-  };
-
   // This observes only public, same-origin route hints that the browser is already rendering.
   // It is not a source-code scan and it never changes authorization. A host can make coverage
   // exact by publishing its named paths in data-voomate-route-manifest (see the SDK guide).
@@ -49,7 +29,7 @@
       if (typeof pathname !== 'string' || !pathname.startsWith('/') || pathname.includes('..'))
         return;
       const normalized = pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/';
-      if (seen.has(normalized) || routes.length >= 80) return;
+      if (seen.has(normalized) || routes.length >= 240) return;
       seen.add(normalized);
       routes.push({
         pathname: normalized,
@@ -57,7 +37,9 @@
         source,
       });
     };
-    add(window.location.pathname, document.title, 'current');
+    // Path-only discovery is enough to let the merchant control placement. Page titles and
+    // content are deliberately not collected before the route policy has allowed a session.
+    add(window.location.pathname, undefined, 'current');
     const manifest = document.querySelector(
       'script[type="application/json"][data-voomate-route-manifest]',
     );
@@ -73,13 +55,10 @@
         /* Invalid host manifest is ignored; the product must keep working. */
       }
     }
-    for (const link of document.querySelectorAll(
-      'nav a[href], [role="navigation"] a[href], [data-voomate-route] a[href]',
-    )) {
+    for (const link of document.querySelectorAll('a[href]')) {
       try {
         const url = new URL(link.href, window.location.href);
-        if (url.origin === window.location.origin)
-          add(url.pathname, link.getAttribute('aria-label') || link.textContent, 'navigation');
+        if (url.origin === window.location.origin) add(url.pathname, undefined, 'navigation');
       } catch {
         /* Ignore malformed host links. */
       }
@@ -229,33 +208,42 @@
       ?.remove();
   };
 
+  let accessCheckSequence = 0;
+  const checkAccess = async () => {
+    const sequence = ++accessCheckSequence;
+    const response = await fetch(`${apiOrigin}/api/web-agent/access`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ publicKey, pageUrl: window.location.href }),
+      credentials: 'omit',
+      cache: 'no-store',
+    });
+    if (sequence !== accessCheckSequence) return response.ok;
+    script.dataset.voomateStatus = response.ok ? 'active' : 'not-active';
+    if (response.ok) mountLauncher();
+    else unmountLauncher();
+    return response.ok;
+  };
+
   // This request is both the real installation verification and the policy gate. The launcher
   // is not shown until the control plane confirms that this exact origin and page are allowed
   // and the agent is live. Draft agents therefore prove their SDK installation without exposing
   // a misleading button that cannot answer yet.
+  let lastReportedInventory = '';
   const verifyAndMount = async () => {
     try {
       const routeInventory = collectRouteInventory();
-      // This does not block the merchant's page if a network extension or an offline browser
-      // prevents reporting. The next route change or page load tries again.
-      await observeInstallation(routeInventory).catch(() => undefined);
-      await announceInstallation(routeInventory);
-      const verifiedIdentityToken = await refreshIdentity();
-      const response = await fetch(`${apiOrigin}/api/web-agent/session`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          publicKey,
-          pageUrl: window.location.href,
-          routeInventory,
-          ...(verifiedIdentityToken ? { identityToken: verifiedIdentityToken } : {}),
-        }),
-        credentials: 'omit',
-        cache: 'no-store',
-      });
-      script.dataset.voomateStatus = response.ok ? 'active' : 'not-active';
-      if (response.ok) mountLauncher();
-      else unmountLauncher();
+      const inventorySignature = JSON.stringify(routeInventory.routes);
+      if (inventorySignature !== lastReportedInventory) {
+        // Reporting is path-only and never grants access. The server-key claim proves domain
+        // ownership; a temporary setup-endpoint failure must not break an already-live agent.
+        await Promise.all([
+          observeInstallation(routeInventory).catch(() => undefined),
+          announceInstallation(routeInventory).catch(() => undefined),
+        ]);
+        lastReportedInventory = inventorySignature;
+      }
+      await checkAccess();
     } catch {
       // A temporary network failure must not interrupt the host product. The next page load
       // retries verification; the agent never renders a broken or unauthorized launcher.
@@ -266,9 +254,9 @@
 
   let verificationTimer;
   let lastScheduledUrl = '';
-  const scheduleVerification = () => {
+  const scheduleVerification = (force = false) => {
     const nextUrl = window.location.href;
-    if (nextUrl === lastScheduledUrl) return;
+    if (!force && nextUrl === lastScheduledUrl) return;
     lastScheduledUrl = nextUrl;
     window.clearTimeout(verificationTimer);
     verificationTimer = window.setTimeout(() => void verifyAndMount(), 120);
@@ -283,5 +271,20 @@
   }
   window.addEventListener('popstate', scheduleVerification);
   window.addEventListener('hashchange', scheduleVerification);
+  window.addEventListener('voomate:agent-configuration-updated', () => scheduleVerification(true));
+
+  // Framework routers and permission-aware menus often reveal links after the first render.
+  // Observe those real anchors, then send only their normalized paths when the set changes.
+  const routeObserver = new MutationObserver(() => {
+    const inventorySignature = JSON.stringify(collectRouteInventory().routes);
+    if (inventorySignature !== lastReportedInventory) scheduleVerification(true);
+  });
+  routeObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+  // Existing sessions are invalidated immediately by the server lease rotation. This small
+  // heartbeat also removes the visible launcher within two seconds on already-open pages.
+  window.setInterval(() => {
+    if (document.visibilityState === 'visible') void checkAccess().catch(unmountLauncher);
+  }, 2_000);
   scheduleVerification();
 })();

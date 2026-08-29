@@ -28,7 +28,7 @@ export const sessionRequestSchema = z.object({
             source: z.enum(['manifest', 'navigation', 'current']),
           }),
         )
-        .max(80),
+        .max(240),
     })
     .optional(),
 });

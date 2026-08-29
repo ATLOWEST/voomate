@@ -413,7 +413,7 @@ function collectRouteInventory() {
     if (typeof pathname !== 'string' || !pathname.startsWith('/') || pathname.includes('..'))
       return;
     const normalized = pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/';
-    if (seen.has(normalized) || routes.length >= 80) return;
+    if (seen.has(normalized) || routes.length >= 240) return;
     seen.add(normalized);
     routes.push({
       pathname: normalized,
@@ -421,7 +421,7 @@ function collectRouteInventory() {
       source,
     });
   };
-  add(window.location.pathname, document.title, 'current');
+  add(window.location.pathname, undefined, 'current');
   const manifestNode = document.querySelector(
     'script[type="application/json"][data-voomate-route-manifest]',
   );
@@ -437,14 +437,12 @@ function collectRouteInventory() {
       // An invalid optional manifest cannot interrupt the host application.
     }
   }
-  const links = document.querySelectorAll(
-    'nav a[href], [role="navigation"] a[href], [data-voomate-route] a[href]',
-  );
+  const links = document.querySelectorAll('a[href]');
   for (const link of links) {
     try {
       const url = new URL(link.href, window.location.href);
       if (url.origin === window.location.origin) {
-        add(url.pathname, link.getAttribute('aria-label') || link.textContent, 'navigation');
+        add(url.pathname, undefined, 'navigation');
       }
     } catch {
       // Host navigation is untrusted input and malformed links are ignored.

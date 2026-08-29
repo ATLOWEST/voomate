@@ -3,6 +3,7 @@ type Bucket = { count: number; resetAt: number };
 const localBuckets = new Map<string, Bucket>();
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 30;
+const MAX_ACCESS_CHECKS = 120;
 const MAX_IMAGE_UPLOADS = 6;
 
 function consumeLocalBucket(key: string, maximum: number, weight: number): void {
@@ -50,6 +51,11 @@ async function enforceRateLimit(key: string, maximum: number, weight: number): P
 /** Per public-key + embedding-domain limiter. Redis is used in production; memory is dev-only. */
 export async function enforceWidgetRateLimit(key: string): Promise<void> {
   await enforceRateLimit(`requests:${key}`, MAX_REQUESTS, 1);
+}
+
+/** Lightweight policy heartbeat. It cannot mint a token or execute an agent turn. */
+export async function enforceWidgetAccessRateLimit(key: string): Promise<void> {
+  await enforceRateLimit(`access:${key}`, MAX_ACCESS_CHECKS, 1);
 }
 
 /** Separate weighted limiter: six image files per public key + origin + session per minute. */

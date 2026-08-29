@@ -76,6 +76,26 @@ describe('Web Agent surface policy', () => {
     ).toBeUndefined();
   });
 
+  it('disables one exact page without disabling its child routes', () => {
+    const excluded = webDeploymentPolicySchema.parse({
+      version: 1,
+      surfaces: [
+        {
+          id: 'application',
+          name: 'Customer application',
+          kind: 'observed',
+          origin: 'https://app.example.com',
+          pathPrefixes: ['/'],
+          excludedPaths: ['/agents'],
+          enabled: true,
+        },
+      ],
+    });
+
+    expect(webSurfaceForLocation(excluded, 'https://app.example.com', '/agents')).toBeUndefined();
+    expect(webSurfaceForLocation(excluded, 'https://app.example.com', '/agents/new')).toBeDefined();
+  });
+
   it('keeps existing origin-only agents compatible on every path', () => {
     const legacy = webDeploymentPolicyFromAppearance({}, ['https://app.example.com']);
     expect(webSurfaceForLocation(legacy, 'https://app.example.com', '/overview')).toBeDefined();

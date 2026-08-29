@@ -53,6 +53,7 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
           kind: 'observed' as const,
           origin: location.origin,
           pathPrefixes: ['/'],
+          excludedPaths: [],
           excludedPathPrefixes: [],
           identity: location.identity,
           // Domain discovery never turns an agent on. The merchant explicitly enables a
@@ -126,27 +127,30 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
     (location) => location.verification === 'pending',
   );
 
-  const addExclusion = (id: string, path: string) => {
+  const disablePage = (id: string, path: string) => {
     const normalized = normalisePath(path);
     const next = {
       ...policy,
       surfaces: policy.surfaces.map((surface) =>
-        surface.id === id && !surface.excludedPathPrefixes.includes(normalized)
-          ? { ...surface, excludedPathPrefixes: [...surface.excludedPathPrefixes, normalized] }
+        surface.id === id && !surface.excludedPaths.includes(normalized)
+          ? { ...surface, excludedPaths: [...surface.excludedPaths, normalized] }
           : surface,
       ),
     };
     void save.run(next);
   };
 
-  const removeExclusion = (id: string, path: string) => {
+  const enablePage = (id: string, path: string) => {
+    const normalized = normalisePath(path);
     const next = {
       ...policy,
       surfaces: policy.surfaces.map((surface) =>
         surface.id === id
           ? {
               ...surface,
-              excludedPathPrefixes: surface.excludedPathPrefixes.filter((entry) => entry !== path),
+              excludedPaths: surface.excludedPaths.filter(
+                (entry) => normalisePath(entry) !== normalized,
+              ),
             }
           : surface,
       ),
@@ -168,8 +172,8 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
           )}
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-muted-foreground">
             Only sites reported by the installed SDK appear here. Your server then verifies that
-            exact site. Voomate never discovers or runs on admin, sign-in, payment, or private
-            pages unless the merchant deliberately installs it there.
+            exact site. Voomate never discovers or runs on admin, sign-in, payment, or private pages
+            unless the merchant deliberately installs it there.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -217,8 +221,8 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
               busy={save.busy || scan.busy}
               onToggle={(enabled) => setEnabled(surface.id, enabled)}
               onIdentityChange={(identity) => setIdentity(surface.id, identity)}
-              onAddExclusion={(path) => addExclusion(surface.id, path)}
-              onRemoveExclusion={(path) => removeExclusion(surface.id, path)}
+              onDisablePage={(path) => disablePage(surface.id, path)}
+              onEnablePage={(path) => enablePage(surface.id, path)}
               onScan={() => scan.run(surface.origin)}
             />
           ))}
@@ -241,8 +245,8 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
                     {location.origin}
                   </p>
                   <p className="mt-2 text-[11.5px] leading-5 text-muted-foreground">
-                    The browser script is working, but this domain remains blocked until the
-                    same site&apos;s server uses the API key at <code>/voomate/setup</code>. This
+                    The browser script is working, but this domain remains blocked until the same
+                    site&apos;s server uses the API key at <code>/voomate/setup</code>. This
                     dashboard updates automatically when that verification succeeds.
                   </p>
                 </div>
@@ -271,8 +275,8 @@ function SurfaceRow({
   busy,
   onToggle,
   onIdentityChange,
-  onAddExclusion,
-  onRemoveExclusion,
+  onDisablePage,
+  onEnablePage,
   onScan,
 }: {
   surface: WebSurfaceRule;
@@ -280,8 +284,8 @@ function SurfaceRow({
   busy: boolean;
   onToggle: (enabled: boolean) => void;
   onIdentityChange: (identity: 'anonymous' | 'required') => void;
-  onAddExclusion: (path: string) => void;
-  onRemoveExclusion: (path: string) => void;
+  onDisablePage: (path: string) => void;
+  onEnablePage: (path: string) => void;
   onScan: () => void;
 }) {
   const Icon = Globe2;
@@ -300,15 +304,19 @@ function SurfaceRow({
             {surface.origin}
             {surface.pathPrefixes.map(normalisePath).join(', ')}
           </p>
-          {surface.excludedPathPrefixes.length > 0 && (
+          {surface.excludedPaths.length + surface.excludedPathPrefixes.length > 0 && (
             <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-              Except {surface.excludedPathPrefixes.map(normalisePath).join(', ')}
+              Off{' '}
+              {[...surface.excludedPaths, ...surface.excludedPathPrefixes]
+                .map(normalisePath)
+                .join(', ')}
             </p>
           )}
         </div>
         <button
           type="button"
-          aria-pressed={surface.enabled}
+          role="switch"
+          aria-checked={surface.enabled}
           aria-label={`${surface.enabled ? 'Turn off' : 'Turn on'} ${surface.name}`}
           disabled={busy}
           onClick={() => onToggle(!surface.enabled)}
@@ -361,9 +369,13 @@ function SurfaceRow({
       {pages.length > 0 && (
         <div className="mt-3 overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--surface)]">
           {visiblePages.map((page) => {
-            const enabled = !surface.excludedPathPrefixes.some((prefix) =>
+            const exactDisabled = surface.excludedPaths.some(
+              (path) => normalisePath(path) === normalisePath(page.pathname),
+            );
+            const sectionDisabled = surface.excludedPathPrefixes.some((prefix) =>
               isPathWithinPrefix(page.pathname, prefix),
             );
+            const enabled = surface.enabled && !exactDisabled && !sectionDisabled;
             return (
               <div
                 key={page.pathname}
@@ -387,17 +399,19 @@ function SurfaceRow({
                 </div>
                 <button
                   type="button"
-                  aria-pressed={enabled}
+                  role="switch"
+                  aria-checked={enabled}
                   aria-label={`${enabled ? 'Turn off' : 'Turn on'} ${page.pathname}`}
-                  disabled={busy}
+                  disabled={busy || !surface.enabled || sectionDisabled}
+                  title={
+                    !surface.enabled
+                      ? 'Turn on this domain first'
+                      : sectionDisabled
+                        ? 'This page is disabled by a section rule'
+                        : `${enabled ? 'Turn off' : 'Turn on'} ${surface.origin}${page.pathname}`
+                  }
                   onClick={() =>
-                    enabled
-                      ? onAddExclusion(page.pathname)
-                      : onRemoveExclusion(
-                          surface.excludedPathPrefixes.find((prefix) =>
-                            isPathWithinPrefix(page.pathname, prefix),
-                          ) ?? normalisePath(page.pathname),
-                        )
+                    enabled ? onDisablePage(page.pathname) : onEnablePage(page.pathname)
                   }
                   className={cn(
                     'grid size-8 shrink-0 place-items-center rounded-md border text-[9px] font-semibold disabled:opacity-50',
@@ -431,16 +445,13 @@ function SurfaceRow({
               (path) => !pages.some((page) => normalisePath(page.pathname) === normalisePath(path)),
             )
             .map((path) => (
-              <button
+              <span
                 key={path}
-                type="button"
-                disabled={busy}
-                onClick={() => onRemoveExclusion(path)}
-                className="rounded-md bg-[var(--surface)] px-2 py-1 font-mono text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-45"
-                title="Remove exclusion"
+                title="This section rule is preserved from an earlier configuration"
+                className="rounded-md bg-[var(--surface)] px-2 py-1 font-mono text-[10px] text-muted-foreground"
               >
-                {normalisePath(path)} ×
-              </button>
+                {normalisePath(path)} section off
+              </span>
             ))}
         </div>
       )}

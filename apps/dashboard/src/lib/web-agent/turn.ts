@@ -6,6 +6,8 @@ import {
   businessProfileGuidance,
   inferBusinessProfile,
   operatingProfileGuidance,
+  webDeploymentPolicyFromAppearance,
+  webSurfaceForLocation,
 } from '@voomate/core';
 import { getWebAgentDb } from './db';
 import { attachImagesToMessage, consumeImagesForMessage } from './images';
@@ -64,6 +66,8 @@ export async function runWebAgentTurn(args: {
       name: agents.name,
       transcriptRetentionDays: agents.transcriptRetentionDays,
       businessProfileVersionId: agents.businessProfileVersionId,
+      allowedOrigins: agents.allowedOrigins,
+      appearance: agents.appearance,
     })
     .from(agents)
     .where(
@@ -99,6 +103,20 @@ export async function runWebAgentTurn(args: {
   ]);
   const [agent] = agentRows;
   if (!agent) throw new Error('Agent is no longer available.');
+
+  // A session may have been created on an allowed page before an SPA navigation or a policy
+  // toggle. Re-evaluate the exact current URL before recording or processing any page context.
+  const activePageUrl = pageContext?.url ?? input.pageUrl;
+  if (activePageUrl) {
+    const url = new URL(activePageUrl);
+    const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
+    if (
+      url.origin.toLowerCase() !== claims.origin ||
+      webSurfaceForLocation(policy, claims.origin, url.pathname) === undefined
+    ) {
+      throw new Error('Agent is not enabled on this page.');
+    }
+  }
 
   let conversationId = input.conversationId;
   if (conversationId) {

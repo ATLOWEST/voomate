@@ -51,6 +51,8 @@ export const webSurfaceRuleSchema = z.object({
   kind: webSurfaceKindSchema,
   origin: bareOriginSchema,
   pathPrefixes: z.array(pathPrefixSchema).min(1).max(20),
+  /** Exact pages disabled by a merchant. Unlike a prefix, `/agents` does not disable children. */
+  excludedPaths: z.array(pathPrefixSchema).max(240).default([]),
   /** Narrow a broad area without needing to create a conflicting second rule. */
   excludedPathPrefixes: z.array(pathPrefixSchema).max(40).default([]),
   /** Private product areas may refuse anonymous sessions and require a signed user token. */
@@ -131,6 +133,7 @@ export function webDeploymentPolicyFromAppearance(
       kind: 'legacy' as const,
       origin,
       pathPrefixes: ['/'],
+      excludedPaths: [],
       excludedPathPrefixes: [],
       identity: 'anonymous' as const,
       enabled: true,
@@ -148,6 +151,9 @@ export function webSurfaceForLocation(
       surface.enabled &&
       surface.origin === origin &&
       surface.pathPrefixes.some((prefix) => isPathWithinPrefix(pathname, prefix)) &&
+      !surface.excludedPaths.some(
+        (excludedPath) => normalizePathPrefix(excludedPath) === normalizePathPrefix(pathname),
+      ) &&
       !surface.excludedPathPrefixes.some((prefix) => isPathWithinPrefix(pathname, prefix)),
   );
 }
