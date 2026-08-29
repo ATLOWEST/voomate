@@ -37,10 +37,11 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: 'pageUrl is required.' }, { status: 400 });
   }
 
-  // Derive the trusted origin from the server request URL — never from the
-  // browser-supplied Origin or Referer headers.
-  const origin = new URL(request.url).origin;
-
+  // The SDK sends the page URL from the browser. We extract the origin and
+  // pathname from it and forward them to the Voomate platform. Domain ownership
+  // is verified by the platform via VOOMATE_API_KEY — the setup endpoint does
+  // not enforce same-origin because it legitimately serves a different subdomain
+  // (app.atlowest.in) than the site where the SDK runs (atlowest.in).
   let pageUrl: URL;
   try {
     pageUrl = new URL(input.pageUrl);
@@ -48,18 +49,14 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: 'pageUrl is not a valid URL.' }, { status: 400 });
   }
 
-  // Reject requests where the page origin does not match this server's origin.
-  if (pageUrl.origin !== origin) {
-    return Response.json({ error: 'Origin mismatch.' }, { status: 400 });
-  }
-
   // Forward only pathname and a path-only route list. Strip all query strings,
   // hash fragments, cookies, and any other data.
+  const pageOrigin = pageUrl.origin;
   const routes = Array.isArray(input.routes)
     ? input.routes.filter((r): r is string => typeof r === 'string').map((r) => {
         try {
           // Accept either a full URL or a path; keep only the pathname.
-          return new URL(r, origin).pathname;
+          return new URL(r, pageOrigin).pathname;
         } catch {
           return null;
         }
@@ -75,7 +72,7 @@ export async function POST(request: Request): Promise<Response> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        origin,
+        origin: pageOrigin,
         pathname: pageUrl.pathname,
         routes,
       }),
