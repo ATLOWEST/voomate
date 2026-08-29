@@ -52,6 +52,9 @@ export function MerchantWebAgentBootstrap() {
     script.src = `${WIDGET_ORIGIN}/embed.js`;
     script.async = true;
     script.dataset.agent = agent.embedKey;
+    // This is intentionally a same-origin dashboard endpoint. It reads the server-only key from
+    // the merchant app's secret manager; the key never reaches the browser or embed script.
+    script.dataset.setupEndpoint = '/api/voomate/setup';
     script.dataset.voomateManagedAgent = agent.id;
     document.body.append(script);
 
