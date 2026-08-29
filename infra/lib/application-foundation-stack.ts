@@ -33,6 +33,7 @@ export class ApplicationFoundationStack extends Stack {
   readonly runtimeSecret: secretsmanager.Secret;
   readonly releaseBucket: s3.Bucket;
   readonly repositories: Record<'api' | 'dashboard' | 'voice', ecr.Repository>;
+  readonly loadBalancerDnsName: string;
 
   constructor(scope: Construct, id: string, props: ApplicationFoundationStackProps) {
     super(scope, id, props);
@@ -360,6 +361,12 @@ export class ApplicationFoundationStack extends Stack {
           'VOOMATE_API_KEY',
         ),
       },
+      environment: {
+        // `atlowest.in` is served from static CloudFront, which proxies only the narrow
+        // `/voomate/setup` POST to this dashboard service. External merchants always use their
+        // own same-origin endpoint and do not inherit this product-owned allowlist.
+        VOOMATE_SETUP_PUBLIC_ORIGINS: 'https://atlowest.in,https://www.atlowest.in',
+      },
       portMappings: [{ containerPort: 3001 }],
     });
 
@@ -638,7 +645,7 @@ export class ApplicationFoundationStack extends Stack {
 
     // HTTP must never serve a token, dashboard session, or WebRTC negotiation. Keep a single
     // redirect-only listener so every public request reaches the TLS listener first.
-    alb.addListener('HttpListener', {
+    const httpListener = alb.addListener('HttpListener', {
       port: 80,
       open: true,
       defaultAction: elbv2.ListenerAction.redirect({
@@ -646,6 +653,15 @@ export class ApplicationFoundationStack extends Stack {
         port: '443',
         permanent: true,
       }),
+    });
+
+    // The marketing site is static, but its Web Agent verification still needs a same-origin
+    // POST route. CloudFront forwards only this narrow path to the dashboard setup handler;
+    // every other HTTP request remains a TLS redirect.
+    httpListener.addAction('LandingWebAgentSetup', {
+      priority: 1,
+      conditions: [elbv2.ListenerCondition.pathPatterns(['/api/voomate/setup'])],
+      action: elbv2.ListenerAction.forward([dashboardTargetGroup]),
     });
 
     // The issued certificate in us-east-1 for atlowest.in and www.atlowest.in
@@ -730,6 +746,7 @@ export class ApplicationFoundationStack extends Stack {
       value: alb.loadBalancerDnsName,
       description: 'Public AWS DNS name for the Application Load Balancer',
     });
+    this.loadBalancerDnsName = alb.loadBalancerDnsName;
     new CfnOutput(this, 'DashboardUrl', {
       value: 'https://app.atlowest.in',
       description: 'Production merchant dashboard URL',

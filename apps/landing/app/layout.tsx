@@ -130,6 +130,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: UI_MANIFEST }}
         />
+        {/*
+          Voomate's own public site is a real end-to-end installation of the Web Agent. The
+          agent identifier is public by design; the server-only verification key never appears
+          in this page or bundle. `/voomate/setup` is served through the landing distribution and
+          forwards to the protected dashboard setup handler.
+        */}
+        <Script
+          id="voomate-web-agent"
+          src="https://app.atlowest.in/embed.js"
+          data-agent="sq_Q5SlJQEgPmNgdHD1rwc4DCRF"
+          data-setup-endpoint="/voomate/setup"
+          strategy="afterInteractive"
+        />
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>

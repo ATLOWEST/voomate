@@ -9,6 +9,8 @@ import type { StageConfig } from './config.js';
 
 interface LandingDeliveryStackProps extends StackProps {
   readonly config: StageConfig;
+  /** Private origin used only for the landing site's same-origin SDK verification route. */
+  readonly applicationLoadBalancerDnsName: string;
 }
 
 /**
@@ -86,6 +88,15 @@ function handler(event) {
 }`),
     });
 
+    // The site itself stays static and S3-backed. This one non-cacheable POST behavior lets the
+    // browser call https://atlowest.in/voomate/setup while the server-only key remains in the
+    // dashboard ECS service. The ALB's HTTP listener permits this exact internal path and keeps
+    // every other HTTP request redirected to TLS.
+    const setupOrigin = new origins.HttpOrigin(props.applicationLoadBalancerDnsName, {
+      protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
+      originPath: '/api',
+    });
+
     this.distribution = new cloudfront.Distribution(this, 'LandingDistribution', {
       defaultRootObject: 'index.html',
       certificate: landingCertificate,
@@ -102,6 +113,17 @@ function handler(event) {
         functionAssociations: [
           { eventType: cloudfront.FunctionEventType.VIEWER_REQUEST, function: cleanUrlRewrite },
         ],
+      },
+      additionalBehaviors: {
+        '/voomate/setup': {
+          origin: setupOrigin,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+          responseHeadersPolicy: responseHeaders,
+        },
       },
       errorResponses: [
         {

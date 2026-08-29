@@ -50,7 +50,20 @@ export async function POST(request: Request): Promise<Response> {
 
   const serverOrigin = new URL(request.url).origin;
   const browserOrigin = request.headers.get('origin');
-  if (pageUrl.origin !== serverOrigin || browserOrigin !== serverOrigin) {
+  // Most merchants run this endpoint directly on their own server, where strict same-origin
+  // comparison is sufficient. Voomate's static marketing site is delivered through CloudFront,
+  // so its same-origin endpoint is safely proxied to this handler. Those explicitly configured
+  // public origins are allowed only when the browser Origin and page URL agree exactly.
+  const proxiedPublicOrigins = new Set(
+    (process.env.VOOMATE_SETUP_PUBLIC_ORIGINS ?? '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  const directSameOrigin = pageUrl.origin === serverOrigin && browserOrigin === serverOrigin;
+  const trustedLandingProxy =
+    browserOrigin === pageUrl.origin && proxiedPublicOrigins.has(pageUrl.origin);
+  if (!directSameOrigin && !trustedLandingProxy) {
     return Response.json({ error: 'Voomate setup must be called from this same site.' }, { status: 403 });
   }
 

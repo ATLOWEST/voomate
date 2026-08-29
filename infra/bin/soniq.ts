@@ -62,7 +62,11 @@ new ApplicationBuildStack(app, `${prefix}-ApplicationBuild`, {
   foundation: applicationFoundation,
 });
 
-new LandingDeliveryStack(app, `${prefix}-LandingDelivery`, { env, config });
+new LandingDeliveryStack(app, `${prefix}-LandingDelivery`, {
+  env,
+  config,
+  applicationLoadBalancerDnsName: applicationFoundation.loadBalancerDnsName,
+});
 
 // There is no knowledge stack. Vectors live in Supabase Postgres, which is not an AWS
 // resource and therefore not CloudFormation's to manage — see docs/adr/0005-supabase-pgvector.md.
