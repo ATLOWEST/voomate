@@ -81,6 +81,20 @@ type SetupAuditMetadata = DeploymentAuditMetadata & {
   previewReason?: string | null;
 };
 
+/**
+ * A browser observation is deliberately not permanent proof. The public embed identifier can be
+ * copied, so a later diagnostic that successfully fetched that same origin and did not find this
+ * agent's snippet must supersede the old receipt in the live dashboard. We retain every audit row;
+ * this only prevents stale evidence from being presented as a current installation.
+ */
+function isNegativeSdkDiagnostic(metadata: SetupAuditMetadata | null | undefined) {
+  return metadata?.code === 'sdk_not_found' || metadata?.code === 'wrong_agent_key';
+}
+
+function diagnosticOrigin(metadata: SetupAuditMetadata | null | undefined) {
+  return normalizeOrigin(metadata?.checkedUrl ?? '');
+}
+
 const SETUP_ACTIONS = [
   'agent.installation_verified',
   'agent.playground_test_succeeded',
@@ -655,7 +669,11 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
           tenantScope(auditLogs, tenant.organizationId),
           eq(auditLogs.resourceId, id),
           eq(auditLogs.resourceType, 'agent'),
-          inArray(auditLogs.action, ['agent.installation_observed', 'agent.installation_verified']),
+          inArray(auditLogs.action, [
+            'agent.installation_observed',
+            'agent.installation_verified',
+            'agent.sdk_diagnosed',
+          ]),
         ),
       )
       .orderBy(desc(auditLogs.createdAt));
@@ -686,6 +704,20 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       );
     });
     const observationMetadata = observation?.metadata as DeploymentAuditMetadata | undefined;
+    const observationOrigin = normalizeOrigin(observationMetadata?.origin ?? '');
+    const supersedingNegativeCheck = installationEvidence.find((record) => {
+      if (record.action !== 'agent.sdk_diagnosed' || !observation || !observationOrigin) return false;
+      const diagnostic = record.metadata as SetupAuditMetadata | null | undefined;
+      return (
+        isNegativeSdkDiagnostic(diagnostic) &&
+        diagnosticOrigin(diagnostic) === observationOrigin &&
+        record.createdAt >= observation.createdAt
+      );
+    });
+    // A server-key claim remains valid until explicitly revoked. A browser-only observation does
+    // not: it is hidden when the latest successful diagnostic says this SDK is absent or belongs
+    // to another agent. This makes the status cards and the diagnostic describe the same reality.
+    const observationIsCurrent = observation !== undefined && supersedingNegativeCheck === undefined;
 
     return {
       deployment: {
@@ -693,10 +725,10 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         // deployment path; historical target records are read only for audit compatibility.
         platform: 'web',
         supported: true,
-        observed: observation !== undefined,
-        observedOrigin: observation ? (observationMetadata?.origin ?? null) : null,
-        observedPathname: observation ? (observationMetadata?.pathname ?? null) : null,
-        observedAt: observation?.createdAt ?? null,
+        observed: observationIsCurrent,
+        observedOrigin: observationIsCurrent ? (observationMetadata?.origin ?? null) : null,
+        observedPathname: observationIsCurrent ? (observationMetadata?.pathname ?? null) : null,
+        observedAt: observationIsCurrent ? (observation?.createdAt ?? null) : null,
         verified: proofIsCurrent,
         verifiedOrigin: proofIsCurrent ? (proof?.origin ?? null) : null,
         verifiedPathname: proofIsCurrent ? (proof?.pathname ?? null) : null,
@@ -834,17 +866,28 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
               'agent.installation_observed',
               'agent.installation_verified',
               'agent.web_routes_scanned',
+              'agent.sdk_diagnosed',
             ]),
           ),
         )
         .orderBy(desc(auditLogs.createdAt))
         .limit(500);
       const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
+      const latestNegativeSdkCheckByOrigin = new Map<string, Date>();
+      for (const record of records) {
+        if (record.action !== 'agent.sdk_diagnosed') continue;
+        const diagnostic = record.metadata as SetupAuditMetadata | null | undefined;
+        const origin = diagnosticOrigin(diagnostic);
+        if (origin && isNegativeSdkDiagnostic(diagnostic) && !latestNegativeSdkCheckByOrigin.has(origin)) {
+          latestNegativeSdkCheckByOrigin.set(origin, record.createdAt);
+        }
+      }
       const locations = new Map<
         string,
         {
           origin: string;
           lastSeenAt: Date;
+          lastSdkSeenAt: Date | null;
           verified: boolean;
           pages: Map<
             string,
@@ -859,10 +902,22 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         const existing = locations.get(metadata.origin) ?? {
           origin: metadata.origin,
           lastSeenAt: record.createdAt,
+          lastSdkSeenAt:
+            record.action === 'agent.installation_observed' ||
+            record.action === 'agent.installation_verified'
+              ? record.createdAt
+              : null,
           verified: record.action === 'agent.installation_verified',
           pages: new Map(),
         };
         if (record.createdAt > existing.lastSeenAt) existing.lastSeenAt = record.createdAt;
+        if (
+          (record.action === 'agent.installation_observed' ||
+            record.action === 'agent.installation_verified') &&
+          (existing.lastSdkSeenAt === null || record.createdAt > existing.lastSdkSeenAt)
+        ) {
+          existing.lastSdkSeenAt = record.createdAt;
+        }
         if (record.action === 'agent.installation_verified') existing.verified = true;
         const observed = [
           ...(typeof metadata.pathname === 'string'
@@ -891,7 +946,20 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return {
-        locations: Array.from(locations.values()).map((location) => {
+        locations: Array.from(locations.values())
+          .filter((location) => {
+            // Keep a server-verified origin until it is revoked. A pending discovery is only a
+            // current SDK location while its latest SDK receipt has not been contradicted by a
+            // newer, successful live diagnostic for that exact origin.
+            if (location.verified) return true;
+            const negativeCheck = latestNegativeSdkCheckByOrigin.get(location.origin);
+            return (
+              negativeCheck === undefined ||
+              location.lastSdkSeenAt === null ||
+              location.lastSdkSeenAt > negativeCheck
+            );
+          })
+          .map((location) => {
           const surface = policy.surfaces.find((entry) => entry.origin === location.origin);
           return {
             origin: location.origin,
@@ -903,7 +971,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
               a.pathname.localeCompare(b.pathname),
             ),
           };
-        }),
+          }),
       };
     },
   );
