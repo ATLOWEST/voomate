@@ -246,7 +246,10 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
                   pathPrefixes: ['/'],
                   excludedPathPrefixes: [],
                   identity: 'anonymous' as const,
-                  enabled: true,
+                  // A server claim proves ownership; it does not publish an agent. The
+                  // merchant must make the final enable decision after reviewing the detected
+                  // surface, and the agent lifecycle remains the runtime authority.
+                  enabled: false,
                 },
               ],
             };

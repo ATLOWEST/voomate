@@ -32,15 +32,21 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
   );
   const policy = useMemo(() => {
     const base = editablePolicy(agent, browserOrigin);
-    const missing = (discovery.data?.locations ?? []).filter(
-      (location) =>
-        location.verification === 'verified' &&
-        !base.surfaces.some((surface) => surface.origin === location.origin),
+    // A saved origin is configuration, not installation evidence. Only a domain that the SDK
+    // has actually reported and the merchant server has verified may appear as a usable site.
+    // This prevents old test settings or manual database values from looking like a live SDK.
+    const verifiedLocations = (discovery.data?.locations ?? []).filter(
+      (location) => location.verification === 'verified',
+    );
+    const verifiedOrigins = new Set(verifiedLocations.map((location) => location.origin));
+    const existing = base.surfaces.filter((surface) => verifiedOrigins.has(surface.origin));
+    const missing = verifiedLocations.filter(
+      (location) => !existing.some((surface) => surface.origin === location.origin),
     );
     return {
       ...base,
       surfaces: [
-        ...base.surfaces,
+        ...existing,
         ...missing.map((location, index) => ({
           id: `observed_ui_${index + 1}`,
           name: new URL(location.origin).hostname,
@@ -49,7 +55,9 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
           pathPrefixes: ['/'],
           excludedPathPrefixes: [],
           identity: location.identity,
-          enabled: location.enabled,
+          // Domain discovery never turns an agent on. The merchant explicitly enables a
+          // verified surface after reviewing it.
+          enabled: false,
         })),
       ],
     };
@@ -159,9 +167,9 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
             <p className="text-[16px] font-semibold text-foreground">Where {agent.name} can help</p>
           )}
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-muted-foreground">
-            The script reports immediately. Your server API key then verifies the exact domain and
-            turns it on. Public scans find sitemap and linked routes; the router manifest covers
-            private or app-only routes.
+            Only sites reported by the installed SDK appear here. Your server then verifies that
+            exact site. Voomate never discovers or runs on admin, sign-in, payment, or private
+            pages unless the merchant deliberately installs it there.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -233,9 +241,9 @@ export function WebAgentPlacement({ agent, onChanged, embedded = false }: Props)
                     {location.origin}
                   </p>
                   <p className="mt-2 text-[11.5px] leading-5 text-muted-foreground">
-                    The browser script is working, but this domain is still blocked until your
-                    server uses the API key. Check that <code>VOOMATE_API_KEY</code> and
-                    <code> /api/voomate/setup</code> are deployed, then reload this page.
+                    The browser script is working, but this domain remains blocked until the
+                    same site&apos;s server uses the API key at <code>/voomate/setup</code>. This
+                    dashboard updates automatically when that verification succeeds.
                   </p>
                 </div>
               </div>

@@ -4,8 +4,9 @@
  * Same-origin endpoint called by the Voomate embed.js SDK.
  *
  * Security contract:
- *  - Origin is derived from the server-side request URL, never from a
- *    browser-supplied header (Origin / Referer / X-Forwarded-Host).
+ *  - This handler only accepts a same-origin browser call. It derives the
+ *    trusted server origin from the request URL and rejects a page URL or
+ *    browser Origin from any other domain.
  *  - Only pathname and a path-only route list are forwarded upstream.
  *    Query strings, cookies, form values, and customer data are never read
  *    or forwarded.
@@ -37,16 +38,20 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: 'pageUrl is required.' }, { status: 400 });
   }
 
-  // The SDK sends the page URL from the browser. We extract the origin and
-  // pathname from it and forward them to the Voomate platform. Domain ownership
-  // is verified by the platform via VOOMATE_API_KEY — the setup endpoint does
-  // not enforce same-origin because it legitimately serves a different subdomain
-  // (app.atlowest.in) than the site where the SDK runs (atlowest.in).
+  // The SDK sends the current page URL. The server endpoint must live on the
+  // same customer domain; otherwise a copied public agent ID could ask this
+  // server to claim a third-party website.
   let pageUrl: URL;
   try {
     pageUrl = new URL(input.pageUrl);
   } catch {
     return Response.json({ error: 'pageUrl is not a valid URL.' }, { status: 400 });
+  }
+
+  const serverOrigin = new URL(request.url).origin;
+  const browserOrigin = request.headers.get('origin');
+  if (pageUrl.origin !== serverOrigin || browserOrigin !== serverOrigin) {
+    return Response.json({ error: 'Voomate setup must be called from this same site.' }, { status: 403 });
   }
 
   // Forward only pathname and a path-only route list. Strip all query strings,
@@ -85,17 +90,5 @@ export async function POST(request: Request): Promise<Response> {
 
   return Response.json(await upstream.json(), {
     headers: { 'Cache-Control': 'no-store' },
-  });
-}
-
-// The SDK may preflight before posting.
-export function OPTIONS(): Response {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': 'https://atlowest.in',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
   });
 }

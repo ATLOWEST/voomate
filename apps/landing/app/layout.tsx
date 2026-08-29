@@ -144,19 +144,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </div>
         <Footer />
-        {/* Voomate Web Agent — public marketing pages only.
-            sign-in and sign-up live in their own route groups and do not
-            inherit this layout, so they are automatically excluded.
-            The setup endpoint lives on app.atlowest.in (dashboard) because
-            the landing site is a static export and cannot run server code.
-            VOOMATE_API_KEY is a server-only secret stored in AWS Secrets
-            Manager — it is never exposed to the browser or this file. */}
-        <Script
-          src="https://app.atlowest.in/embed.js"
-          data-agent="sq_Q5SlJQEgPmNgdHD1rwc4DCRF"
-          data-setup-endpoint="https://app.atlowest.in/api/voomate/setup"
-          strategy="afterInteractive"
-        />
       </body>
     </html>
   );
