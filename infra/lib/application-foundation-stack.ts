@@ -365,7 +365,8 @@ export class ApplicationFoundationStack extends Stack {
         // `atlowest.in` is served from static CloudFront, which proxies only the narrow
         // `/voomate/setup` POST to this dashboard service. External merchants always use their
         // own same-origin endpoint and do not inherit this product-owned allowlist.
-        VOOMATE_SETUP_PUBLIC_ORIGINS: 'https://atlowest.in,https://www.atlowest.in',
+          VOOMATE_SETUP_PUBLIC_ORIGINS:
+            'https://atlowest.in,https://www.atlowest.in,https://app.atlowest.in',
       },
       portMappings: [{ containerPort: 3001 }],
     });
