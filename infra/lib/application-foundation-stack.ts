@@ -259,6 +259,10 @@ export class ApplicationFoundationStack extends Stack {
           this.runtimeSecret,
           'UPSTASH_REDIS_REST_TOKEN',
         ),
+        VOOMATE_API_KEY: ecs.Secret.fromSecretsManager(
+          this.runtimeSecret,
+          'VOOMATE_API_KEY',
+        ),
       },
       portMappings: [{ containerPort: 4000 }],
     });
@@ -350,6 +354,10 @@ export class ApplicationFoundationStack extends Stack {
         VOICE_SERVICE_ORIGIN: ecs.Secret.fromSecretsManager(
           this.runtimeSecret,
           'VOICE_SERVICE_ORIGIN',
+        ),
+        VOOMATE_API_KEY: ecs.Secret.fromSecretsManager(
+          this.runtimeSecret,
+          'VOOMATE_API_KEY',
         ),
       },
       portMappings: [{ containerPort: 3001 }],
