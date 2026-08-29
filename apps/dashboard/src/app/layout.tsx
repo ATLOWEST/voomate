@@ -218,10 +218,11 @@ const UI_MANIFEST = serializeUiManifest(
   }),
 );
 
+const getEnv = (name: string) => process.env[name];
+
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseAnonKey =
-    process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const supabaseUrl = getEnv('SUPABASE_URL') || getEnv('NEXT_PUBLIC_SUPABASE_URL') || '';
+  const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY') || getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || '';
   const clientEnvBootstrap = `window.__VOOMATE_ENV__ = ${JSON.stringify({
     supabaseUrl,
     supabaseAnonKey,

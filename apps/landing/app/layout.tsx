@@ -119,14 +119,6 @@ const UI_MANIFEST = serializeUiManifest(
 );
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const configuredWidgetOrigin = (process.env.NEXT_PUBLIC_WIDGET_ORIGIN ?? '').replace(/\/$/, '');
-  const widgetOrigin = /^https:\/\//.test(configuredWidgetOrigin)
-    ? configuredWidgetOrigin
-    : process.env.NODE_ENV === 'development'
-      ? configuredWidgetOrigin || 'http://localhost:3001'
-      : '';
-  const dogfoodAgentKey = process.env.NEXT_PUBLIC_VOOMATE_DOGFOOD_AGENT_KEY;
-
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <body className={`${geist.className} ${displayFont.variable} paper-grain`}>
@@ -152,13 +144,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </div>
         <Footer />
-        {widgetOrigin && dogfoodAgentKey && (
-          <Script
-            src={`${widgetOrigin}/embed.js`}
-            data-agent={dogfoodAgentKey}
-            strategy="afterInteractive"
-          />
-        )}
+        {/* Voomate Web Agent — public marketing pages only.
+            sign-in and sign-up live in their own route groups and do not
+            inherit this layout, so they are automatically excluded.
+            The setup endpoint lives on app.atlowest.in (dashboard) because
+            the landing site is a static export and cannot run server code.
+            VOOMATE_API_KEY is a server-only secret stored in AWS Secrets
+            Manager — it is never exposed to the browser or this file. */}
+        <Script
+          src="https://app.atlowest.in/embed.js"
+          data-agent="sq_Q5SlJQEgPmNgdHD1rwc4DCRF"
+          data-setup-endpoint="https://app.atlowest.in/api/voomate/setup"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
