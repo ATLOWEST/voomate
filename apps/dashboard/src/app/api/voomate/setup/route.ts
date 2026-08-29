@@ -71,14 +71,20 @@ export async function POST(request: Request): Promise<Response> {
   // hash fragments, cookies, and any other data.
   const pageOrigin = pageUrl.origin;
   const routes = Array.isArray(input.routes)
-    ? input.routes.filter((r): r is string => typeof r === 'string').map((r) => {
-        try {
-          // Accept either a full URL or a path; keep only the pathname.
-          return new URL(r, pageOrigin).pathname;
-        } catch {
-          return null;
-        }
-      }).filter((r): r is string => r !== null)
+    ? input.routes
+        .filter((route): route is string => typeof route === 'string')
+        .map((route) => {
+          try {
+            // The API records where each route came from. This server endpoint receives a
+            // simple browser inventory, so each entry is a verified current-page route.
+            return { pathname: new URL(route, pageOrigin).pathname, source: 'current' as const };
+          } catch {
+            return null;
+          }
+        })
+        .filter(
+          (route): route is { pathname: string; source: 'current' } => route !== null,
+        )
     : [];
 
   const upstream = await fetch(
