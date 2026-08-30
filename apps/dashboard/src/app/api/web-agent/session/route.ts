@@ -282,7 +282,7 @@ export async function POST(request: Request): Promise<Response> {
     // The dashboard proxy then relays it server-to-server to the voice service. This removes
     // an unreliable second browser-to-service CORS hop while keeping the voice edge private.
     const voiceStartUrl = voiceServiceOrigin
-      ? `${new URL(request.url).origin}/api/web-agent/voice/start`
+      ? `${new URL(request.url).origin}/web-agent-voice/start`
       : undefined;
     return Response.json(
       {

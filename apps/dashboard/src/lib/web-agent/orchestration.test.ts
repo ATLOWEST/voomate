@@ -143,6 +143,24 @@ describe('web agent orchestration', () => {
     expect(result.sources.map(({ source }) => source)).toContain('page_context');
   });
 
+  it('repairs a bounded misspelling of navigate before resolving an advertised route', () => {
+    const result = planWebAgentTurn({
+      message: 'Please navagaet me to the agent page.',
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.clientCommands).toEqual([
+      {
+        type: 'navigate',
+        label: 'Agents',
+        url: 'https://app.voomate.test/agents',
+        intent: 'web',
+      },
+    ]);
+    expect(result.directReply).toBe('Opening Agents.');
+  });
+
   it('uses page context to explain the current dashboard', () => {
     const result = planWebAgentTurn({
       message: 'What is this dashboard about and how do I use it?',

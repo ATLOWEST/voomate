@@ -33,11 +33,12 @@ async function relay(
   }
 
   const { path } = await context.params;
+  const requestPath = path.join('/');
   if (
     path.length === 0 ||
     path.some((segment) => !/^[A-Za-z0-9._-]+$/.test(segment)) ||
-    (request.method === 'POST' && path.join('/') !== 'start') ||
-    (request.method === 'PATCH' && !/^sessions\/[A-Za-z0-9-]+\/api\/offer$/.test(path.join('/')))
+    (request.method === 'POST' && requestPath !== 'start') ||
+    (request.method === 'PATCH' && !/^sessions\/[A-Za-z0-9-]+\/api\/offer$/.test(requestPath))
   ) {
     return Response.json({ error: 'Unsupported voice request.' }, { status: 404, headers: corsHeaders(origin) });
   }

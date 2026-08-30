@@ -34,6 +34,9 @@ const explicitWebNavigation = [
   /\b(?:go|send)(?: me)?(?: back)?\s+(?:to|into)\b/i,
   /\b(?:take|bring) me(?: back)?\s+(?:to|into)\b/i,
   /\b(?:navigate|head|switch|redirect|route)(?: me)?\s+(?:back\s+)?(?:to|into)\b/i,
+  // Voice transcription and fast typing commonly misspell "navigate". This only recognizes
+  // a navigation *intent*; destination resolution below still requires an advertised route.
+  /\b(?:navigat\w*|navag\w*)\s+(?:me\s+)?(?:back\s+)?(?:to|into)\b/i,
   /\bvisit(?: the)?\b/i,
   /\bopen(?: the)?\b/i,
   /\b(?:redirect|take|lead|move|switch)\s+(?:me\s+)?(?:to\s+)?/i,
