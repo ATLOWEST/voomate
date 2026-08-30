@@ -8,9 +8,9 @@ interface AssistantPromptInput extends WebAgentInstallInput {
   approvedOrigins: readonly string[];
 }
 
-interface IdentityInstallInput extends AssistantPromptInput {
-  controlPlaneOrigin: string;
-  identityEndpoint?: string;
+interface OneClickInstallInput extends AssistantPromptInput {
+  installGrant: string;
+  challengePath: string;
 }
 
 /**
@@ -34,10 +34,7 @@ export function toWebOrigin(value: string): string | undefined {
 }
 
 /** The data-agent value is a public, origin-bound installation ID—not a private API key. */
-export function buildWebAgentSnippet({
-  widgetOrigin,
-  embedKey,
-}: WebAgentInstallInput): string {
+export function buildWebAgentSnippet({ widgetOrigin, embedKey }: WebAgentInstallInput): string {
   return `<script
   src="${widgetOrigin.replace(/\/$/, '')}/embed.js"
   data-agent="${embedKey}"
@@ -139,58 +136,41 @@ export async function POST(request: Request) {
 
 export function buildIdentityServerExample({
   controlPlaneOrigin,
-}: Pick<IdentityInstallInput, 'controlPlaneOrigin' | 'approvedOrigins'>): string {
+}: {
+  controlPlaneOrigin: string;
+  approvedOrigins: readonly string[];
+}): string {
   return buildServerSetupSnippet({ framework: 'nextjs', controlPlaneOrigin });
 }
 
-export function buildIdentityAssistantPrompt({
+export function buildOneClickAssistantPrompt({
   widgetOrigin,
-  controlPlaneOrigin,
   embedKey,
   agentName,
-  identityEndpoint = '/voomate/setup',
-}: IdentityInstallInput): string {
+  installGrant,
+  challengePath,
+}: OneClickInstallInput): string {
   const snippet = buildWebAgentSnippet({ widgetOrigin, embedKey });
-  const serverExample = buildIdentityServerExample({ controlPlaneOrigin, approvedOrigins: [] });
-  return `Complete the Voomate Web Agent installation for “${agentName}” in this project.
+  return `Install the Voomate Web Agent “${agentName}” completely in this project.
 
-The business owner should not have to make technical decisions. Inspect this project's real framework, layouts, router, and hosting pattern, then make the smallest safe production change.
+This is a one-request production installation. Inspect the repository before editing. Detect its real framework, router, layout boundaries, build command, and deployment model. Do not ask the business owner to choose technical files, enter a domain, create an API endpoint, or configure a permanent API key.
 
-Do this end-to-end:
-1. Add the exact browser script below once to the shared public website/web-app layout.
-2. Never add it to admin, staff, sign-in, account-security, payment, checkout, health, or other sensitive layouts.
-3. Create the same-origin POST endpoint ${identityEndpoint}. It must derive the deployed origin from the server request URL—not from an untrusted browser header—and call ${controlPlaneOrigin.replace(/\/$/, '')}/v1/widget/installations/claim with Authorization: Bearer process.env.VOOMATE_API_KEY.
-4. Tell the owner exactly where to add the private VOOMATE_API_KEY in this hosting provider. The key belongs only in the server secret manager: never browser code, source files, Git, logs, a public environment variable, or this chat.
-5. Forward only pageUrl.pathname and the SDK's path-only route list. Never forward query strings, cookies, form values, source code, browser storage, or customer data.
-6. If the project has signed-in customer pages, reuse its existing server authentication and exchange the server user ID through /v1/widget/identity. Never accept a user ID from the browser and do not create another login system.
-7. Read the real router configuration and add a path-only data-voomate-route-manifest JSON block to the same public layout so lazy and parameterized routes are represented without reading private data. Do not invent route names.
-8. Run the project checks, deploy the change, and report: changed files, the hosting-secret location, and one approved public URL. Do not expose private values in the report.
+Required result:
+1. Add the exact script below once to every shared browser layout that serves a customer-facing product surface. This may include public marketing pages and signed-in customer applications when they exist. Do not guess from folder names: follow the actual router and layout tree. Never add the script to server-only code, API handlers, health endpoints, payment-provider callbacks, or infrastructure consoles.
+2. Create the exact plain-text verification file below in the framework's public/static asset root so its deployed URL is exactly ${challengePath}. If this repository deploys multiple customer-facing origins, publish the same file and script in each applicable app during this installation. Do not put the grant in JavaScript, environment variables, logs, or any file other than this temporary verification file.
+3. Inspect the real route definitions. Add one path-only data-voomate-route-manifest JSON block beside the script when the router contains lazy, parameterized, or non-linked customer pages. Include every real customer-facing route pattern once. Do not include query strings, page content, cookies, form data, authentication tokens, source code, or invented routes.
+4. Preserve all existing authentication, authorization, rendering, and navigation behavior. Voomate route controls decide where the agent is enabled; installation must not grant the agent access to private page data.
+5. Run the repository's existing typecheck, tests, and build. Deploy through its existing production workflow if deployment access is already available. Do not create a second hosting system.
+6. Verify the deployed page loads the exact script once and that ${challengePath} returns only the exact grant below as text. Report changed files, deployed origins, checks run, and any deployment blocker. Never claim success from local files alone.
 
-Exact shared-layout script:
+Exact browser script:
 ${snippet}
 
-Server endpoint reference (adapt exports to the project's framework without weakening its checks):
-${serverExample}`;
-}
+Exact verification file path:
+${challengePath}
 
-/**
- * A short, self-contained task merchants can paste into their coding assistant. It tells the
- * assistant where the SDK may run while keeping authentication, payments and private areas out.
- */
-export function buildWebAgentAssistantPrompt({
-  widgetOrigin,
-  embedKey,
-  agentName,
-}: AssistantPromptInput): string {
-  const snippet = buildWebAgentSnippet({ widgetOrigin, embedKey });
-  return `Install the Voomate Web Agent “${agentName}” in this project.
+Exact verification file content (short-lived and installation-only):
+${installGrant}
 
-Requirements:
-1. Add the exact script below once to the shared public site layout, just before </body>.
-2. Implement its same-origin ${'/api/voomate/setup'} server endpoint using a VOOMATE_API_KEY stored only in the hosting secret manager. The endpoint calls the Voomate installation-claim API so domains and routes appear automatically.
-3. Keep all existing behavior unchanged. Do not create, request, log, or expose any private key. The data-agent value below is a public, domain-bound installation ID.
-4. After editing, run the project checks and report the changed files plus one public URL I should open for Voomate verification.
-
-Exact script:
-${snippet}`;
+The grant can only verify this agent installation and expires automatically. It cannot read data, identify customers, create sessions, or manage the workspace.`;
 }

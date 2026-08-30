@@ -40,6 +40,7 @@ import {
   WEB_AGENT_IDENTITY_SCOPE,
   WEB_AGENT_INSTALL_SCOPE,
 } from './identity.js';
+import { verifyInstallationChallenge } from './installation.js';
 
 const IDENTITY_BEARER = /^Bearer\s+(.+)$/i;
 const identityRequestSchema = z
@@ -127,7 +128,14 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
         return;
       }
       const [agent] = await getDb()
-        .select({ id: agents.id, organizationId: agents.organizationId, status: agents.status })
+        .select({
+          id: agents.id,
+          organizationId: agents.organizationId,
+          status: agents.status,
+          embedKey: agents.embedKey,
+          allowedOrigins: agents.allowedOrigins,
+          appearance: agents.appearance,
+        })
         .from(agents)
         .where(eq(agents.embedKey, input.embedKey))
         .limit(1);
@@ -165,6 +173,13 @@ export const widgetRoutes: FastifyPluginAsync = async (app) => {
           },
           ipAddress: request.ip,
         });
+      await verifyInstallationChallenge({
+        agent,
+        origin,
+        pathname,
+        routes: routeInventory,
+        ipAddress: request.ip,
+      });
       reply.status(204);
     },
   );

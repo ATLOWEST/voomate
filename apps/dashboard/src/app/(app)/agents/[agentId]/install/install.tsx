@@ -2,15 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import type { Agent } from '@voomate/core';
-import {
-  Check,
-  CircleDashed,
-  Clipboard,
-  Code2,
-  KeyRound,
-  Plus,
-  Sparkles,
-} from 'lucide-react';
+import { Check, CircleDashed, Clipboard, Code2, KeyRound, Plus, Sparkles } from 'lucide-react';
 import { useAgent } from '@/components/agent/shell';
 import { WebAgentPlacement } from '@/components/web-agent/web-agent-placement';
 import { PageBody } from '@/components/shell/page-header';
@@ -19,10 +11,10 @@ import { Dialog, DialogActions } from '@/components/ui/dialog';
 import { Field, TextInput } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { messageFor, useApiAction, useApiQuery } from '@/lib/hooks';
+import { messageFor, useApiQuery } from '@/lib/hooks';
 import { useApiAuth } from '@/lib/session';
 import {
-  buildIdentityAssistantPrompt,
+  buildOneClickAssistantPrompt,
   buildServerSetupSnippet,
   buildWebAgentSnippet,
   type ServerFramework,
@@ -36,33 +28,12 @@ const CONTROL_PLANE_ORIGIN = (
   process.env.NEXT_PUBLIC_CONTROL_PLANE_ORIGIN ?? 'https://app.atlowest.in/api'
 ).replace(/\/$/, '');
 
-interface InstallationDiagnostic {
-  code:
-    | 'duplicate_sdk'
-    | 'snippet_found'
-    | 'wrong_agent_key'
-    | 'sdk_not_found'
-    | 'site_unreachable'
-    | 'waiting_for_sdk';
-  message: string;
-  checkedUrl: string;
-}
-
 export function InstallPanels() {
   const { agent, deployment, refresh } = useAgent();
   const snippet = useMemo(
     () => buildWebAgentSnippet({ widgetOrigin: WIDGET_ORIGIN, embedKey: agent.embedKey }),
     [agent.embedKey],
   );
-  const assistantPrompt = useMemo(() => {
-    const input = {
-      widgetOrigin: WIDGET_ORIGIN,
-      embedKey: agent.embedKey,
-      agentName: agent.name,
-      approvedOrigins: agent.allowedOrigins,
-    };
-    return buildIdentityAssistantPrompt({ ...input, controlPlaneOrigin: CONTROL_PLANE_ORIGIN });
-  }, [agent.allowedOrigins, agent.embedKey, agent.name]);
   const sdkConnected = deployment.observed;
   const serverConnected = deployment.verified;
   const agentReady = deployment.verified && agent.status === 'active';
@@ -77,8 +48,8 @@ export function InstallPanels() {
           Get your agent live
         </h1>
         <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-          Send one guided request to your developer or coding assistant, add one private key to
-          your hosting service, and Voomate confirms the live connection automatically.
+          Copy one guided request into your coding assistant. It installs the agent, verifies the
+          live domain, and reports every detected page automatically.
         </p>
       </div>
 
@@ -100,11 +71,11 @@ export function InstallPanels() {
             <div className="min-w-0">
               <p className="text-[13px] font-semibold text-foreground">Install Voomate safely</p>
               <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                Your developer adds Voomate only to public customer pages. Admin, sign-in,
-                payment, and other sensitive pages remain excluded.
+                Your coding assistant finds the real customer-facing layouts and installs Voomate
+                once. You control every detected domain and page from Voomate.
               </p>
             </div>
-            <CopyButton text={assistantPrompt} label="Copy setup request" icon="sparkles" prominent />
+            <CopySetupRequest agent={agent} />
           </div>
           <details className="mt-3 rounded-lg border border-[var(--border-default)] bg-[var(--surface-panel)]">
             <summary className="cursor-pointer list-none px-3.5 py-3 text-[12px] font-semibold text-muted-foreground marker:content-none">
@@ -112,21 +83,53 @@ export function InstallPanels() {
             </summary>
             <div className="border-t border-[var(--border-default)] p-3.5">
               <div className="mb-2 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5"><Code2 className="size-3.5" /> Public layout</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Code2 className="size-3.5" /> Public layout
+                </span>
                 <CopyButton text={snippet} label="Copy code" />
               </div>
-              <pre className="overflow-x-auto rounded-lg bg-[#151513] px-3 py-3 font-mono text-[11px] leading-5 text-[#b8d9a6]"><code>{snippet}</code></pre>
+              <pre className="overflow-x-auto rounded-lg bg-[#151513] px-3 py-3 font-mono text-[11px] leading-5 text-[#b8d9a6]">
+                <code>{snippet}</code>
+              </pre>
             </div>
           </details>
         </SetupStep>
 
         <SetupStep
           number="2"
-          title="Add your private key"
-          description="Create one key and place it in your hosting service. It proves the installed code belongs to your business; it is never added to a browser page."
+          title="Voomate verifies the live site"
+          description="The setup request publishes a short-lived verification file. Voomate checks it from the backend and connects the exact domain automatically."
           complete={serverConnected}
         >
-          <IdentityVerification agent={agent} />
+          <div
+            className={cn(
+              'flex items-center gap-3 rounded-xl border px-4 py-3',
+              serverConnected
+                ? 'border-positive/25 bg-positive-soft'
+                : 'border-[var(--border-default)] bg-[var(--surface-soft)]',
+            )}
+          >
+            <span
+              className={cn(
+                'grid size-9 shrink-0 place-items-center rounded-lg',
+                serverConnected
+                  ? 'bg-positive text-white'
+                  : 'bg-[var(--surface-panel)] text-muted-foreground',
+              )}
+            >
+              {serverConnected ? <Check className="size-4" /> : <CircleDashed className="size-4" />}
+            </span>
+            <div>
+              <p className="text-[13px] font-semibold text-foreground">
+                {serverConnected ? 'Domain verified' : 'Waiting for the deployed site'}
+              </p>
+              <p className="mt-1 text-[11.5px] leading-5 text-muted-foreground">
+                {serverConnected
+                  ? `${deployment.verifiedOrigin ?? 'Your live domain'} is connected. No permanent API key was needed.`
+                  : 'This changes to green automatically when the deployed page and verification file are live.'}
+              </p>
+            </div>
+          </div>
         </SetupStep>
 
         <SetupStep
@@ -140,6 +143,20 @@ export function InstallPanels() {
         </SetupStep>
       </div>
 
+      <details className="ml-0 mt-4 rounded-xl border border-[var(--border-default)] bg-[var(--surface-panel)] sm:ml-[54px]">
+        <summary className="cursor-pointer list-none px-4 py-3 text-[12px] font-semibold text-muted-foreground marker:content-none">
+          Optional: connect signed-in customer data
+        </summary>
+        <div className="border-t border-[var(--border-default)] p-4">
+          <p className="mb-3 text-[12px] leading-5 text-muted-foreground">
+            Only configure this when the agent must identify a signed-in customer or read private
+            account data. Public chat, voice, route discovery, and domain verification do not need
+            it.
+          </p>
+          <IdentityVerification agent={agent} />
+        </div>
+      </details>
+
       {agent.status !== 'active' && (
         <div className="ml-0 mt-4 rounded-xl border border-caution/25 bg-caution-soft px-4 py-3 text-[13px] leading-5 text-caution sm:ml-[54px]">
           Installation can be verified while this agent is off. It will only answer visitors after
@@ -150,24 +167,13 @@ export function InstallPanels() {
   );
 }
 
-function SetupAnswer({ agent, deployment }: { agent: Agent; deployment: ReturnType<typeof useAgent>['deployment'] }) {
-  const keys = useApiQuery<{ keys: IdentityKeySummary[] }>(`/v1/agents/${agent.id}/identity-keys`, {
-    pollMs: 3_000,
-  });
-  const [diagnostic, setDiagnostic] = useState<InstallationDiagnostic>();
-  const verify = useApiAction(async (auth) => {
-    const result = await api.post<{ diagnostic: InstallationDiagnostic }>(
-      `/v1/agents/${agent.id}/setup/diagnose`,
-      {},
-      auth,
-    );
-    setDiagnostic(result.diagnostic);
-  });
-  const usableKeys = (keys.data?.keys ?? []).filter(
-    (key) => key.expiresAt === null || new Date(key.expiresAt).getTime() > Date.now(),
-  );
-  const keyUsed = usableKeys.some((key) => key.lastUsedAt !== null);
-
+function SetupAnswer({
+  agent,
+  deployment,
+}: {
+  agent: Agent;
+  deployment: ReturnType<typeof useAgent>['deployment'];
+}) {
   const answer = (() => {
     if (deployment.verified && agent.status === 'active') {
       return {
@@ -179,29 +185,23 @@ function SetupAnswer({ agent, deployment }: { agent: Agent; deployment: ReturnTy
     if (deployment.verified) {
       return {
         title: 'Your site is connected',
-        detail: 'The private server check is complete. Turn on the agent whenever you are ready for visitors to use it.',
+        detail:
+          'The private server check is complete. Turn on the agent whenever you are ready for visitors to use it.',
         complete: true,
       };
     }
     if (deployment.observed) {
       return {
-        title: 'Voomate code is installed, but the private server check is missing',
-        detail: keyUsed
-          ? 'Your server contacted Voomate, but it did not complete a valid domain claim. Check that the setup endpoint uses the same active private key for this agent.'
-          : 'We saw the code on your live site, but no private key has reached Voomate. The server setup endpoint is missing, returning an error, or cannot read VOOMATE_API_KEY.',
-        complete: false,
-      };
-    }
-    if (usableKeys.length > 0) {
-      return {
-        title: 'We have not received the Voomate code from a live page yet',
-        detail: 'Your private key exists, but it has not been used. Voomate cannot detect a local or unpublished file: the public site must deploy the script and a visitor must load an approved page once.',
+        title: 'Voomate code is live; domain verification is finishing',
+        detail:
+          'We received the SDK from the live page. Voomate is now checking the short-lived verification file on that exact domain.',
         complete: false,
       };
     }
     return {
       title: 'Start with the setup request',
-      detail: 'No private key or live Voomate code has been detected. Complete Step 1, then create the private key in Step 2.',
+      detail:
+        'Copy the setup request into your coding assistant. The dashboard will update when the deployed SDK reports from a real page.',
       complete: false,
     };
   })();
@@ -210,7 +210,9 @@ function SetupAnswer({ agent, deployment }: { agent: Agent; deployment: ReturnTy
     <section
       className={cn(
         'mb-5 rounded-xl border p-4',
-        answer.complete ? 'border-positive/25 bg-positive-soft' : 'border-critical/25 bg-critical-soft',
+        answer.complete
+          ? 'border-positive/25 bg-positive-soft'
+          : 'border-critical/25 bg-critical-soft',
       )}
       aria-live="polite"
     >
@@ -227,29 +229,11 @@ function SetupAnswer({ agent, deployment }: { agent: Agent; deployment: ReturnTy
           <p className="text-[13px] font-semibold text-foreground">What&apos;s blocking setup?</p>
           <p className="mt-1 text-[12.5px] font-medium text-foreground">{answer.title}</p>
           <p className="mt-1 text-[12px] leading-5 text-muted-foreground">{answer.detail}</p>
-          {!keys.loading && (
-            <p className="mt-2 text-[10.5px] text-muted-foreground">
-              Checked live: Voomate code {deployment.observed ? 'received' : 'not received'} · private key{' '}
-              {usableKeys.length > 0 ? (keyUsed ? 'used by a server' : 'not used by a server') : 'not created'} · domain{' '}
-              {deployment.verified ? 'verified' : 'not verified'}
-            </p>
-          )}
-          {diagnostic && (
-            <p className={cn(
-              'mt-2 text-[11.5px] leading-5',
-              diagnostic.code === 'snippet_found'
-                ? 'text-positive'
-                : diagnostic.code === 'waiting_for_sdk'
-                  ? 'text-caution'
-                  : 'text-critical',
-            )}>
-              Latest website check: {diagnostic.message}
-            </p>
-          )}
-          {verify.error && <p className="mt-2 text-[11.5px] text-critical">{verify.error}</p>}
-          <Button className="mt-3" size="sm" loading={verify.busy} onClick={() => void verify.run()}>
-            Verify installation
-          </Button>
+          <p className="mt-2 text-[10.5px] text-muted-foreground">
+            Checked live: Voomate code {deployment.observed ? 'received' : 'not received'} · domain{' '}
+            {deployment.verified ? 'verified' : 'waiting'} · agent{' '}
+            {agent.status === 'active' ? 'on' : 'off'}
+          </p>
         </div>
       </div>
     </section>
@@ -273,8 +257,8 @@ function InstallationStatus({
       waitingTone: 'critical' as const,
     },
     {
-      label: 'Private connection',
-      detail: serverConnected ? 'Verified' : 'Private key needed',
+      label: 'Live domain',
+      detail: serverConnected ? 'Verified' : 'Waiting for deploy',
       complete: serverConnected,
       waitingTone: sdkConnected ? ('caution' as const) : ('critical' as const),
     },
@@ -438,9 +422,9 @@ function IdentityVerification({ agent }: { agent: Agent }) {
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-foreground">API setup</p>
           <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-            This private key confirms that Voomate is running on your real site. Copy it once into
-            your hosting service as <span className="font-mono text-foreground">VOOMATE_API_KEY</span>.
-            Your setup request tells your developer exactly where it belongs.
+            This optional key lets your backend identify a signed-in customer without exposing
+            private account data in the browser. Public chat, voice, route discovery, and domain
+            verification do not require it.
           </p>
         </div>
         <span className="rounded-md bg-positive-soft px-2 py-1 text-[10px] font-semibold text-positive">
@@ -582,7 +566,9 @@ function IdentityVerification({ agent }: { agent: Agent }) {
             </button>
           ))}
         </div>
-        <pre className="max-h-80 overflow-auto bg-[#151513] px-4 py-4 font-mono text-[11px] leading-5 text-[#b8d9a6]"><code>{serverSnippet}</code></pre>
+        <pre className="max-h-80 overflow-auto bg-[#151513] px-4 py-4 font-mono text-[11px] leading-5 text-[#b8d9a6]">
+          <code>{serverSnippet}</code>
+        </pre>
       </div>
 
       {dialogOpen && (
@@ -694,6 +680,59 @@ function IdentityVerification({ agent }: { agent: Agent }) {
       )}
 
       {error && <p className="text-[12px] text-critical">{error}</p>}
+    </div>
+  );
+}
+
+function CopySetupRequest({ agent }: { agent: Agent }) {
+  const auth = useApiAuth();
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const copy = async () => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      const result = await api.post<{
+        grant: string;
+        challengePath: string;
+        expiresAt: string;
+      }>(`/v1/agents/${agent.id}/install-grants`, {}, await auth());
+      const prompt = buildOneClickAssistantPrompt({
+        widgetOrigin: WIDGET_ORIGIN,
+        embedKey: agent.embedKey,
+        agentName: agent.name,
+        approvedOrigins: agent.allowedOrigins,
+        installGrant: result.grant,
+        challengePath: result.challengePath,
+      });
+      await navigator.clipboard.writeText(prompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2_000);
+    } catch (caught) {
+      setError(messageFor(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="shrink-0 text-right">
+      <button
+        type="button"
+        disabled={busy}
+        className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-foreground px-4 text-[11.5px] font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+        onClick={() => void copy()}
+      >
+        {copied ? (
+          <Check className="size-3.5" />
+        ) : (
+          <Sparkles className={cn('size-3.5', busy && 'animate-pulse')} />
+        )}
+        {busy ? 'Preparing…' : copied ? 'Copied' : 'Copy setup request'}
+      </button>
+      {error && <p className="mt-1 max-w-52 text-[10.5px] text-critical">{error}</p>}
     </div>
   );
 }

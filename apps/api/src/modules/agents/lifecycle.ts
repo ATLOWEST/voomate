@@ -6,7 +6,6 @@ import {
   isReleasedAgentType,
   notFound,
   webDeploymentPolicyFromAppearance,
-  webSurfaceForLocation,
   type AgentCatalogType,
   type AgentStatus as AgentLifecycleStatus,
   type TenantContext,
@@ -120,7 +119,9 @@ export async function transitionAgentLifecycle(input: {
       // separate selection here created a cosmetic step that could block a real deployment.
       // Native packages are not released, so they are deliberately not part of this lifecycle.
       if (!existing.allowedOrigins.length) {
-        throw conflict('Add an approved domain before activating this agent.');
+        throw conflict(
+          'Deploy the one-click Web Agent setup so Voomate can verify a live domain before activation.',
+        );
       }
 
       const installations = await tx
@@ -151,12 +152,11 @@ export async function transitionAgentLifecycle(input: {
           proof?.platform === 'web' &&
           typeof proof.origin === 'string' &&
           existing.allowedOrigins.includes(proof.origin) &&
-          (typeof proof.pathname !== 'string' ||
-            webSurfaceForLocation(policy, proof.origin, proof.pathname) !== undefined)
+          policy.surfaces.some((surface) => surface.origin === proof.origin)
         );
       });
       if (!hasCurrentProof) {
-        throw conflict('Install the SDK and open it once on an approved domain before activation.');
+        throw conflict('The SDK has not completed its automatic live-domain verification yet.');
       }
     }
 

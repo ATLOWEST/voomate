@@ -56,6 +56,11 @@ The existing Fastify service remains the legacy control plane. The new embeddabl
 is served by Next.js Route Handlers under `apps/dashboard/src/app/api/web-agent`; this is the path
 for new widget chat and action work.
 
+Web Agent installation uses one short-lived, agent-scoped well-known domain challenge rather than
+a customer-authored verification endpoint or permanent API key. The control plane verifies the
+deployed file, records the exact origin and path-only route inventory, and the dashboard reflects
+that evidence automatically. See [Web Agent installation contract](web-agent-installation.md).
+
 ## The voice pipeline — where this product is won or lost
 
 A voice agent feels cheap the moment round-trip latency exceeds ~1.2s, or when you can't

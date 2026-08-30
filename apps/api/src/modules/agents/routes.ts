@@ -22,7 +22,6 @@ import {
   type AgentPersona,
   type TenantContext,
   webDeploymentPolicyFromAppearance,
-  webSurfaceForLocation,
 } from '@voomate/core';
 import { agents, apiKeys, auditLogs, knowledgeChunks, tenantScope } from '@voomate/db';
 import { DEFAULT_LANGUAGE_CODES, resolveVoice, validateLanguageSet } from '@voomate/i18n';
@@ -30,13 +29,23 @@ import { load } from 'cheerio';
 import { and, count, desc, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { generateApiKey, generateEmbedKey, normalizeOrigin } from '../../lib/keys.js';
+import {
+  generateApiKey,
+  generateEmbedKey,
+  generateInstallGrant,
+  normalizeOrigin,
+} from '../../lib/keys.js';
 import { getDb } from '../../lib/db.js';
 import { crawlSite } from '../../lib/crawl/crawl.js';
 import { FetchError, fetchPage } from '../../lib/crawl/fetch.js';
 import { tenantOf } from '../../plugins/auth.js';
 import { transitionAgentLifecycle } from './lifecycle.js';
-import { WEB_AGENT_IDENTITY_SCOPE, WEB_AGENT_INSTALL_SCOPE } from '../widget/identity.js';
+import {
+  WEB_AGENT_IDENTITY_SCOPE,
+  WEB_AGENT_INSTALL_GRANT_SCOPE,
+  WEB_AGENT_INSTALL_SCOPE,
+} from '../widget/identity.js';
+import { INSTALL_GRANT_TTL_HOURS, installationChallengePath } from '../widget/installation.js';
 
 const paramsSchema = z.object({ id: uuidSchema });
 const identityKeyParamsSchema = z.object({ id: uuidSchema, keyId: uuidSchema });
@@ -80,20 +89,6 @@ type SetupAuditMetadata = DeploymentAuditMetadata & {
   previewEmbeddable?: boolean;
   previewReason?: string | null;
 };
-
-/**
- * A browser observation is deliberately not permanent proof. The public embed identifier can be
- * copied, so a later diagnostic that successfully fetched that same origin and did not find this
- * agent's snippet must supersede the old receipt in the live dashboard. We retain every audit row;
- * this only prevents stale evidence from being presented as a current installation.
- */
-function isNegativeSdkDiagnostic(metadata: SetupAuditMetadata | null | undefined) {
-  return metadata?.code === 'sdk_not_found' || metadata?.code === 'wrong_agent_key';
-}
-
-function diagnosticOrigin(metadata: SetupAuditMetadata | null | undefined) {
-  return normalizeOrigin(metadata?.checkedUrl ?? '');
-}
 
 const SETUP_ACTIONS = [
   'agent.installation_verified',
@@ -170,8 +165,7 @@ async function getWebAgentSetup(organizationId: TenantContext['organizationId'],
       metadata?.platform === 'web' &&
       typeof metadata.origin === 'string' &&
       agent.allowedOrigins.includes(metadata.origin) &&
-      (typeof metadata.pathname !== 'string' ||
-        webSurfaceForLocation(policy, metadata.origin, metadata.pathname) !== undefined)
+      policy.surfaces.some((surface) => surface.origin === metadata.origin)
     );
   });
   const test = evidence.find((record) => record.action === 'agent.playground_test_succeeded');
@@ -190,9 +184,7 @@ async function getWebAgentSetup(organizationId: TenantContext['organizationId'],
       label: ready.install ? 'Web SDK verified' : 'Install the Web SDK',
       detail: ready.install
         ? `Verified on ${(proof?.metadata as SetupAuditMetadata).origin ?? 'an approved domain'}`
-        : agent.allowedOrigins.length
-          ? 'Paste the snippet on an approved domain, then open that page once.'
-          : 'Add your site domain, paste the snippet, then open that page once.',
+        : 'Copy the one-click setup request. Voomate will discover and verify the deployed domain automatically.',
       href: `/agents/${agentId}/install`,
     },
     ...(requiresIdentity
@@ -332,6 +324,90 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     const { id } = paramsSchema.parse(request.params);
     return { setup: await getWebAgentSetup(tenant.organizationId, id) };
   });
+
+  /**
+   * Rotate a short-lived installation grant for the one-click coding-assistant flow.
+   * The grant can only verify this agent's public domain challenge. It cannot create sessions,
+   * identify customers, read business data, or call management endpoints.
+   */
+  app.post(
+    '/:id/install-grants',
+    {
+      preHandler: app.requireTenant(OrgRole.DEVELOPER),
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const tenant = tenantOf(request);
+      const { id } = paramsSchema.parse(request.params);
+      const [agent] = await getDb()
+        .select({ id: agents.id, embedKey: agents.embedKey })
+        .from(agents)
+        .where(
+          and(
+            tenantScope(agents, tenant.organizationId),
+            eq(agents.id, id),
+            ne(agents.status, AgentStatus.ARCHIVED),
+          ),
+        )
+        .limit(1);
+      if (!agent) throw notFound('Agent', id);
+
+      const generated = generateInstallGrant();
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + INSTALL_GRANT_TTL_HOURS * 60 * 60 * 1_000);
+      const grantId = await getDb().transaction(async (tx) => {
+        const [active] = await tx
+          .select({ total: count() })
+          .from(apiKeys)
+          .where(
+            and(
+              tenantScope(apiKeys, tenant.organizationId),
+              eq(apiKeys.agentId, id),
+              isNull(apiKeys.revokedAt),
+              or(isNull(apiKeys.expiresAt), gt(apiKeys.expiresAt, now)),
+              sql`${WEB_AGENT_INSTALL_GRANT_SCOPE} = any(${apiKeys.scopes})`,
+            ),
+          );
+        if ((active?.total ?? 0) >= 5) {
+          throw conflict(
+            'Five setup requests are already active. Wait for an older request to expire before creating another.',
+          );
+        }
+        const [grant] = await tx
+          .insert(apiKeys)
+          .values({
+            organizationId: tenant.organizationId,
+            agentId: id,
+            name: 'One-click Web Agent installation',
+            keyHash: generated.hash,
+            keyPrefix: generated.prefix,
+            scopes: [WEB_AGENT_INSTALL_GRANT_SCOPE],
+            createdBy: tenant.userId,
+            expiresAt,
+          })
+          .returning({ id: apiKeys.id });
+        if (!grant) throw new Error('Could not create Web Agent installation grant.');
+        await tx.insert(auditLogs).values({
+          organizationId: tenant.organizationId,
+          actorId: tenant.userId,
+          action: 'web_agent.install_grant_created',
+          resourceType: 'api_key',
+          resourceId: grant.id,
+          metadata: { agentId: id, expiresAt: expiresAt.toISOString() },
+          ipAddress: request.ip,
+        });
+        return grant.id;
+      });
+
+      reply.header('Cache-Control', 'no-store').status(201);
+      return {
+        grant: generated.key,
+        grantId,
+        expiresAt,
+        challengePath: installationChallengePath(agent.embedKey),
+      };
+    },
+  );
 
   /** Safe metadata only. The secret is returned once from the create route and never stored. */
   app.get(
@@ -509,7 +585,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
 
       // The public SDK is the discovery mechanism. Do not ask a merchant to type a domain:
       // a browser receipt tells us the exact origin and path where this agent's snippet ran.
-      // The receipt alone is not authorization (the server-key claim still is), but it is safe
+      // The receipt alone is not authorization (a backend-verified challenge still is), but it is safe
       // evidence to use as the diagnostic target through our SSRF-protected fetch helper.
       const [observation] = await getDb()
         .select({ metadata: auditLogs.metadata })
@@ -547,75 +623,75 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         const startUrl = new URL(observedPathname, `${observedOrigin}/`).toString();
 
         try {
-        const page = await fetchPage(startUrl, { timeoutMs: 10_000 });
-        const document = load(page.body);
-        const scripts = document('script[src]')
-          .toArray()
-          .map((node) => ({
-            src: document(node).attr('src') ?? '',
-            key: document(node).attr('data-agent') ?? '',
-          }));
-        const expected = scripts.filter(
-          (script) => script.key.length > 0 && /\/embed\.js(?:$|[?#])/i.test(script.src),
-        );
-        const expectedKey = await getDb()
-          .select({ embedKey: agents.embedKey })
-          .from(agents)
-          .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
-          .limit(1);
-        const matching = expected.filter((script) => script.key === expectedKey[0]?.embedKey);
-        const xFrame = page.xFrameOptions?.toLowerCase() ?? '';
-        const csp = page.contentSecurityPolicy?.toLowerCase() ?? '';
-        const previewEmbeddable =
-          !xFrame.includes('deny') &&
-          !xFrame.includes('sameorigin') &&
-          !csp.includes('frame-ancestors');
+          const page = await fetchPage(startUrl, { timeoutMs: 10_000 });
+          const document = load(page.body);
+          const scripts = document('script[src]')
+            .toArray()
+            .map((node) => ({
+              src: document(node).attr('src') ?? '',
+              key: document(node).attr('data-agent') ?? '',
+            }));
+          const expected = scripts.filter(
+            (script) => script.key.length > 0 && /\/embed\.js(?:$|[?#])/i.test(script.src),
+          );
+          const expectedKey = await getDb()
+            .select({ embedKey: agents.embedKey })
+            .from(agents)
+            .where(and(tenantScope(agents, tenant.organizationId), eq(agents.id, id)))
+            .limit(1);
+          const matching = expected.filter((script) => script.key === expectedKey[0]?.embedKey);
+          const xFrame = page.xFrameOptions?.toLowerCase() ?? '';
+          const csp = page.contentSecurityPolicy?.toLowerCase() ?? '';
+          const previewEmbeddable =
+            !xFrame.includes('deny') &&
+            !xFrame.includes('sameorigin') &&
+            !csp.includes('frame-ancestors');
 
-        if (matching.length > 1) {
-          metadata = {
-            code: 'duplicate_sdk',
-            message:
-              'More than one Voomate snippet was found. Keep only one copy so visitors do not open duplicate sessions.',
-            checkedUrl: page.url,
-            previewEmbeddable,
-            previewReason: previewEmbeddable
-              ? null
-              : 'Your site blocks embedded previews with its security headers.',
-          };
-        } else if (matching.length === 1) {
-          metadata = {
-            code: 'snippet_found',
-            message:
-              'The Voomate snippet and this agent key were found. Open the page in a browser to finish verification.',
-            checkedUrl: page.url,
-            previewEmbeddable,
-            previewReason: previewEmbeddable
-              ? null
-              : 'Your site blocks embedded previews with its security headers.',
-          };
-        } else if (expected.length > 0) {
-          metadata = {
-            code: 'wrong_agent_key',
-            message:
-              'A Voomate snippet was found, but it belongs to a different agent. Copy the snippet from this page again.',
-            checkedUrl: page.url,
-            previewEmbeddable,
-            previewReason: previewEmbeddable
-              ? null
-              : 'Your site blocks embedded previews with its security headers.',
-          };
-        } else {
-          metadata = {
-            code: 'sdk_not_found',
-            message:
-              'No Voomate snippet was found on this page. Paste the snippet before the closing body tag, publish the page, then check again.',
-            checkedUrl: page.url,
-            previewEmbeddable,
-            previewReason: previewEmbeddable
-              ? null
-              : 'Your site blocks embedded previews with its security headers.',
-          };
-        }
+          if (matching.length > 1) {
+            metadata = {
+              code: 'duplicate_sdk',
+              message:
+                'More than one Voomate snippet was found. Keep only one copy so visitors do not open duplicate sessions.',
+              checkedUrl: page.url,
+              previewEmbeddable,
+              previewReason: previewEmbeddable
+                ? null
+                : 'Your site blocks embedded previews with its security headers.',
+            };
+          } else if (matching.length === 1) {
+            metadata = {
+              code: 'snippet_found',
+              message:
+                'The Voomate snippet and this agent key were found. Open the page in a browser to finish verification.',
+              checkedUrl: page.url,
+              previewEmbeddable,
+              previewReason: previewEmbeddable
+                ? null
+                : 'Your site blocks embedded previews with its security headers.',
+            };
+          } else if (expected.length > 0) {
+            metadata = {
+              code: 'wrong_agent_key',
+              message:
+                'A Voomate snippet was found, but it belongs to a different agent. Copy the snippet from this page again.',
+              checkedUrl: page.url,
+              previewEmbeddable,
+              previewReason: previewEmbeddable
+                ? null
+                : 'Your site blocks embedded previews with its security headers.',
+            };
+          } else {
+            metadata = {
+              code: 'sdk_not_found',
+              message:
+                'No Voomate snippet was found on this page. Paste the snippet before the closing body tag, publish the page, then check again.',
+              checkedUrl: page.url,
+              previewEmbeddable,
+              previewReason: previewEmbeddable
+                ? null
+                : 'Your site blocks embedded previews with its security headers.',
+            };
+          }
         } catch (error) {
           metadata = {
             code: 'site_unreachable',
@@ -686,8 +762,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         proof?.platform === 'web' &&
         typeof proof.origin === 'string' &&
         agent.allowedOrigins.includes(proof.origin) &&
-        (typeof proof.pathname !== 'string' ||
-          webSurfaceForLocation(policy, proof.origin, proof.pathname) !== undefined)
+        policy.surfaces.some((surface) => surface.origin === proof.origin)
       );
     });
     const proof = currentProof?.metadata as DeploymentAuditMetadata | undefined;
@@ -704,20 +779,10 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       );
     });
     const observationMetadata = observation?.metadata as DeploymentAuditMetadata | undefined;
-    const observationOrigin = normalizeOrigin(observationMetadata?.origin ?? '');
-    const supersedingNegativeCheck = installationEvidence.find((record) => {
-      if (record.action !== 'agent.sdk_diagnosed' || !observation || !observationOrigin) return false;
-      const diagnostic = record.metadata as SetupAuditMetadata | null | undefined;
-      return (
-        isNegativeSdkDiagnostic(diagnostic) &&
-        diagnosticOrigin(diagnostic) === observationOrigin &&
-        record.createdAt >= observation.createdAt
-      );
-    });
-    // A server-key claim remains valid until explicitly revoked. A browser-only observation does
-    // not: it is hidden when the latest successful diagnostic says this SDK is absent or belongs
-    // to another agent. This makes the status cards and the diagnostic describe the same reality.
-    const observationIsCurrent = observation !== undefined && supersedingNegativeCheck === undefined;
+    // A real browser receipt is stronger evidence than an HTML crawl. Modern frameworks often
+    // inject scripts client-side, so a crawler can legitimately miss an SDK that has already run.
+    // Never erase live evidence because an optional diagnostic could not see rendered JavaScript.
+    const observationIsCurrent = observation !== undefined;
 
     return {
       deployment: {
@@ -740,7 +805,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
 
   /**
    * Browser SDK evidence grouped for the merchant. An observed location means the script really
-   * loaded; a verified location additionally has the merchant's server-key proof. The saved
+   * loaded; a verified location additionally has a backend-checked domain proof. The saved
    * deployment policy remains the authorization source of truth in both cases.
    */
   app.post(
@@ -800,7 +865,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
           const pageUrl = new URL(page.url);
           // `crawlSite` permits www redirects so knowledge imports do not duplicate a site.
           // Here we keep the policy exact: a redirected hostname is shown only after its own
-          // server-key claim, never silently added to this agent's allowed origins.
+          // verified domain challenge, never silently added to this agent's allowed origins.
           if (pageUrl.origin.toLowerCase() !== origin) return;
           const pathname = pageUrl.pathname.replace(/\/+/g, '/').replace(/\/+$/g, '') || '/';
           routes.set(pathname, {
@@ -873,15 +938,6 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         .orderBy(desc(auditLogs.createdAt))
         .limit(500);
       const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
-      const latestNegativeSdkCheckByOrigin = new Map<string, Date>();
-      for (const record of records) {
-        if (record.action !== 'agent.sdk_diagnosed') continue;
-        const diagnostic = record.metadata as SetupAuditMetadata | null | undefined;
-        const origin = diagnosticOrigin(diagnostic);
-        if (origin && isNegativeSdkDiagnostic(diagnostic) && !latestNegativeSdkCheckByOrigin.has(origin)) {
-          latestNegativeSdkCheckByOrigin.set(origin, record.createdAt);
-        }
-      }
       const locations = new Map<
         string,
         {
@@ -946,20 +1002,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return {
-        locations: Array.from(locations.values())
-          .filter((location) => {
-            // Keep a server-verified origin until it is revoked. A pending discovery is only a
-            // current SDK location while its latest SDK receipt has not been contradicted by a
-            // newer, successful live diagnostic for that exact origin.
-            if (location.verified) return true;
-            const negativeCheck = latestNegativeSdkCheckByOrigin.get(location.origin);
-            return (
-              negativeCheck === undefined ||
-              location.lastSdkSeenAt === null ||
-              location.lastSdkSeenAt > negativeCheck
-            );
-          })
-          .map((location) => {
+        locations: Array.from(locations.values()).map((location) => {
           const surface = policy.surfaces.find((entry) => entry.origin === location.origin);
           return {
             origin: location.origin,
@@ -971,7 +1014,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
               a.pathname.localeCompare(b.pathname),
             ),
           };
-          }),
+        }),
       };
     },
   );

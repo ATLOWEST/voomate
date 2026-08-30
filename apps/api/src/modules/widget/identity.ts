@@ -4,6 +4,7 @@ import { getWidgetConfig } from '../../config.js';
 
 export const WEB_AGENT_IDENTITY_SCOPE = 'web-agent:identity:mint';
 export const WEB_AGENT_INSTALL_SCOPE = 'web-agent:installation:claim';
+export const WEB_AGENT_INSTALL_GRANT_SCOPE = 'web-agent:installation:bootstrap';
 export const WEB_AGENT_IDENTITY_TTL_SECONDS = 5 * 60;
 
 interface IdentityClaims {

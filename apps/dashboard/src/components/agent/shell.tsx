@@ -35,7 +35,7 @@ export interface AgentDeployment {
   observedOrigin: string | null;
   observedPathname: string | null;
   observedAt: string | null;
-  /** A server-only API key claim is required before an observed origin can run the agent. */
+  /** A backend-verified domain challenge is required before an observed origin can run the agent. */
   verified: boolean;
   verifiedOrigin: string | null;
   verifiedPathname: string | null;

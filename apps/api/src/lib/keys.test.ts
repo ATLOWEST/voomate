@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateApiKey, hashApiKey } from './keys.js';
+import { generateApiKey, generateInstallGrant, hashApiKey } from './keys.js';
 
 describe('API key generation', () => {
   it('creates a fresh 256-bit secret on every request', () => {
@@ -18,5 +18,13 @@ describe('API key generation', () => {
     expect(generated.prefix).toBe(generated.key.slice(0, 11));
     expect(generated.hash).toBe(hashApiKey(generated.key));
     expect(generated.hash).not.toContain(generated.key);
+  });
+
+  it('creates a separate short-lived installation credential namespace', () => {
+    const generated = generateInstallGrant();
+
+    expect(generated.key).toMatch(/^ig_[A-Za-z0-9_-]{43}$/);
+    expect(generated.hash).toBe(hashApiKey(generated.key));
+    expect(generated.prefix).toBe(generated.key.slice(0, 11));
   });
 });

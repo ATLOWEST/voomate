@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildIdentityAssistantPrompt,
+  buildOneClickAssistantPrompt,
   buildIdentityServerExample,
   buildServerSetupSnippet,
   buildVerifiedUserSnippet,
-  buildWebAgentAssistantPrompt,
   buildWebAgentSnippet,
   toWebOrigin,
 } from './installer';
@@ -30,21 +29,6 @@ describe('web-agent installer helpers', () => {
     expect(snippet.toLowerCase()).not.toContain('secret');
   });
 
-  it('creates a scoped assistant task with the exact SDK snippet', () => {
-    const prompt = buildWebAgentAssistantPrompt({
-      widgetOrigin: 'https://widget.example.com',
-      embedKey: 'agent_public_123',
-      agentName: 'Support Agent',
-      approvedOrigins: ['https://www.example.com'],
-    });
-
-    expect(prompt).toContain('Support Agent');
-    expect(prompt).toContain('data-agent="agent_public_123"');
-    expect(prompt).toContain('VOOMATE_API_KEY');
-    expect(prompt).toContain('installation-claim API');
-    expect(prompt).toContain('Do not create, request, log, or expose any private key');
-  });
-
   it('keeps the server identity key out of the browser SDK', () => {
     const snippet = buildVerifiedUserSnippet({
       widgetOrigin: 'https://widget.example.com',
@@ -54,12 +38,13 @@ describe('web-agent installer helpers', () => {
       controlPlaneOrigin: 'https://app.example.com/api',
       approvedOrigins: ['https://shop.example.com'],
     });
-    const prompt = buildIdentityAssistantPrompt({
+    const prompt = buildOneClickAssistantPrompt({
       widgetOrigin: 'https://widget.example.com',
-      controlPlaneOrigin: 'https://app.example.com/api',
       embedKey: 'agent_public_123',
       agentName: 'Support Agent',
       approvedOrigins: ['https://shop.example.com'],
+      installGrant: 'ig_short_lived_installation_grant',
+      challengePath: '/.well-known/voomate/agent_public_123.txt',
     });
 
     expect(snippet).not.toContain('data-setup-endpoint');
@@ -67,8 +52,10 @@ describe('web-agent installer helpers', () => {
     expect(example).toContain('process.env.VOOMATE_API_KEY');
     expect(example).toContain('/v1/widget/installations/claim');
     expect(example).toContain('pageUrl.origin !== origin');
-    expect(prompt).toContain('Never accept a user ID from the browser');
-    expect(prompt).toContain('hosting provider');
+    expect(prompt).toContain('/.well-known/voomate/agent_public_123.txt');
+    expect(prompt).toContain('ig_short_lived_installation_grant');
+    expect(prompt).not.toContain('VOOMATE_API_KEY');
+    expect(prompt).toContain('Do not ask the business owner');
   });
 
   it('generates complete server-only setup files for supported frameworks', () => {

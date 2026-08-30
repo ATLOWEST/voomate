@@ -14,9 +14,10 @@
   const apiOrigin = script.dataset.api || assetOrigin;
   let identityToken = script.dataset.userToken;
   const identityEndpoint = script.dataset.identityEndpoint;
-  // Every host uses one predictable, same-origin setup path. Merchants never need to configure
-  // this in the public snippet; framework guides create the server route at this address.
-  const setupEndpoint = script.dataset.setupEndpoint || '/voomate/setup';
+  // Legacy installations may still provide a same-origin server claim endpoint. New installs use
+  // a short-lived well-known domain challenge, so public sites need no permanent server key or
+  // framework-specific POST route merely to prove where the SDK is installed.
+  const setupEndpoint = script.dataset.setupEndpoint;
   const widgetModule = new URL('/embed/v2/widget.js', assetOrigin).href;
 
   // This observes only public, same-origin route hints that the browser is already rendering.
@@ -98,8 +99,8 @@
   // a CORS-safelisted request: before a domain is verified it cannot be in the API's dashboard
   // CORS allowlist, and a JSON preflight would prevent the receipt from ever reaching Voomate.
   // `data-agent` is the unique public installation ID for exactly one agent and tenant. It is
-  // not an approval: only the same-origin server endpoint below can use the secret API key to
-  // claim the domain and make the agent eligible to run.
+  // not an approval: only the backend-verified well-known installation challenge (or a legacy
+  // server claim) can authorize the domain and make the agent eligible to run.
   const observeInstallation = async (inventory) => {
     const endpoint = new URL('/api/v1/widget/installations/observe', apiOrigin);
     await fetch(endpoint.href, {
@@ -235,8 +236,8 @@
       const routeInventory = collectRouteInventory();
       const inventorySignature = JSON.stringify(routeInventory.routes);
       if (inventorySignature !== lastReportedInventory) {
-        // Reporting is path-only and never grants access. The server-key claim proves domain
-        // ownership; a temporary setup-endpoint failure must not break an already-live agent.
+        // Reporting is path-only and never grants access. The backend challenge proves domain
+        // ownership; a temporary legacy setup-endpoint failure must not break a live agent.
         await Promise.all([
           observeInstallation(routeInventory).catch(() => undefined),
           announceInstallation(routeInventory).catch(() => undefined),
