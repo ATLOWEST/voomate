@@ -16,6 +16,7 @@ import type {
   UserId,
 } from './ids.js';
 import type { AgentCatalogType } from './agent-catalog.js';
+import type { WebDeploymentPolicy } from './web-surface-policy.js';
 
 // --- Tenancy ---------------------------------------------------------------------------
 
@@ -123,7 +124,7 @@ export interface AgentAppearance {
   /** Light/dark/auto follows the host page where detectable. */
   theme: 'light' | 'dark' | 'auto';
   /** Browser locations where this agent may run; enforced by the widget session endpoint. */
-  webDeployment?: import('./web-surface-policy.js').WebDeploymentPolicy;
+  webDeployment?: WebDeploymentPolicy;
 }
 
 export interface Agent {

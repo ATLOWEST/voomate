@@ -40,12 +40,18 @@ async function relay(
     (request.method === 'POST' && requestPath !== 'start') ||
     (request.method === 'PATCH' && !/^sessions\/[A-Za-z0-9-]+\/api\/offer$/.test(requestPath))
   ) {
-    return Response.json({ error: 'Unsupported voice request.' }, { status: 404, headers: corsHeaders(origin) });
+    return Response.json(
+      { error: 'Unsupported voice request.' },
+      { status: 404, headers: corsHeaders(origin) },
+    );
   }
 
   const body = await request.arrayBuffer();
   if (body.byteLength > MAX_VOICE_REQUEST_BYTES) {
-    return Response.json({ error: 'Voice request is too large.' }, { status: 413, headers: corsHeaders(origin) });
+    return Response.json(
+      { error: 'Voice request is too large.' },
+      { status: 413, headers: corsHeaders(origin) },
+    );
   }
 
   try {

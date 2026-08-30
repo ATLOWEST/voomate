@@ -14,7 +14,6 @@ import {
   Workflow,
 } from 'lucide-react';
 
-
 export const metadata: Metadata = {
   title: 'About — The Voomate Principles',
   description:

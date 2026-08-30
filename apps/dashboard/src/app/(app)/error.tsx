@@ -22,7 +22,9 @@ export default function AppError({
         <span className="grid size-11 place-items-center rounded-lg bg-caution-soft text-caution">
           <AlertTriangle className="size-5" />
         </span>
-        <h1 className="mt-5 text-xl font-semibold text-foreground">This dashboard page could not load</h1>
+        <h1 className="mt-5 text-xl font-semibold text-foreground">
+          This dashboard page could not load
+        </h1>
         <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
           Your workspace and agent data are safe. Try again, or return to the main dashboard.
         </p>

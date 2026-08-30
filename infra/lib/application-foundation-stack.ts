@@ -126,7 +126,11 @@ export class ApplicationFoundationStack extends Stack {
       // must cover every region that profile resolves to. Without these ARNs Bedrock returns
       // AccessDenied even though InvokeInlineAgent itself is permitted.
       const novaProfileRegions = ['us-east-1', 'us-east-2', 'us-west-2'];
-      const novaModels = ['amazon.nova-pro-v1:0', 'amazon.nova-lite-v1:0', 'amazon.nova-micro-v1:0'];
+      const novaModels = [
+        'amazon.nova-pro-v1:0',
+        'amazon.nova-lite-v1:0',
+        'amazon.nova-micro-v1:0',
+      ];
       role.addToPolicy(
         new iam.PolicyStatement({
           // Inline agents are created per request, so this action does not support a stable
@@ -266,10 +270,7 @@ export class ApplicationFoundationStack extends Stack {
           this.runtimeSecret,
           'UPSTASH_REDIS_REST_TOKEN',
         ),
-        VOOMATE_API_KEY: ecs.Secret.fromSecretsManager(
-          this.runtimeSecret,
-          'VOOMATE_API_KEY',
-        ),
+        VOOMATE_API_KEY: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'VOOMATE_API_KEY'),
       },
       portMappings: [{ containerPort: 4000 }],
     });
@@ -362,17 +363,14 @@ export class ApplicationFoundationStack extends Stack {
           this.runtimeSecret,
           'VOICE_SERVICE_ORIGIN',
         ),
-        VOOMATE_API_KEY: ecs.Secret.fromSecretsManager(
-          this.runtimeSecret,
-          'VOOMATE_API_KEY',
-        ),
+        VOOMATE_API_KEY: ecs.Secret.fromSecretsManager(this.runtimeSecret, 'VOOMATE_API_KEY'),
       },
       environment: {
         // `atlowest.in` is served from static CloudFront, which proxies only the narrow
         // `/voomate/setup` POST to this dashboard service. External merchants always use their
         // own same-origin endpoint and do not inherit this product-owned allowlist.
-          VOOMATE_SETUP_PUBLIC_ORIGINS:
-            'https://atlowest.in,https://www.atlowest.in,https://app.atlowest.in',
+        VOOMATE_SETUP_PUBLIC_ORIGINS:
+          'https://atlowest.in,https://www.atlowest.in,https://app.atlowest.in',
       },
       portMappings: [{ containerPort: 3001 }],
     });

@@ -9,7 +9,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden pb-20 pt-36 sm:pb-28 lg:pb-32 lg:pt-44">

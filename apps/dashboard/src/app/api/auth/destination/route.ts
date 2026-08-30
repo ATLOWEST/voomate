@@ -15,9 +15,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Not signed in.' }, { status: 401 });
   }
 
-  const destination = (await isPlatformAdministrator(user.id))
-    ? '/admin/merchants'
-    : '/overview';
+  const destination = (await isPlatformAdministrator(user.id)) ? '/admin/merchants' : '/overview';
 
   return NextResponse.json(
     { destination },

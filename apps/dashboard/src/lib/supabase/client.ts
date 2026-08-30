@@ -53,9 +53,7 @@ export const createClient = () => {
   // browser. ECS supplies the non-public names at runtime for that server render; checking
   // them prevents an initial 500 that the browser would otherwise have to recover from.
   const url =
-    runtimeConfig?.supabaseUrl ||
-    process.env.SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL;
+    runtimeConfig?.supabaseUrl || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey =
     runtimeConfig?.supabaseAnonKey ||
     process.env.SUPABASE_ANON_KEY ||

@@ -8,7 +8,8 @@ import './marketing.css';
 
 export const metadata: Metadata = {
   title: { default: 'Voomate — Voice & Web AI Agent Operating System', template: '%s · Voomate' },
-  description: 'Voomate connects a Web Agent, Voice Calling Agent, and Integration Agent so businesses can answer customers and automate workflows 24/7.',
+  description:
+    'Voomate connects a Web Agent, Voice Calling Agent, and Integration Agent so businesses can answer customers and automate workflows 24/7.',
   robots: {
     index: false,
     follow: false,
@@ -222,7 +223,8 @@ const getEnv = (name: string) => process.env[name];
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const supabaseUrl = getEnv('SUPABASE_URL') || getEnv('NEXT_PUBLIC_SUPABASE_URL') || '';
-  const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY') || getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || '';
+  const supabaseAnonKey =
+    getEnv('SUPABASE_ANON_KEY') || getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || '';
   const clientEnvBootstrap = `window.__VOOMATE_ENV__ = ${JSON.stringify({
     supabaseUrl,
     supabaseAnonKey,
@@ -236,7 +238,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </Script>
         {/* A plain parser-blocking script is deliberate: dashboard client components need this
             runtime configuration during their first render, not after Next hydrates Script. */}
-        <script id="client-env-bootstrap" dangerouslySetInnerHTML={{ __html: clientEnvBootstrap }} />
+        <script
+          id="client-env-bootstrap"
+          dangerouslySetInnerHTML={{ __html: clientEnvBootstrap }}
+        />
         <Script
           id="voomate-ui-manifest"
           type="application/json"

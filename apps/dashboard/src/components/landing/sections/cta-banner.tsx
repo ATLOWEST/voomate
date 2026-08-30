@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { SplineScene } from '@/components/ui/splite';
 
-
 const GUARANTEES = [
   { label: 'No credit card', sub: 'Start with 100 free conversations' },
   { label: 'Live in 5 minutes', sub: 'One script tag, nothing else' },

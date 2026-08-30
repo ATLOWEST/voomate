@@ -6,6 +6,7 @@ node_modules/
 dist/
 build/
 out/
+/output/
 .next/
 *.tsbuildinfo
 
@@ -22,6 +23,11 @@ credentials
 cdk.out/
 infra/cdk.out*/
 cdk.context.json
+
+# Generated release packages and CloudFormation synthesis output. Regenerate locally
+# or in CI; do not commit compiled deployment artifacts to the source repository.
+/.release-*/
+/infra/cdk.out-*/
 
 # logs
 *.log
@@ -52,3 +58,8 @@ evals/web-agent/results/
 /scratch/
 .codebase-memory/
 
+# Local secret material
+/secrets/
+*.secrets.*
+/supabase_login_output.txt
+/supabase/.temp/

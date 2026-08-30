@@ -288,7 +288,6 @@ export function SidebarNav({
           </div>
         </details>
       </nav>
-
     </aside>
   );
 }

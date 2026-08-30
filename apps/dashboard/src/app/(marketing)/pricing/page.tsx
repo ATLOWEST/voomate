@@ -6,7 +6,6 @@ import { ArrowRight, ArrowUpRight, ChevronDown, ShieldCheck } from 'lucide-react
 
 import { PricingGrid } from '@/components/pricing/pricing-grid';
 
-
 export const metadata: Metadata = {
   title: 'Pricing — Voomate Plans',
   description:

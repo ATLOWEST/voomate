@@ -17,7 +17,6 @@ import { OutcomeCarousel } from '@/components/ui/outcome-carousel';
 import { TryNowButton } from '@/components/ui/try-now-button';
 import { SITE_URL } from '@/lib/site-url';
 
-
 export const metadata: Metadata = {
   title: 'Voomate — One AI team for every customer conversation',
   description:

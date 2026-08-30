@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { WORKFLOW_USE_CASES, UseCaseAccordion } from '@/components/ui/use-case-accordion';
 
-
 export const metadata: Metadata = {
   title: 'Industries — Voomate Use Cases',
   description:

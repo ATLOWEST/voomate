@@ -64,7 +64,10 @@ export async function POST(request: Request): Promise<Response> {
   const trustedLandingProxy =
     browserOrigin === pageUrl.origin && proxiedPublicOrigins.has(pageUrl.origin);
   if (!directSameOrigin && !trustedLandingProxy) {
-    return Response.json({ error: 'Voomate setup must be called from this same site.' }, { status: 403 });
+    return Response.json(
+      { error: 'Voomate setup must be called from this same site.' },
+      { status: 403 },
+    );
   }
 
   // Forward only pathname and a path-only route list. Strip all query strings,
@@ -82,26 +85,21 @@ export async function POST(request: Request): Promise<Response> {
             return null;
           }
         })
-        .filter(
-          (route): route is { pathname: string; source: 'current' } => route !== null,
-        )
+        .filter((route): route is { pathname: string; source: 'current' } => route !== null)
     : [];
 
-  const upstream = await fetch(
-    'https://app.atlowest.in/api/v1/widget/installations/claim',
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        origin: pageOrigin,
-        pathname: pageUrl.pathname,
-        routes,
-      }),
+  const upstream = await fetch('https://app.atlowest.in/api/v1/widget/installations/claim', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
     },
-  );
+    body: JSON.stringify({
+      origin: pageOrigin,
+      pathname: pageUrl.pathname,
+      routes,
+    }),
+  });
 
   if (!upstream.ok) {
     return new Response(null, { status: upstream.status });

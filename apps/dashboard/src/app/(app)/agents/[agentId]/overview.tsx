@@ -108,7 +108,6 @@ export function AgentOverview() {
   const websiteReady = Boolean(agent.websiteUrl);
   const domainsReady = (agent.allowedOrigins?.length ?? 0) > 0;
   const knowledgeReady = readySources.length > 0;
-  const published = agent.status === 'active';
   const setup = setupQuery.data?.setup;
   const installationReady = setup?.sdk.verified ?? false;
   const readiness = setup?.percentage ?? 0;
@@ -143,9 +142,7 @@ export function AgentOverview() {
         }}
       />
 
-      <section
-        className="mt-6 overflow-hidden rounded-lg bg-[var(--surface-soft)]"
-      >
+      <section className="mt-6 overflow-hidden rounded-lg bg-[var(--surface-soft)]">
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
           <div className="px-6 py-7 sm:px-8 sm:py-9">
             <div className="max-w-2xl">
@@ -489,7 +486,9 @@ function SetupGuide({
             key={step.id}
             className={`min-h-28 rounded-lg p-3.5 ${step.current ? 'bg-accent-50 dark:bg-accent-950/25' : 'bg-[var(--surface-soft)]'}`}
           >
-            <span className={`grid size-7 place-items-center rounded-md text-[11px] font-semibold ${step.complete ? 'bg-positive-soft text-positive' : 'bg-[var(--surface-sunken)] text-muted-foreground'}`}>
+            <span
+              className={`grid size-7 place-items-center rounded-md text-[11px] font-semibold ${step.complete ? 'bg-positive-soft text-positive' : 'bg-[var(--surface-sunken)] text-muted-foreground'}`}
+            >
               {step.complete ? <Check className="size-3.5" /> : index + 1}
             </span>
             <p className="mt-3 text-[12.5px] font-semibold text-foreground">{step.label}</p>
@@ -501,7 +500,8 @@ function SetupGuide({
         <div className="mt-4 rounded-lg bg-[var(--surface-soft)] p-3.5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[12px] leading-5 text-muted-foreground">
-              {diagnostic?.message ?? 'After publishing the snippet, check your site before you continue.'}
+              {diagnostic?.message ??
+                'After publishing the snippet, check your site before you continue.'}
             </p>
             <button
               type="button"

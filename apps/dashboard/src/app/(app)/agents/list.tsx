@@ -53,13 +53,15 @@ export function AgentsList() {
     return agent && agent.status !== 'archived' ? [{ definition, agent }] : [];
   });
 
-  const { run: createAgent, busy: creating, error: createError } = useApiAction(
-    async (auth, catalogType: AgentCatalogType) => {
-      const { agent } = await api.post<{ agent: Agent }>('/v1/agents', { catalogType }, auth);
-      await refetch();
-      router.push(`/agents/${agent.id}`);
-    },
-  );
+  const {
+    run: createAgent,
+    busy: creating,
+    error: createError,
+  } = useApiAction(async (auth, catalogType: AgentCatalogType) => {
+    const { agent } = await api.post<{ agent: Agent }>('/v1/agents', { catalogType }, auth);
+    await refetch();
+    router.push(`/agents/${agent.id}`);
+  });
 
   return (
     <>
@@ -99,21 +101,20 @@ export function AgentsList() {
         ) : (
           <>
             {visibleAgents.length > 0 ? (
-              <section aria-label="Added agents" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <section
+                aria-label="Added agents"
+                className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              >
                 {visibleAgents.map(({ definition, agent }) => (
-                  <AgentTile
-                    key={definition.id}
-                    definition={definition}
-                    agent={agent}
-                  />
+                  <AgentTile key={definition.id} definition={definition} agent={agent} />
                 ))}
               </section>
             ) : (
               <section className="rounded-xl bg-[var(--surface-soft)] px-6 py-12 sm:px-10">
                 <p className="text-[17px] font-semibold text-foreground">No agents added</p>
                 <p className="mt-2 max-w-md text-[13px] leading-5 text-muted-foreground">
-                  Add the first capability your workspace needs. You can configure it before it
-                  is allowed to go live.
+                  Add the first capability your workspace needs. You can configure it before it is
+                  allowed to go live.
                 </p>
                 <Button
                   className="mt-6"
@@ -197,11 +198,7 @@ function AgentTile({
     'group flex aspect-square min-h-56 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--brand)] hover:bg-[var(--surface-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2';
 
   return (
-    <Link
-      href={`/agents/${agent.id}`}
-      className={className}
-      aria-label={`Open ${definition.name}`}
-    >
+    <Link href={`/agents/${agent.id}`} className={className} aria-label={`Open ${definition.name}`}>
       {contents}
     </Link>
   );
@@ -253,7 +250,12 @@ function AgentCatalogDialog({
                   Added
                 </Link>
               ) : released ? (
-                <Button size="sm" variant="primary" loading={busy} onClick={() => onAdd(definition.id)}>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  loading={busy}
+                  onClick={() => onAdd(definition.id)}
+                >
                   Add
                 </Button>
               ) : (

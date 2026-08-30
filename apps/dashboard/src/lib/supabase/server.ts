@@ -13,9 +13,7 @@ export const createClient = async () => {
   const cookieStore = await cookies();
 
   const url =
-    process.env.SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    FALLBACK_SUPABASE_URL;
+    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_SUPABASE_URL;
   const anonKey =
     process.env.SUPABASE_ANON_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
@@ -73,8 +71,7 @@ export const getMiddlewareIdentity = async (): Promise<
 export const getUser = async () => {
   try {
     const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey =
-      process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const anonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !anonKey) return null;
 
     const supabase = await createClient();
@@ -94,8 +91,7 @@ export const getUser = async () => {
 export const getAccessToken = async (): Promise<string | undefined> => {
   try {
     const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey =
-      process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const anonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !anonKey) return undefined;
 
     const supabase = await createClient();

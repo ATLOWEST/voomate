@@ -103,7 +103,13 @@ export const askRoutes: FastifyPluginAsync = async (app) => {
 
       if (!wantsStream) {
         const result = await answer(common);
-        await recordSuccessfulTest(db, tenant.organizationId, tenant.userId, agent.id, input.channel);
+        await recordSuccessfulTest(
+          db,
+          tenant.organizationId,
+          tenant.userId,
+          agent.id,
+          input.channel,
+        );
         return toJson(result);
       }
 
@@ -131,7 +137,13 @@ export const askRoutes: FastifyPluginAsync = async (app) => {
             send(reply, 'delta', { text: chunk.delta });
           },
         );
-        await recordSuccessfulTest(db, tenant.organizationId, tenant.userId, agent.id, input.channel);
+        await recordSuccessfulTest(
+          db,
+          tenant.organizationId,
+          tenant.userId,
+          agent.id,
+          input.channel,
+        );
         send(reply, 'done', toJson(result));
       } catch (error) {
         // The stream is already open with a 200, so the error handler cannot turn this into a

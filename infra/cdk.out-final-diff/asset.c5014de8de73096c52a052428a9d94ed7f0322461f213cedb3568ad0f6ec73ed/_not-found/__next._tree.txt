@@ -1,5 +1,0 @@
-:HL["/_next/static/chunks/33dc5-bmdyyti.css","style"]
-:HL["/_next/static/chunks/1d4qj-qaw885i.css","style"]
-:HL["/voomate-logo.png","image"]
-:HL["/voomate-text-logo.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4112,"slots":{"children":{"name":"/_not-found","param":null,"prefetchHints":4160,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"sMgj-pXlVRwRLjBiCZhkw"}

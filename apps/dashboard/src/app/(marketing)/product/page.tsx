@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { ProductTabs } from '@/components/ui/product-tabs';
 
-
 export const metadata: Metadata = {
   title: 'Product & Capabilities · Voomate',
   description:
