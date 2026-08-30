@@ -101,3 +101,4 @@ security-certified; known pre-launch controls and remaining work are tracked in 
 | [docs/roadmap.md](docs/roadmap.md) | Implemented milestones and honest release gaps |
 | [docs/web-agent-widget.md](docs/web-agent-widget.md) | Widget setup, evaluations and smoke tests |
 | [docs/connect-quickstart.md](docs/connect-quickstart.md) | Secure server SDK setup |
+| [Yug Patel - Software Engineer Intern Resume](docs/Yug_Patel_Software_Engineer_Intern_Resume.pdf) | Builder profile and verified project experience |
