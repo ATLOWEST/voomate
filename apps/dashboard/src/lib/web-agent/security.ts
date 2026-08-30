@@ -257,7 +257,10 @@ export function bearerToken(request: Request): string | undefined {
 export function corsHeaders(origin: string): HeadersInit {
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    // WebRTC sends the initial SDP offer with POST and then sends ICE candidates with PATCH.
+    // The widget is intentionally embedded cross-origin, so both methods must survive its
+    // browser preflight when the voice transport is routed through the dashboard edge.
+    'Access-Control-Allow-Methods': 'POST, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': 'authorization, content-type',
     'Access-Control-Max-Age': '600',
     Vary: 'Origin',

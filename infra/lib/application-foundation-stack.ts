@@ -121,6 +121,12 @@ export class ApplicationFoundationStack extends Stack {
       });
 
     const grantBedrockRuntime = (role: iam.Role) => {
+      // The US Nova inference profiles are cross-region. Invoking the profile in us-east-1
+      // can execute against its foundation model in us-east-2 or us-west-2, so model access
+      // must cover every region that profile resolves to. Without these ARNs Bedrock returns
+      // AccessDenied even though InvokeInlineAgent itself is permitted.
+      const novaProfileRegions = ['us-east-1', 'us-east-2', 'us-west-2'];
+      const novaModels = ['amazon.nova-pro-v1:0', 'amazon.nova-lite-v1:0', 'amazon.nova-micro-v1:0'];
       role.addToPolicy(
         new iam.PolicyStatement({
           // Inline agents are created per request, so this action does not support a stable
@@ -133,9 +139,9 @@ export class ApplicationFoundationStack extends Stack {
         new iam.PolicyStatement({
           actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
           resources: [
-            `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-pro-v1:0`,
-            `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`,
-            `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-micro-v1:0`,
+            ...novaProfileRegions.flatMap((region) =>
+              novaModels.map((model) => `arn:aws:bedrock:${region}::foundation-model/${model}`),
+            ),
             `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-embed-text-v2:0`,
             `arn:aws:bedrock:${this.region}:${this.account}:inference-profile/us.amazon.nova-pro-v1:0`,
             `arn:aws:bedrock:${this.region}:${this.account}:inference-profile/us.amazon.nova-lite-v1:0`,

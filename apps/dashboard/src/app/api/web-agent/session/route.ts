@@ -278,6 +278,12 @@ export async function POST(request: Request): Promise<Response> {
       process.env.VOICE_SERVICE_ORIGIN ??
       (process.env.NODE_ENV === 'development' ? 'http://localhost:7860' : undefined)
     )?.replace(/\/$/, '');
+    // Keep browser WebRTC traffic on the same trusted dashboard edge as session and chat.
+    // The dashboard proxy then relays it server-to-server to the voice service. This removes
+    // an unreliable second browser-to-service CORS hop while keeping the voice edge private.
+    const voiceStartUrl = voiceServiceOrigin
+      ? `${new URL(request.url).origin}/api/web-agent/voice/start`
+      : undefined;
     return Response.json(
       {
         session: {
@@ -297,8 +303,8 @@ export async function POST(request: Request): Promise<Response> {
           greeting: persona.greeting ?? 'Hi! How can I help?',
           voiceEnabled: agent.voiceEnabled,
           voice:
-            agent.voiceEnabled && voiceServiceOrigin
-              ? { transport: 'webrtc', startUrl: `${voiceServiceOrigin}/start` }
+            agent.voiceEnabled && voiceStartUrl
+              ? { transport: 'webrtc', startUrl: voiceStartUrl }
               : null,
           appearance: agent.appearance,
         },
