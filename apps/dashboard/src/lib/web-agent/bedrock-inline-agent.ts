@@ -46,7 +46,7 @@ async function invokeWithBackoff(
   input: ConstructorParameters<typeof InvokeInlineAgentCommand>[0],
 ): Promise<InvokeInlineAgentCommandOutput> {
   let lastError: unknown;
-  for (const delay of [0, 350, 900]) {
+  for (const delay of [0, 750, 2_000, 4_500]) {
     if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
     try {
       return await bedrockAgent().send(new InvokeInlineAgentCommand(input));
@@ -56,6 +56,40 @@ async function invokeWithBackoff(
     }
   }
   throw lastError;
+}
+
+type InlineHistoryMessage = {
+  role: 'user' | 'assistant';
+  content: [{ text: string }];
+};
+
+/**
+ * Bedrock requires strict user/assistant alternation. A failed model turn can leave a stored
+ * visitor message without a matching assistant response. Carry that request into the next user
+ * input rather than sending an invalid user/user sequence or losing the customer's context.
+ */
+export function prepareInlineConversation(
+  history: readonly { role: 'visitor' | 'agent'; content: string }[],
+  currentMessage: string,
+): { messages: InlineHistoryMessage[]; inputText: string } {
+  const messages: InlineHistoryMessage[] = [];
+  for (const turn of history) {
+    const role = turn.role === 'visitor' ? 'user' : 'assistant';
+    const value = turn.content.trim();
+    if (!value) continue;
+    const last = messages[messages.length - 1];
+    if (last?.role === role) last.content[0].text += `\n\n${value}`;
+    else messages.push({ role, content: [{ text: value }] });
+  }
+  while (messages[0]?.role === 'assistant') messages.shift();
+
+  const unanswered = messages.at(-1)?.role === 'user' ? messages.pop()?.content[0].text : undefined;
+  return {
+    messages,
+    inputText: unanswered
+      ? `Previous unanswered request:\n${unanswered}\n\nCurrent request:\n${currentMessage}`
+      : currentMessage,
+  };
 }
 
 const baseActionGroup: AgentActionGroup = {
@@ -271,25 +305,11 @@ export async function runBedrockInlineAgentTurn(
     ? JSON.stringify(compacted.knowledge)
     : 'No verified business knowledge was retrieved.';
 
-  const normalizedMessages: Array<{ role: 'user' | 'assistant'; content: [{ text: string }] }> = [];
-  for (const turn of compacted.history) {
-    const role = turn.role === 'visitor' ? 'user' : 'assistant';
-    const text = turn.content.trim();
-    if (!text) continue;
-    const last = normalizedMessages[normalizedMessages.length - 1];
-    if (last && last.role === role) {
-      last.content[0].text += `\n\n${text}`;
-    } else {
-      normalizedMessages.push({ role, content: [{ text }] });
-    }
-  }
-  while (normalizedMessages.length > 0 && normalizedMessages[0]?.role !== 'user') {
-    normalizedMessages.shift();
-  }
+  const preparedConversation = prepareInlineConversation(compacted.history, message);
 
   const sessionState: InlineSessionState = {
     conversationHistory: {
-      messages: normalizedMessages,
+      messages: preparedConversation.messages,
     },
     promptSessionAttributes: {
       channel: 'shared-web-agent',
@@ -360,7 +380,7 @@ export async function runBedrockInlineAgentTurn(
   });
   const first = await invokeWithBackoff({
     ...common,
-    inputText: message,
+    inputText: preparedConversation.inputText,
     inlineSessionState: sessionState,
   });
   const collected = await collect({ response: first, onTextDelta: emit });

@@ -5,6 +5,7 @@ import { webDeploymentPolicyFromAppearance, webSurfaceForLocation } from '@vooma
 import { getWebAgentDb } from '@/lib/web-agent/db';
 import { flushRunEvents, logRunEvent } from '@/lib/web-agent/log';
 import { enforceWidgetRateLimit } from '@/lib/web-agent/rate-limit';
+import { publicRequestOrigin } from '@/lib/web-agent/public-request-origin';
 import {
   corsHeaders,
   keyFingerprint,
@@ -273,7 +274,7 @@ export async function POST(request: Request): Promise<Response> {
     });
     await flushRunEvents(context);
 
-    const persona = agent.persona as { displayName?: string; greeting?: string };
+    const persona = agent.persona as { displayName?: string };
     const voiceServiceOrigin = (
       process.env.VOICE_SERVICE_ORIGIN ??
       (process.env.NODE_ENV === 'development' ? 'http://localhost:7860' : undefined)
@@ -282,7 +283,7 @@ export async function POST(request: Request): Promise<Response> {
     // The dashboard proxy then relays it server-to-server to the voice service. This removes
     // an unreliable second browser-to-service CORS hop while keeping the voice edge private.
     const voiceStartUrl = voiceServiceOrigin
-      ? `${new URL(request.url).origin}/web-agent-voice/start`
+      ? `${publicRequestOrigin(request)}/web-agent-voice/start`
       : undefined;
     return Response.json(
       {
@@ -300,7 +301,6 @@ export async function POST(request: Request): Promise<Response> {
             : null,
         agent: {
           displayName: persona.displayName ?? 'Assistant',
-          greeting: persona.greeting ?? 'Hi! How can I help?',
           voiceEnabled: agent.voiceEnabled,
           voice:
             agent.voiceEnabled && voiceStartUrl

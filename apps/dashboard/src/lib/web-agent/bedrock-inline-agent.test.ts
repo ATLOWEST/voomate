@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { formatPublicOrderFallback, modelUsageFromTrace } from './bedrock-inline-agent';
+import {
+  formatPublicOrderFallback,
+  modelUsageFromTrace,
+  prepareInlineConversation,
+} from './bedrock-inline-agent';
 import { checkOrderInputSchema } from './check-order-status';
 
 describe('Bedrock Inline Agent deterministic tool fallback', () => {
@@ -40,5 +44,19 @@ describe('Bedrock Inline Agent deterministic tool fallback', () => {
         },
       }),
     ).toEqual({ modelInvocations: 1, inputTokens: 420, outputTokens: 73 });
+  });
+
+  it('repairs an unanswered visitor turn before the next Bedrock request', () => {
+    const result = prepareInlineConversation(
+      [
+        { role: 'visitor', content: 'First question' },
+        { role: 'agent', content: 'First answer' },
+        { role: 'visitor', content: 'Request that failed' },
+      ],
+      'Try the next request',
+    );
+    expect(result.messages.map(({ role }) => role)).toEqual(['user', 'assistant']);
+    expect(result.inputText).toContain('Previous unanswered request:\nRequest that failed');
+    expect(result.inputText).toContain('Current request:\nTry the next request');
   });
 });

@@ -701,6 +701,10 @@ export async function mountWidget(host, config) {
   let voiceStarting = false;
   let voiceStopping = false;
   let voiceRequestId = 0;
+  let voiceRunId;
+  let voiceStartedAt = 0;
+  let voiceConnectedReported = false;
+  let voiceFailureReported = false;
   let voiceUserNode;
   let voiceAssistantNode;
   let selectedFiles = [];
@@ -990,6 +994,30 @@ export async function mountWidget(host, config) {
     presence.setAttribute('aria-hidden', String(state !== 'ended'));
   };
 
+  const reportVoiceConnection = (status) => {
+    if (!token || !voiceRunId) return;
+    if (status === 'error' && voiceFailureReported) return;
+    if (status === 'error') voiceFailureReported = true;
+    const latencyMs = Math.max(0, Math.min(300_000, Date.now() - voiceStartedAt));
+    void fetch(`${config.apiOrigin}/api/web-agent/voice/events`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        ...(conversationId ? { conversationId } : {}),
+        runId: voiceRunId,
+        stage: 'voice_connected',
+        status,
+        latencyMs,
+        metrics: { relayConfigured: Boolean(voiceConfig?.startUrl) },
+      }),
+      credentials: 'omit',
+      cache: 'no-store',
+    }).catch(() => undefined);
+  };
+
   const stopVoice = async () => {
     if (voiceStopping) return;
     voiceStopping = true;
@@ -1238,8 +1266,6 @@ export async function mountWidget(host, config) {
         if (message.role !== 'visitor' && message.role !== 'agent') continue;
         addMessage(message.role === 'visitor' ? 'visitor' : 'assistant', message.content);
       }
-    } else {
-      addMessage('assistant', session.agent.greeting);
     }
     persistJourney(resumeVoiceAfterReload);
 
@@ -1264,7 +1290,12 @@ export async function mountWidget(host, config) {
   const startVoice = async () => {
     if (!token || !voiceConfig || voiceSession || voiceStarting) return;
     const requestId = ++voiceRequestId;
+    voiceRunId = window.crypto.randomUUID();
+    voiceStartedAt = Date.now();
+    voiceConnectedReported = false;
+    voiceFailureReported = false;
     voiceStarting = true;
+    reportVoiceConnection('started');
     voiceStage.classList.add('active');
     panel.classList.add('voice-active');
     mic.classList.add('active');
@@ -1286,7 +1317,13 @@ export async function mountWidget(host, config) {
         audioElement: audio,
         onState: (state) => {
           if (state === 'ended') void stopVoice();
-          else setVoiceState(state);
+          else {
+            setVoiceState(state);
+            if (!voiceConnectedReported && state === 'listening') {
+              voiceConnectedReported = true;
+              reportVoiceConnection('success');
+            }
+          }
         },
         onAudioLevel: (source, level) => {
           const normalized = sphere.setLevel(source === 'user' ? 'user' : 'assistant', level);
@@ -1322,6 +1359,7 @@ export async function mountWidget(host, config) {
           setVoiceState('listening');
         },
         onError: (message) => {
+          reportVoiceConnection('error');
           setStatus(message, 'error');
           void stopVoice();
         },
@@ -1334,6 +1372,7 @@ export async function mountWidget(host, config) {
       sphere.setActive(isOpen);
     } catch (error) {
       if (requestId !== voiceRequestId) return;
+      reportVoiceConnection('error');
       const blocked = error instanceof DOMException && error.name === 'NotAllowedError';
       setStatus(
         blocked

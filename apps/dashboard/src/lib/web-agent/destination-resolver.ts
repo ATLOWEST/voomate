@@ -124,6 +124,7 @@ function canonicalToken(value: string): string {
     norm === 'aganit' ||
     norm === 'agabt' ||
     norm === 'agant' ||
+    norm === 'agants' ||
     norm === 'agent' ||
     norm === 'agents'
   ) {
@@ -209,10 +210,10 @@ function navigationSubject(message: string): string {
   const patterns = [
     /\b(?:go|send)(?:\s+me)?(?:\s+back)?\s+to\s+(.+)/i,
     /\b(?:take|bring)\s+me(?:\s+back)?\s+to\s+(.+)/i,
-    /\b(?:navigate|head|switch|redirect|route)(?:\s+me)?\s+(?:back\s+)?to\s+(.+)/i,
+    /\b(?:navigate|head|switch|redirect|rediect|route)(?:\s+me)?\s+(?:back\s+)?to\s+(.+)/i,
     /\bvisit(?:\s+the)?\s+(.+)/i,
     /\bopen(?:\s+the)?\s+(.+)/i,
-    /\b(?:redirect|take|lead|move|switch)\s+(?:this\s+)?(?:me\s+)?(?:to\s+)?(.+)/i,
+    /\b(?:redirect|rediect|take|lead|move|switch)\s+(?:this\s+)?(?:me\s+)?(?:to\s+)?(.+)/i,
   ];
   const subject = patterns.map((pattern) => message.match(pattern)?.[1]).find(Boolean) ?? message;
   return subject.split(/\b(?:and|then|so that|because)\b/i, 1)[0] ?? subject;
@@ -236,7 +237,12 @@ function scoreTerm(
   const termTokens = meaningfulTokens(term);
   if (!normalizedTerm || termTokens.length === 0) return { score: 0, match: source };
   const sourceBonus = source === 'title' ? 4 : source === 'alias' ? 3 : 1;
-  if (queryPhrase === normalizedTerm) {
+  const canonicalTerm = termTokens.map(canonicalToken).join(' ');
+  const canonicalQuery = queryTokens.map(canonicalToken).join(' ');
+  if (
+    queryPhrase === normalizedTerm ||
+    (queryPhrase !== canonicalQuery && canonicalQuery === canonicalTerm)
+  ) {
     return { score: source === 'title' ? 100 : source === 'alias' ? 96 : 92, match: source };
   }
   let score = 0;

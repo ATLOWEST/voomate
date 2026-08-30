@@ -161,6 +161,24 @@ describe('web agent orchestration', () => {
     expect(result.directReply).toBe('Opening Agents.');
   });
 
+  it('navigates the exact redirect typo observed in production without a model call', () => {
+    const result = planWebAgentTurn({
+      message: 'ok so can you pleace rediect me to agants page i',
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.clientCommands).toEqual([
+      {
+        type: 'navigate',
+        label: 'Agents',
+        url: 'https://app.voomate.test/agents',
+        intent: 'web',
+      },
+    ]);
+    expect(result.directReply).toBe('Opening Agents.');
+  });
+
   it('uses page context to explain the current dashboard', () => {
     const result = planWebAgentTurn({
       message: 'What is this dashboard about and how do I use it?',

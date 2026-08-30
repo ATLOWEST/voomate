@@ -56,6 +56,7 @@ describe('destination resolver', () => {
     ['take me to billing plans', 'Pricing'],
     ['open the chat agent', 'Web Agent'],
     ['open the web agent playgrond', 'Web Agent Playground'],
+    ['pleace rediect me to agants page i', 'Agents'],
   ])('repairs bounded phrasing and spelling noise: %s', (message, label) => {
     expect(resolveDestination(message, pageContext, 'navigation')).toMatchObject({
       kind: 'resolved',
