@@ -24,22 +24,29 @@ without receiving unrestricted data access or unreviewed permissions.
 
 ## Architecture
 
+The dashboard and widget are separate entry points: the dashboard is the merchant's Operating
+Panel; the widget is the visitor-facing runtime. They meet at the governed control plane.
+
 ```text
-Merchant dashboard / website widget
-              |
-              v
-      Next.js + Fastify control plane
-              |
-              +--> tenant-scoped Postgres + RLS
-              |
-              +--> knowledge ingestion and pgvector retrieval
-              |
-              +--> Bedrock orchestration and controlled tools
-              |
-              +--> audit events, evaluations, and usage records
+Merchant Operating Panel                     Customer website
+Next.js dashboard                            Voomate Web Component
+        | configure and observe                      | origin-bound session
+        +----------------------+--------------------+
+                               v
+                 Voomate control plane and Web Agent runtime
+                               |
+           +-------------------+-------------------+
+           v                   v                   v
+  tenant-scoped Postgres    RAG knowledge      controlled tools
+  + RLS + lifecycle lease   ingestion/pgvector + policy + audit
+           |                   ^
+           +-------------------+
+             crawl -> sanitise -> chunk -> embed -> retrieve
 ```
 
-Read the full [architecture](docs/architecture.md), [security model](docs/security.md), and
+The complete architecture documents the merchant control flow, RAG pipeline, visitor turn,
+controlled tool execution, tenant isolation, audit/evaluation loop, and the in-progress voice
+path. Read the [architecture](docs/architecture.md), [security model](docs/security.md), and
 [agent operating-system doctrine](docs/agent-operating-system-north-star.md) before extending an
 agent or connection.
 

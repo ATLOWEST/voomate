@@ -1,215 +1,205 @@
-# Architecture
+# Voomate Architecture
 
-## What we're building
+## Scope and status
 
-A multi-tenant SaaS. Merchants sign up, point us at their website, we learn it, and they drop
-one script tag on their site. Their visitors then talk to a grounded, low-latency voice agent.
+Voomate is a multi-tenant AI agent operating system for small and medium businesses. The
+implemented product is the **Web Agent**: merchants configure a governed agent in the Operating
+Panel, connect approved knowledge and capabilities, then install a customer-facing web widget.
 
-Three surfaces, one backend:
+The same control-plane contracts are the foundation for the future CRM Tool, SEO, and Calling
+Agent types. Those types are not represented as active production capabilities until their
+runtime, policies, traces, and evaluation packs are released.
 
-| Surface | Audience | Job |
-|---|---|---|
-| **Dashboard** (`apps/dashboard`) | Merchants — site owners, developers | Onboard, curate knowledge, configure the agent, get the embed snippet, read analytics |
-| **Widget** (`apps/widget`) | End visitors on merchant sites | Talk (or type) to the agent |
-| **Control plane** (`apps/api`) | Neither — it's the machinery | Tenancy, auth, ingestion, voice orchestration, guardrails, billing |
+This page describes the current system. It intentionally separates working paths from planned
+extensions.
 
-## Governed agent control plane
+## System map
 
-Every tenant agent is an instance of a versioned shared catalog type. Its enforced lifecycle is
-`draft -> active <-> paused -> archived`. A monotonic desired-state revision and revocable,
-short-lived execution lease bind sessions and tool work to the current configuration. Pause,
-archive, configuration update, or approved Business Operating Profile promotion invalidates stale
-tokens. Dashboard Delete is a compatibility name for safe archival; physical erasure is a separate
-retention workflow.
+The product has two independent entry points. The merchant dashboard controls and observes the
+system; the website widget serves a visitor. Neither starts "inside" the other.
 
-The tenant-level Business Operating Profile is structured and versioned. Evidence includes source,
-confidence, observation time, inference version, and review state. Only an approved profile is
-pinned to agents and used in production guidance; turn-level inference remains advisory.
-
-See [ADR 0008](adr/0008-governed-control-plane-and-business-profile.md).
-
-## System diagram
-
-```
-┌─────────────────┐        ┌──────────────────┐
-│    Dashboard    │───────►│   Control API    │──────► Supabase Postgres
-│   (Next.js)     │  REST  │   (Fastify)      │        (tenants, agents, config,
-└─────────────────┘        └────────┬─────────┘         conversations, usage)
-                                    │
-                                    ├──► Ingestion pipeline (Fargate)
-                                    │      crawl → extract → chunk → S3 archive
-                                    │      → Titan embeddings
-                                    │      → Supabase pgvector
-                                    │
-┌─────────────────┐                 │
-│ Widget (Web     │                 ▼
-│ Component)      │
-│  on merchant    │◄──── WebRTC ──── Voice Orchestrator (Fargate)
-│  site           │   (Chime SDK)         │
-└─────────────────┘                       ├──► Transcribe streaming   (ears)
-                                          ├──► pgvector retrieval     (memory)
-                                          ├──► Bedrock Nova Pro       (brain)
-                                          └──► Polly streaming        (mouth)
-```
-
-The existing Fastify service remains the legacy control plane. The new embeddable Web Agent loop
-is served by Next.js Route Handlers under `apps/dashboard/src/app/api/web-agent`; this is the path
-for new widget chat and action work.
-
-Web Agent installation uses one short-lived, agent-scoped well-known domain challenge rather than
-a customer-authored verification endpoint or permanent API key. The control plane verifies the
-deployed file, records the exact origin and path-only route inventory, and the dashboard reflects
-that evidence automatically. See [Web Agent installation contract](web-agent-installation.md).
-
-## The voice pipeline — where this product is won or lost
-
-A voice agent feels cheap the moment round-trip latency exceeds ~1.2s, or when you can't
-interrupt it. Everything below exists to serve those two properties.
-
-**Target: < 1.2s** from end-of-user-speech to first audible syllable.
-
-The whole path must be **streaming end-to-end**. Any single request/response hop blows the
-budget on its own.
-
-```
-visitor speaks
-   │
-   ├─ 1. Client VAD detects speech, opens the turn
-   ├─ 2. Chime SDK carries audio (WebRTC: jitter buffer, echo cancel, packet loss recovery)
-   ├─ 3. Transcribe streaming emits PARTIAL transcripts while they're still talking
-   ├─ 4. Endpoint detection closes the turn
-   ├─ 5. Bedrock KB retrieval  ─┐
-   ├─ 6. Nova Pro streams tokens ┘ (speculative: can start on stable partials)
-   ├─ 7. Sentence chunker cuts the token stream at clause boundaries
-   ├─ 8. Polly synthesises EACH SENTENCE as it completes
-   └─ 9. First sentence plays while later ones are still being generated
+```text
+ Merchant Operating Panel                         Customer website
+ Next.js dashboard                                Versioned Web Component
+        |                                                  |
+        | configure, publish, inspect                     | origin-bound session
+        v                                                  v
+ +----------------------+                      +-----------------------+
+ | Voomate control      |<---------------------| Web Agent runtime     |
+ | plane                |  signed session      | Next.js route layer   |
+ | Fastify + Next.js    |                      +-----------+-----------+
+ +----------+-----------+                                  |
+            |                                              | grounded turn
+            |                                              v
+            |                                   +-----------------------+
+            |                                   | AI coordination        |
+            |                                   | harness + Nova         |
+            |                                   | allowed tools only     |
+            |                                   +----+-------------+----+
+            |                                        |             |
+            v                                        v             v
+ +----------------------+               +----------------+  +------------------+
+ | Supabase Postgres    |               | RAG retrieval  |  | Controlled tools |
+ | RLS + Drizzle        |               | pgvector       |  | policy + audit   |
+ | org, agent, sessions |               +----------------+  +------------------+
+ +----------+-----------+                        ^                 |
+            ^                                    |                 |
+            |                          indexed knowledge            |
+            |                                    |                 |
+            +----------------------+-------------+-----------------+
+                                   |
+                    crawl -> sanitise -> chunk -> embed -> store
 ```
 
-Step 8 is the one people get wrong. Waiting for the full LLM response before synthesising
-turns a 400ms perceived latency into 2.5s. We synthesise per sentence and start playback on
-the first one.
+## 1. Merchant control-plane flow
 
-### Barge-in
+The Operating Panel is the merchant's source of control, not part of a visitor conversation.
 
-Non-negotiable for a natural feel. Client-side VAD detects the visitor speaking over the
-agent, and we immediately: stop playback, flush the Polly queue, cancel in-flight synthesis,
-truncate the assistant turn in history at what was *actually heard* (not what was generated),
-and reopen the mic. That history truncation matters — if the agent "remembers" saying
-something the visitor never heard, the conversation desynchronises.
-
-### Latency budget
-
-| Stage | Target |
-|---|---|
-| Network (WebRTC, regional) | 50–150ms |
-| Transcribe partial → final | 100–300ms |
-| Retrieval (Bedrock KB) | 100–250ms |
-| Nova Pro first token | 200–400ms |
-| Polly first audio chunk | 100–200ms |
-| **Total to first syllable** | **< 1.2s** |
-
-Instrument every stage from day one. You cannot optimise a pipeline you can't see, and
-"it feels slow" is not a debuggable report.
-
-## Why Chime SDK over raw WebSockets
-
-WebSockets are simpler and would work for a demo. Chime SDK gives us jitter buffering, echo
-cancellation, packet-loss concealment, and network adaptation as managed features — all of
-which matter enormously for visitors on patchy mobile networks, which is most of our target
-markets. Echo cancellation alone is a substantial engineering project to do properly, and
-without it, barge-in detection triggers on the agent's own voice.
-
-Cost: it's a heavier lift (session management + a server-side media pipeline). So it lands in
-Phase 3, deliberately **after** knowledge quality is proven over text.
-
-See [adr/0002-webrtc-chime-transport.md](adr/0002-webrtc-chime-transport.md).
-
-## Knowledge pipeline
-
-```
-URL → sitemap/robots discovery → Playwright render (JS-heavy sites are the norm)
-    → readability extraction (strip nav/footer/cookie banners)
-    → semantic chunking → S3 archive (so re-chunking never means re-crawling)
-    → Titan Embed Text v2 → knowledge_chunks rows in Supabase
-    → HNSW cosine index
+```text
+sign in -> organization -> create Web Agent in draft
+        -> configure knowledge, appearance, allowed origins, and approved tools
+        -> install the Voomate script on the merchant website
+        -> Voomate verifies the live domain and indexes at least one knowledge source
+        -> activate the agent -> issue a short-lived execution lease
+        -> inspect conversations, traces, usage, quality signals, and audit events
 ```
 
-Retrieval is a **SQL function**, `match_knowledge_chunks(org, agent, query_embedding, …)`,
-scoped by organisation *and* agent. We own each step — chunking, embedding, ranking, and the
-citation shape merchants need to trust the answer.
+Every agent instance has an organization, stable agent ID, catalog type, configuration revision,
+policy state, tool grants, and audit history. Its lifecycle is enforced as:
 
-This replaced Bedrock Knowledge Bases, which handled all of that for us but capped at 100
-knowledge bases per account with a **non-adjustable** quota — a hard ceiling of 100 merchants.
-See [adr/0005-supabase-pgvector.md](adr/0005-supabase-pgvector.md).
-
-Merchants layer their own content on top of the crawl: manual Q&A pairs, uploaded documents,
-and per-page include/exclude. Scheduled re-crawls keep it fresh.
-
-**Retrieved content is untrusted input.** A merchant's own page can contain text that reads
-like an instruction. It is passed to the model as *data*, never as instructions — see
-[security.md](security.md).
-
-## Multi-tenancy
-
-Tenant isolation is enforced at **three** layers, deliberately redundant:
-
-1. **Database** — Row Level Security on every tenant table. Even a query with a missing
-   `WHERE` clause cannot cross tenants.
-2. **Application** — every request carries a resolved `TenantContext`; repositories require it.
-3. **AWS resources** — per-tenant Bedrock Knowledge Base, S3 prefix isolation.
-
-RLS is the backstop that makes the other two layers' bugs non-catastrophic. The API's service
-role bypasses RLS by design, which is exactly why the application layer must never construct
-a query without a tenant scope. See [packages/db/README.md](../packages/db/README.md).
-
-## Technology choices
-
-| Concern | Choice | Why |
-|---|---|---|
-| Language | TypeScript everywhere | One language across API, dashboard, widget; shared contracts |
-| API | Fastify | Mature, fast, first-class schema validation, good plugin ecosystem |
-| Dashboard | Next.js (App Router) | Server components, mature, good hosting story |
-| DB | Supabase Postgres | Managed Postgres + auth + RLS in one; RLS is central to our isolation model |
-| ORM | Drizzle | Type-safe queries *and* SQL migrations; SQL stays readable |
-| Validation | Zod | One schema shared between API and dashboard |
-| Brain | Bedrock Nova Pro | Chosen stack; native Bedrock KB integration |
-| RAG | Bedrock Knowledge Bases | Managed chunking/embedding/retrieval with citations |
-| STT | Transcribe streaming | Streaming + multi-language code-switching |
-| TTS | Polly (Generative) | Bilingual voices are decisive for the India market |
-| Media | Chime SDK (WebRTC) | Jitter/echo/loss handling we'd otherwise build ourselves |
-| Infra | AWS CDK | Infrastructure as code in TypeScript |
-
-## Repository layout
-
-```
-apps/
-  api/           Fastify control plane
-    src/
-      modules/   Feature-sliced: agents/, knowledge/, conversations/, ...
-      plugins/   Cross-cutting: auth, tenancy, error handling, rate limits
-      lib/       Infrastructure adapters (AWS clients, Supabase)
-  dashboard/     Next.js merchant dashboard
-  widget/        legacy iframe widget (superseded by dashboard/public/embed.js Web Component)
-packages/
-  core/          Types, zod contracts, error taxonomy, env validation
-  i18n/          Language registry — the verified AWS capability matrix as code
-  db/            Drizzle schema + RLS policies + migrations
-  config/        Shared tsconfig presets
-infra/           CDK stacks
+```text
+draft -> active <-> paused -> archived
 ```
 
-`packages/core` holds no business logic and no I/O — it's the contract layer every other
-workspace depends on, so it must stay dependency-light and side-effect free.
+An inactive, paused, or archived agent cannot serve new work. Archiving revokes execution leases,
+keys, connections, and tool grants before retention-based deletion is considered. Activation also
+requires a verified website origin and indexed knowledge, preventing an empty or unverified agent
+from being publicly deployed.
 
-## What is deliberately deferred
+## 2. Knowledge ingestion and RAG flow
 
-Naming these keeps the foundation honest about its own boundaries:
+RAG is not a generic document upload. Voomate builds a tenant- and agent-scoped knowledge index
+from approved merchant content.
 
-- **Human handoff** — escalation to a live agent. Schema anticipates it (`conversations.status`
-  includes `escalated`); no integration built.
-- **Billing** — `usage_records` is written from day one so metering is accurate retroactively.
-  No Stripe wiring yet.
-- **SSO / SCIM** — enterprise tier, post-launch. The `organization_members` role model is
-  shaped to accept it.
-- **Multi-region** — single region at launch. Region is threaded through config rather than
-  hardcoded, so this is a deployment change, not a rewrite.
+```text
+merchant supplies site URL, manual Q&A, or managed content
+  -> sitemap and robots discovery
+  -> rendered page extraction for JavaScript sites
+  -> remove navigation noise and hidden text; flag unsafe instruction patterns and credential-like values
+  -> semantic chunking with source metadata
+  -> Amazon Titan embedding generation
+  -> Supabase Postgres knowledge rows + pgvector index
+  -> retrieval scoped by organization ID and agent ID
+  -> grounded response with source citations, or an explicit ungrounded result
+```
+
+The source page is treated as untrusted data. Retrieved text is never granted tool permissions and
+is not treated as system instructions. A future re-crawl reuses the same controlled ingestion path
+instead of writing directly to the model context.
+
+## 3. Customer conversation flow
+
+The website widget is a thin, versioned client. It does not receive database, AWS, or merchant
+credentials.
+
+```text
+visitor opens widget
+  -> public embed key + server-side origin validation
+  -> short-lived, agent-scoped session token
+  -> validate active lifecycle, configuration revision, and execution lease
+  -> load bounded conversation history, page context, and active agent configuration
+  -> embed visitor question and retrieve relevant tenant knowledge from pgvector
+  -> select Nova model based on the request and stream the response
+  -> optionally request an explicitly allowed tool through the execution harness
+  -> store the answer, citations, run events, usage, and audit evidence
+  -> stream the customer-safe response back to the widget
+```
+
+The agent has a bounded reasoning loop. It can use approved knowledge and only the tools enabled
+for that tenant and agent; it cannot create tools, invent permissions, query arbitrary databases,
+or call arbitrary URLs. Repeated unanswered questions and stuck tool loops use a safe escalation
+path rather than falsely claiming completion.
+
+## 4. Controlled live-data and tool flow
+
+The current Web Agent includes a controlled order-status capability. It demonstrates the required
+contract for every later business tool.
+
+```text
+model requests a named tool
+  -> input validated with a typed schema
+  -> tenant and agent tool grant checked
+  -> scoped business lookup executes with verified customer fields
+  -> allowlisted public result is returned to the model and visitor
+  -> masked inputs, filtered output, status, and latency are written to the audit trail
+```
+
+The model never receives raw database credentials, internal notes, costs, or unrestricted record
+access. Tool authorization errors fail closed. Higher-risk actions stay behind explicit approval
+and verification gates.
+
+## 5. Trust, isolation, and observability flow
+
+Voomate applies several boundaries to every request instead of relying on one control:
+
+```text
+organization + agent scope
+  -> application TenantContext
+  -> Postgres Row Level Security
+  -> signed, short-lived session and execution lease
+  -> origin and deployment verification
+  -> rate limits for access, turns, and uploads
+  -> validation, policy checks, output filtering, and audit logging
+```
+
+Operational records are also scoped: conversations, knowledge sources, chunks, tool audit logs,
+run events, usage records, connections, and agent configuration remain within the merchant's
+organization and agent boundary. Logs record the evidence needed to investigate a turn without
+exposing provider credentials or unrestricted customer data.
+
+## 6. Quality and improvement flow
+
+The system does not silently rewrite its production behavior from conversations.
+
+```text
+customer feedback + stored run evidence
+  -> offline evaluation and regression cases
+  -> review of prompts, knowledge, or policy changes
+  -> versioned harness/configuration update
+  -> controlled deployment and new trace evidence
+```
+
+The project includes automated tests, smoke scripts, and model-evaluation workflows. Evaluation
+can identify weak grounding, tool choice, tone, or directness, but it cannot independently grant a
+permission or promote a policy.
+
+## 7. Voice path: in active development
+
+Voice uses the same tenant, session, conversation, RAG, tool, and audit contracts as text. The
+planned operational path is:
+
+```text
+microphone -> WebRTC voice service -> streaming transcription
+           -> shared Web Agent runtime -> RAG and controlled tools
+           -> streamed answer -> sentence-level speech synthesis -> browser playback
+```
+
+Text remains available throughout voice interaction. Voice deployment and real-world bilingual
+validation are still in progress; this is not presented as a fully released production channel.
+
+## Repository boundaries
+
+| Area | Responsibility |
+| --- | --- |
+| `apps/dashboard` | Next.js Operating Panel, embed assets, and current Web Agent routes |
+| `apps/api` | Fastify control-plane modules, tenancy, agents, ingestion, and shared services |
+| `apps/widget` | Legacy widget compatibility surface |
+| `services/voice` | Voice-service development path |
+| `packages/core` | Shared TypeScript contracts, Zod schemas, lifecycle and error types |
+| `packages/db` | Drizzle schema, migrations, scoped retrieval, and RLS policies |
+| `packages/connect` | Server SDK for controlled, deduplicated knowledge pushes |
+| `infra` | AWS CDK infrastructure definitions |
+
+Read the [security model](security.md), [Web Agent intelligence design](web-agent-intelligence.md),
+and [roadmap](roadmap.md) for implementation controls, detailed turn behavior, and honest delivery
+status.
