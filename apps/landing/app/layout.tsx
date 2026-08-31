@@ -106,11 +106,10 @@ const UI_MANIFEST = serializeUiManifest(
         description: 'Plans and included platform usage.',
         aliases: ['plans', 'billing plans', 'cost', 'price', 'subscriptions'],
         facts: [
-          'Starter is free and includes 100 conversations each month, one three-agent workspace, website chat and voice, grounded knowledge answers, and community support.',
-          'Growth costs ₹2,499 per month and includes 5,000 monthly conversations, all three agents, multilingual conversations, approved action tools, live data, adapters, reports, and custom widget branding.',
-          'Growth includes a 14-day trial.',
-          'Enterprise uses custom pricing for custom volume, multiple tenant-scoped workspaces, dedicated onboarding, custom adapters, security review support, and priority support.',
-          'Every plan uses tenant-scoped data, controlled tools, and visible usage; the safety model is not a paid add-on.',
+          'Pay as you go starts at ₹0. The first top-up includes 300 bonus credits, with 60 requests per minute, one workspace, basic analytics, and community support.',
+          'Pro costs ₹10,000 per month and includes 12,000 credits, ₹2,000 bonus credits, 200 requests per minute, email support, multilingual conversations, and custom widget branding.',
+          'Max costs ₹20,000 per month and includes 25,000 credits, ₹5,000 bonus credits, 500 requests per minute, and priority support.',
+          'Custom is tailored for organizations with high-volume needs.',
         ],
       },
       {

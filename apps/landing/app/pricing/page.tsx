@@ -11,11 +11,10 @@ const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://app.atlo
 export const metadata: Metadata = {
   title: 'Pricing — Voomate Plans',
   description:
-    'Clear Voomate plans for businesses starting, growing, or connecting custom systems. Starter is free with 100 conversations per month. Growth is ₹2,499/month.',
+    'Clear Voomate plans: pay as you go from ₹0, Pro at ₹10,000/month, Max at ₹20,000/month, and tailored custom plans.',
   openGraph: {
     title: 'Pricing — Voomate Plans',
-    description:
-      'Start free with 100 conversations/month. Growth plan at ₹2,499/month with all three agents.',
+    description: 'Pay as you go from ₹0. Pro is ₹10,000/month and Max is ₹20,000/month.',
     url: siteUrl('/pricing'),
     siteName: 'Voomate',
     type: 'website',
@@ -23,8 +22,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Pricing — Voomate Plans',
-    description:
-      'Start free with 100 conversations/month. Growth plan at ₹2,499/month with all three agents.',
+    description: 'Pay as you go from ₹0. Pro is ₹10,000/month and Max is ₹20,000/month.',
   },
   alternates: {
     canonical: '/pricing',

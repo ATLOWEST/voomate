@@ -25,11 +25,16 @@ const genericWords = new Set([
   'verified',
 ]);
 const staticKnowledgeIntent =
-  /\b(about|business|company|explain|feature|how|policy|product|return|setup|set up|what is|why)\b/i;
+  /\b(about|business|company|cost|explain|feature|how|plan|price|pricing|billing|subscription|policy|product|return|setup|set up|what is|why)\b/i;
 const liveOrActionIntent =
   /\b(available|availability|book|cancel|cart|checkout|delivery|inventory|order|payment|refund|reserve|slot|stock|track)\b/i;
 const pageAssistanceIntent =
   /\b(this|that|current|dashboard|page|screen|here|where am i|how (?:do|can|to)|what is this)\b/i;
+const currentPageAssistanceIntent =
+  /\b(?:where am i|(?:which|what) page (?:am i|are we|is this)|tell me (?:which|what) page|(?:what(?:'s| is)|explain) (?:this|the current) (?:dashboard|page|screen)|how (?:do|can|to) (?:i|we) use (?:this|the current) (?:dashboard|page|screen))\b/i;
+const productKnowledgeIntent =
+  /\b(?:price|pricing|plan|plans|cost|billing|subscription|feature|features|policy|policies|terms|return|returns|shipping|warranty)\b/i;
+const pricingKnowledgeIntent = /\b(?:price|pricing|plan|plans|cost|billing|subscription)\b/i;
 const explicitWebNavigation = [
   /\b(?:go|send)(?: me)?(?: back)?\s+(?:to|into)\b/i,
   /\b(?:take|bring) me(?: back)?\s+(?:to|into)\b/i,
@@ -326,9 +331,19 @@ export function planWebAgentTurn(input: {
     ? resolveDestination(input.message, input.pageContext, 'navigation')
     : ({ kind: 'none' } as const);
   const command = navigationCommand(requestedIntent, navigationResolution);
-  const informationResolution: DestinationResolution = asksForDestinationFacts
+  const proposedInformationResolution: DestinationResolution = asksForDestinationFacts
     ? resolveDestination(input.message, input.pageContext, 'information')
     : ({ kind: 'none' } as const);
+  // A mention of a product must not turn "pricing of this Web Agent" into an explanation of the
+  // generic Agents screen. Pricing requests may use only an explicit, host-curated Pricing entry.
+  const informationResolution: DestinationResolution =
+    pricingKnowledgeIntent.test(input.message) &&
+    proposedInformationResolution.kind === 'resolved' &&
+    !/\b(?:price|pricing|plan|plans|cost|billing|subscription)\b/i.test(
+      proposedInformationResolution.destination.label,
+    )
+      ? ({ kind: 'none', reason: 'below_threshold' } as const)
+      : proposedInformationResolution;
   const informationTarget =
     informationResolution.kind === 'resolved' ? informationResolution.destination : undefined;
   const navigationTarget =
@@ -337,13 +352,17 @@ export function planWebAgentTurn(input: {
   const followUpPageAnswer = asksForDestinationFacts
     ? (informationTarget ?? navigationTarget)
     : undefined;
+  const currentPageAssistance = currentPageAssistanceIntent.test(input.message);
   const useKnowledge =
     !casualConversation.test(input.message) &&
     factualKnowledgeRequest.test(input.message) &&
     staticKnowledgeIntent.test(input.message) &&
     (!liveOrActionIntent.test(input.message) || stableKnowledgeTopic.test(input.message)) &&
     !command &&
-    !informationTarget;
+    !informationTarget &&
+    // The current surface is sufficient for a location or orientation question. Keep a real
+    // product question (for example, "what is the pricing on this?") on the RAG + model path.
+    !(currentPageAssistance && !productKnowledgeIntent.test(input.message));
   const usePageContext = Boolean(
     input.pageContext &&
     (pageAssistanceIntent.test(input.message) ||
@@ -527,21 +546,25 @@ export function planWebAgentTurn(input: {
           ].join('\n');
   } else if (
     usePageContext &&
-    (/\b(?:what|explain|how|why|vy|where|can(?:not|'t)\s+see)\b/i.test(input.message) ||
-      mentionsCurrentSurface(input.message, input.pageContext))
+    (currentPageAssistance ||
+      (/\b(?:why|vy|can(?:not|'t)\s+see)\b/i.test(input.message) &&
+        mentionsCurrentSurface(input.message, input.pageContext)) ||
+      (mentionsCurrentSurface(input.message, input.pageContext) &&
+        !productKnowledgeIntent.test(input.message)))
   ) {
     responseGuidance =
-      'Explain the current page directly from its title, description, and visible headings, then give the next useful action. Do not say the page is unsupported.';
+      'Answer the current-page question in one short, clear sentence from the trusted title and description. If the visitor greeted you first, acknowledge it briefly in a separate short sentence. Do not list unrelated navigation or say the page is unsupported.';
     if (input.pageContext) {
       const surface = input.pageContext.surface;
-      const portalScope = input.pageContext.portalScope ?? portalScopeForUrl(input.pageContext.url);
-      const labels = input.pageContext.navigation
-        .filter((item) => (item.portalScope ?? portalScopeForUrl(item.url)) === portalScope)
-        .map(({ label }) => label)
-        .slice(0, 4);
-      directReply = `${(surface?.title ?? input.pageContext.title) || 'This page'} — ${
-        (surface?.description ?? input.pageContext.description) || 'your current Voomate workspace'
-      }${labels.length ? ` Available here: ${labels.join(', ')}.` : ''}`;
+      const title = (surface?.title ?? input.pageContext.title) || 'this page';
+      const description =
+        (surface?.description ?? input.pageContext.description) || 'your current Voomate workspace';
+      const greeting = /^\s*(?:hi|hello|hey)\b/i.test(input.message)
+        ? /\bhow are you\b/i.test(input.message)
+          ? 'Hi! I’m doing well.'
+          : 'Hi!'
+        : undefined;
+      directReply = [greeting, `You’re on ${title} — ${description}`].filter(Boolean).join('\n\n');
     }
   }
   if (

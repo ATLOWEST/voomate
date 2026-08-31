@@ -51,19 +51,27 @@ const SOFTWARE_APP_DATA = {
   offers: [
     {
       '@type': 'Offer',
-      name: 'Starter',
+      name: 'Pay as you go',
       price: '0',
       priceCurrency: 'INR',
       description:
-        'Free — 100 conversations per month, one three-agent workspace, website chat and voice.',
+        'Starts at ₹0. First top-up includes 300 bonus credits, with 60 requests per minute, one workspace, basic analytics, and community support.',
     },
     {
       '@type': 'Offer',
-      name: 'Growth',
-      price: '2499',
+      name: 'Pro',
+      price: '10000',
       priceCurrency: 'INR',
       description:
-        '₹2,499/month — 5,000 conversations, all three agents, multilingual, approved action tools.',
+        '₹10,000/month — 12,000 credits, ₹2,000 bonus credits, 200 requests per minute, email support, multilingual conversations, and custom widget branding.',
+    },
+    {
+      '@type': 'Offer',
+      name: 'Max',
+      price: '20000',
+      priceCurrency: 'INR',
+      description:
+        '₹20,000/month — 25,000 credits, ₹5,000 bonus credits, 500 requests per minute, and priority support.',
     },
   ],
 };

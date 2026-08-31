@@ -231,10 +231,50 @@ describe('web agent orchestration', () => {
       pageContext,
       platformMode: true,
     });
-    expect(result.route).toBe('web_multi_source');
+    expect(result.route).toBe('web_page_assistance');
     expect(result.usePageContext).toBe(true);
+    expect(result.useKnowledge).toBe(false);
+    expect(result.directReply).toBe('You’re on Overview — A live operating overview of Voomate.');
+  });
+
+  it('keeps a greeting and a current-page answer short and separate', () => {
+    const result = planWebAgentTurn({
+      message: 'Hi, how are you? Can you please tell me which page I am on?',
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.useKnowledge).toBe(false);
+    expect(result.directReply).toBe(
+      'Hi! I’m doing well.\n\nYou’re on Overview — A live operating overview of Voomate.',
+    );
+    expect(result.directReply).not.toContain('Available here:');
+  });
+
+  it('does not let the current page override an explicit pricing question', () => {
+    const approvalsContext: WebAgentPageContext = {
+      ...pageContext,
+      title: 'Approvals',
+      description:
+        'Review sensitive write actions that require an explicit human confirmation gate.',
+      surface: {
+        id: 'approvals',
+        title: 'Approvals',
+        description:
+          'Review sensitive write actions that require an explicit human confirmation gate.',
+      },
+      navigation: pageContext.navigation.filter(({ label }) => label !== 'Pricing'),
+    };
+    const result = planWebAgentTurn({
+      message: 'No, I mean what is the pricing of this Web Agent?',
+      availableCapabilities: [],
+      pageContext: approvalsContext,
+      platformMode: true,
+    });
     expect(result.useKnowledge).toBe(true);
-    expect(result.directReply).toContain('Available here:');
+    expect(result.usePageContext).toBe(true);
+    expect(result.directReply).toBeUndefined();
+    expect(result.executionSteps).toContainEqual({ kind: 'knowledge', execution: 'retrieval' });
   });
 
   it('treats a speech-like request about an unseen overview as page assistance', () => {
@@ -245,7 +285,7 @@ describe('web agent orchestration', () => {
       platformMode: true,
     });
     expect(result.directReply).toContain('Overview — A live operating overview of Voomate.');
-    expect(result.directReply).toContain('Available here:');
+    expect(result.directReply).not.toContain('Available here:');
   });
 
   it('guides setup from the public site without claiming private workspace access', () => {
