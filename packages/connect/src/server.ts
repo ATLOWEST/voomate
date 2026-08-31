@@ -86,7 +86,12 @@ export function createCommerceReadOnlyHandler(options: CommerceReadOnlyHandlerOp
       description: 'Search public products with current display prices and availability.',
       sensitivity: 'public',
       parameters: {
-        query: { type: 'string', required: true, maxLength: 160, description: 'Product search phrase' },
+        query: {
+          type: 'string',
+          required: true,
+          maxLength: 160,
+          description: 'Product search phrase',
+        },
       },
       publicFields: ['id', 'title', 'url', 'displayPrice', 'currency', 'availability', 'imageUrl'],
       read: ({ query }) => options.commerce.searchProducts!({ query: String(query) }),
@@ -105,7 +110,16 @@ export function createCommerceReadOnlyHandler(options: CommerceReadOnlyHandlerOp
           description: 'Public product ID, handle, or SKU',
         },
       },
-      publicFields: ['id', 'title', 'url', 'displayPrice', 'currency', 'availability', 'description', 'imageUrl'],
+      publicFields: [
+        'id',
+        'title',
+        'url',
+        'displayPrice',
+        'currency',
+        'availability',
+        'description',
+        'imageUrl',
+      ],
       read: ({ product_ref }) => options.commerce.getProduct!({ productRef: String(product_ref) }),
     };
   }
@@ -115,8 +129,18 @@ export function createCommerceReadOnlyHandler(options: CommerceReadOnlyHandlerOp
       description: 'Read a customer order status after verifying the checkout email address.',
       sensitivity: 'customer',
       parameters: {
-        order_id: { type: 'string', required: true, maxLength: 100, description: 'Customer order number' },
-        email: { type: 'string', required: true, maxLength: 254, description: 'Email used at checkout' },
+        order_id: {
+          type: 'string',
+          required: true,
+          maxLength: 100,
+          description: 'Customer order number',
+        },
+        email: {
+          type: 'string',
+          required: true,
+          maxLength: 254,
+          description: 'Email used at checkout',
+        },
       },
       verificationFields: ['email'],
       publicFields: ['orderId', 'status', 'trackingUrl', 'estimatedDelivery', 'fulfillmentStatus'],

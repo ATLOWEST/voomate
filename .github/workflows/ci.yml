@@ -20,6 +20,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run security:check
       - run: npm run check
       - run: npm test
       - run: npm run build
@@ -36,3 +37,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm audit --omit=dev
+
+  voice:
+    name: Voice service checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen --group dev
+        working-directory: services/voice
+      - run: uv run pytest && uv run ruff check .
+        working-directory: services/voice

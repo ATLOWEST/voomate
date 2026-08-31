@@ -35,6 +35,7 @@
     "dev:widget": "npm run dev --workspace @voomate/widget",
     "dev:voice": "set -a; [ -f .env ] && . ./.env; set +a; cd services/voice && uv run bot.py --transport webrtc --host 0.0.0.0 --port 7860",
     "check": "npm run format:check && npm run lint && npm run typecheck",
+    "security:check": "node scripts/security-check.mjs",
     "smoke": "node scripts/smoke.mjs",
     "release:changed": "node scripts/release-aws-images.mjs",
     "release:status": "node scripts/release-status.mjs",

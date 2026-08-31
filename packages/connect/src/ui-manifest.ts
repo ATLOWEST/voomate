@@ -112,7 +112,9 @@ export function matchUiPagePath(
   } catch {
     return undefined;
   }
-  const exact = manifest.pages.find((page) => new URL(page.path, 'https://manifest.voomate.invalid').pathname === current);
+  const exact = manifest.pages.find(
+    (page) => new URL(page.path, 'https://manifest.voomate.invalid').pathname === current,
+  );
   if (exact) return exact;
   const currentSegments = current.split('/').filter(Boolean);
   return manifest.pages.find((page) =>
@@ -203,7 +205,16 @@ export function defineUiManifest(input: {
     if (
       Object.keys(page).some(
         (key) =>
-          !['id', 'title', 'path', 'pathPatterns', 'description', 'aliases', 'facts', 'native'].includes(key),
+          ![
+            'id',
+            'title',
+            'path',
+            'pathPatterns',
+            'description',
+            'aliases',
+            'facts',
+            'native',
+          ].includes(key),
       )
     ) {
       throw new Error('UI manifest pages cannot declare commands or additional fields.');

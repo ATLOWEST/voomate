@@ -109,9 +109,7 @@ const chevronIcon = () => svgIcon([{ attributes: { d: 'm7 10 5 5 5-5' } }]);
 const plusIcon = () =>
   svgIcon([{ attributes: { d: 'M12 5v14' } }, { attributes: { d: 'M5 12h14' } }]);
 const sendIcon = () =>
-  svgIcon([
-    { attributes: { d: 'M4 4l16 8-16 8 3-8-3-8Z', fill: 'currentColor', stroke: 'none' } },
-  ]);
+  svgIcon([{ attributes: { d: 'M4 4l16 8-16 8 3-8-3-8Z', fill: 'currentColor', stroke: 'none' } }]);
 
 function waveIcon() {
   const wave = element('span', 'wave');
@@ -313,22 +311,23 @@ function manifestPageForPath(manifest, pathname) {
   const exact = pages.find((page) => page?.path === pathname);
   if (exact) return exact;
   const currentSegments = pathname.split('/').filter(Boolean);
-  return pages.find((page) =>
-    Array.isArray(page?.pathPatterns) &&
-    page.pathPatterns.some((pattern) => {
-      if (typeof pattern !== 'string' || !pattern.startsWith('/')) return false;
-      const segments = pattern.split('/').filter(Boolean);
-      let position = 0;
-      for (let index = 0; index < segments.length; index += 1) {
-        const segment = segments[index];
-        if (segment === '*') return index === segments.length - 1;
-        const current = currentSegments[position++];
-        if (!current || (segment !== current && !/^:[A-Za-z][A-Za-z0-9_]{0,63}$/.test(segment))) {
-          return false;
+  return pages.find(
+    (page) =>
+      Array.isArray(page?.pathPatterns) &&
+      page.pathPatterns.some((pattern) => {
+        if (typeof pattern !== 'string' || !pattern.startsWith('/')) return false;
+        const segments = pattern.split('/').filter(Boolean);
+        let position = 0;
+        for (let index = 0; index < segments.length; index += 1) {
+          const segment = segments[index];
+          if (segment === '*') return index === segments.length - 1;
+          const current = currentSegments[position++];
+          if (!current || (segment !== current && !/^:[A-Za-z][A-Za-z0-9_]{0,63}$/.test(segment))) {
+            return false;
+          }
         }
-      }
-      return position === currentSegments.length;
-    }),
+        return position === currentSegments.length;
+      }),
   );
 }
 
@@ -362,8 +361,7 @@ function collectPageContext() {
         url.protocol === 'https:' &&
         !url.username &&
         !url.password;
-      if ((!sameOrigin && !trustedHandoff) || !['http:', 'https:'].includes(url.protocol))
-        return;
+      if ((!sameOrigin && !trustedHandoff) || !['http:', 'https:'].includes(url.protocol)) return;
       const normalizedLabel = compactText(label, 120);
       if (!normalizedLabel || seen.has(url.href) || navigation.length >= 40) return;
       seen.add(url.href);
@@ -1004,7 +1002,10 @@ export async function mountWidget(host, config) {
 
     if (resolved.kind === 'web') {
       if (resolved.trustedHandoff) {
-        navigationTimer = window.setTimeout(() => window.location.assign(resolved.destination), 450);
+        navigationTimer = window.setTimeout(
+          () => window.location.assign(resolved.destination),
+          450,
+        );
         return;
       }
       const request = new window.CustomEvent('voomate:navigation-request', {

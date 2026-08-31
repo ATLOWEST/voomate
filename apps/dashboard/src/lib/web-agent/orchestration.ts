@@ -358,8 +358,8 @@ export function planWebAgentTurn(input: {
   const currentPageAssistance = currentPageAssistanceIntent.test(input.message);
   const inboxInventoryRequest = Boolean(
     input.platformMode &&
-      inboxInventoryIntent.test(input.message) &&
-      input.pageContext?.operatingState?.conversationInventory,
+    inboxInventoryIntent.test(input.message) &&
+    input.pageContext?.operatingState?.conversationInventory,
   );
   const useKnowledge =
     !casualConversation.test(input.message) &&
@@ -395,7 +395,8 @@ export function planWebAgentTurn(input: {
   if ((platformJourney || inboxInventoryRequest) && input.pageContext?.operatingState)
     sources.push({
       source: 'operating_state',
-      reason: 'request depends on safe count-only workspace state supplied by the signed-in host UI',
+      reason:
+        'request depends on safe count-only workspace state supplied by the signed-in host UI',
     });
   if (useKnowledge)
     sources.push({
