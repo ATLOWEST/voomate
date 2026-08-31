@@ -5,7 +5,7 @@ description = "AWS-native Pipecat voice edge for the Voomate Web Agent"
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "httpx>=0.27,<1",
-  "pipecat-ai[aws,runner,silero,webrtc]>=0.0.105,<1",
+  "pipecat-ai[aws,runner,silero,webrtc]>=0.0.105,<2",
   "pyjwt>=2.9,<3",
 ]
 
