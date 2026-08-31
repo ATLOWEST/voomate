@@ -87,7 +87,16 @@ infra/          AWS CDK definitions
 docs/           Architecture decisions, security model and delivery plan
 ```
 
-## Local development
+## Live deployment
+
+Voomate is deployed as a production AWS workload:
+
+- Marketing site: [atlowest.in](https://atlowest.in)
+- Merchant Operating Panel: [app.atlowest.in](https://app.atlowest.in)
+- API: private behind the production application load balancer; it is reached through the
+  dashboard's same-origin `/api` routes rather than exposed as a public browser endpoint.
+
+## Run locally
 
 Requirements: Node.js 22+ and npm. Copy `.env.example` to `.env`, then supply only the services
 needed for the workflow you are running. Never commit `.env` files or provider credentials.
@@ -104,13 +113,7 @@ The Web Agent development command starts the available local services:
 - Merchant dashboard and widget assets: `http://localhost:3001`
 - Control-plane API: `http://localhost:4000`
 
-These are intentionally local-only addresses for development. Production uses the deployed
-AWS services and public domains:
-
-- Marketing site: [atlowest.in](https://atlowest.in)
-- Merchant Operating Panel: [app.atlowest.in](https://app.atlowest.in)
-- API: private behind the production application load balancer; it is not a public browser
-  endpoint and is reached through the dashboard's same-origin `/api` routes.
+These localhost addresses are intentionally local-only and are not production endpoints.
 
 ## Security and contribution notes
 
