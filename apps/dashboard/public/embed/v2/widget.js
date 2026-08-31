@@ -307,6 +307,31 @@ function activePortalRole(scope) {
   return 'merchant_admin';
 }
 
+function manifestPageForPath(manifest, pathname) {
+  const pages = manifest?.pages;
+  if (!Array.isArray(pages)) return undefined;
+  const exact = pages.find((page) => page?.path === pathname);
+  if (exact) return exact;
+  const currentSegments = pathname.split('/').filter(Boolean);
+  return pages.find((page) =>
+    Array.isArray(page?.pathPatterns) &&
+    page.pathPatterns.some((pattern) => {
+      if (typeof pattern !== 'string' || !pattern.startsWith('/')) return false;
+      const segments = pattern.split('/').filter(Boolean);
+      let position = 0;
+      for (let index = 0; index < segments.length; index += 1) {
+        const segment = segments[index];
+        if (segment === '*') return index === segments.length - 1;
+        const current = currentSegments[position++];
+        if (!current || (segment !== current && !/^:[A-Za-z][A-Za-z0-9_]{0,63}$/.test(segment))) {
+          return false;
+        }
+      }
+      return position === currentSegments.length;
+    }),
+  );
+}
+
 function collectPageContext() {
   const manifest = readUiManifest();
   const operatingState = readOperatingState();
@@ -392,12 +417,12 @@ function collectPageContext() {
     if (anchor.closest('voomate-widget')) continue;
     addNavigation(anchor.getAttribute('aria-label') || anchor.textContent, anchor.href);
   }
-  const currentPath = `${window.location.pathname}${window.location.search}`;
-  const surface = (manifest?.pages ?? []).find(
-    (page) => page.path === currentPath || page.path === window.location.pathname,
-  );
+  const currentPath = window.location.pathname;
+  const surface = manifestPageForPath(manifest, currentPath);
   return {
-    url: window.location.href,
+    // Query strings and fragments frequently contain search terms, cart state, or account data.
+    // The route identity is useful; those values are neither needed nor sent to Voomate.
+    url: `${window.location.origin}${currentPath}`,
     title: compactText(document.title, 200),
     description: compactText(description, 800),
     portalScope,

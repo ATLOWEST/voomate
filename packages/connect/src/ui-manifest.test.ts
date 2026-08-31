@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defineUiManifest, serializeUiManifest } from './ui-manifest.js';
+import { defineUiManifest, matchUiPagePath, serializeUiManifest } from './ui-manifest.js';
 
 describe('Voomate UI manifest', () => {
   it('exposes only frozen, passive, same-origin page descriptions', () => {
@@ -101,6 +101,46 @@ describe('Voomate UI manifest', () => {
       ],
     });
     expect(serializeUiManifest(manifest)).not.toContain('<');
+  });
+
+  it('recognizes dynamic declared pages without reading query strings or page source', () => {
+    const manifest = defineUiManifest({
+      pages: [
+        { id: 'home', title: 'Home', path: '/', description: 'Public home.' },
+        {
+          id: 'product',
+          title: 'Product',
+          path: '/products',
+          pathPatterns: ['/products/:handle'],
+          description: 'A public product detail page.',
+        },
+        {
+          id: 'order',
+          title: 'Order tracking',
+          path: '/orders',
+          pathPatterns: ['/orders/:orderId'],
+          description: 'A customer order tracking page.',
+        },
+      ],
+    });
+    expect(matchUiPagePath(manifest, '/products/linen-shirt')).toMatchObject({ id: 'product' });
+    expect(matchUiPagePath(manifest, '/orders/A-100?email=private@example.com')).toMatchObject({
+      id: 'order',
+    });
+    expect(matchUiPagePath(manifest, '/products/linen-shirt/reviews')).toBeUndefined();
+    expect(() =>
+      defineUiManifest({
+        pages: [
+          {
+            id: 'unsafe',
+            title: 'Unsafe',
+            path: '/',
+            pathPatterns: ['/products/*/reviews'],
+            description: 'Invalid wildcard pattern.',
+          },
+        ],
+      }),
+    ).toThrow('wildcard');
   });
 
   it('accepts HTTPS app links and only official mobile stores', () => {

@@ -2,6 +2,12 @@ export interface VoomateUiPage {
   id: string;
   title: string;
   path: string;
+  /**
+   * Optional same-origin route patterns for a dynamic instance of this page (for example,
+   * `/products/:handle` or `/orders/:orderId`). They classify passive page context only; they
+   * never enable a surface, grant access, or declare an action.
+   */
+  pathPatterns?: readonly string[];
   description: string;
   /** Natural-language names visitors use for this destination. */
   aliases?: readonly string[];
@@ -44,6 +50,7 @@ export interface VoomateUiManifest {
 }
 
 const PAGE_ID = /^[a-z][a-z0-9_-]{1,63}$/;
+const PARAMETER_SEGMENT = /^:[A-Za-z][A-Za-z0-9_]{0,63}$/;
 
 function text(value: string, name: string, max: number): string {
   const normalized = value.replace(/\s+/g, ' ').trim();
@@ -60,6 +67,67 @@ function path(value: string): string {
     throw new Error('UI manifest paths must be same-origin absolute paths.');
   }
   return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+}
+
+function pathPattern(value: string): string {
+  const normalized = path(value);
+  const parsed = new URL(normalized, 'https://manifest.voomate.invalid');
+  if (parsed.search || parsed.hash) {
+    throw new Error('UI manifest page patterns cannot contain query strings or fragments.');
+  }
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  for (const [index, segment] of segments.entries()) {
+    if (segment === '*') {
+      if (index !== segments.length - 1) {
+        throw new Error('UI manifest wildcard must be the final route segment.');
+      }
+      continue;
+    }
+    if (segment.startsWith(':') && !PARAMETER_SEGMENT.test(segment)) {
+      throw new Error('UI manifest route parameter is invalid.');
+    }
+  }
+  return parsed.pathname;
+}
+
+function pathPatterns(values: readonly string[] | undefined): readonly string[] | undefined {
+  if (!values) return undefined;
+  if (!Array.isArray(values) || values.length > 12) {
+    throw new Error('UI manifest page patterns must contain no more than 12 entries.');
+  }
+  return Object.freeze([...new Set(values.map(pathPattern))]);
+}
+
+/**
+ * Matches a pathname against a passive UI manifest without inspecting page source, query values,
+ * or browser history. Exact canonical paths win over dynamic patterns.
+ */
+export function matchUiPagePath(
+  manifest: Pick<VoomateUiManifest, 'pages'>,
+  pathname: string,
+): Readonly<VoomateUiPage> | undefined {
+  let current: string;
+  try {
+    current = new URL(pathname, 'https://manifest.voomate.invalid').pathname;
+  } catch {
+    return undefined;
+  }
+  const exact = manifest.pages.find((page) => new URL(page.path, 'https://manifest.voomate.invalid').pathname === current);
+  if (exact) return exact;
+  const currentSegments = current.split('/').filter(Boolean);
+  return manifest.pages.find((page) =>
+    page.pathPatterns?.some((pattern) => {
+      const segments = pattern.split('/').filter(Boolean);
+      let position = 0;
+      for (const [index, segment] of segments.entries()) {
+        if (segment === '*') return true;
+        const candidate = currentSegments[position++];
+        if (!candidate || (segment !== candidate && !PARAMETER_SEGMENT.test(segment))) return false;
+        if (index === segments.length - 1 && position !== currentSegments.length) return false;
+      }
+      return position === currentSegments.length;
+    }),
+  );
 }
 
 function facts(values: readonly string[] | undefined): readonly string[] | undefined {
@@ -135,7 +203,7 @@ export function defineUiManifest(input: {
     if (
       Object.keys(page).some(
         (key) =>
-          !['id', 'title', 'path', 'description', 'aliases', 'facts', 'native'].includes(key),
+          !['id', 'title', 'path', 'pathPatterns', 'description', 'aliases', 'facts', 'native'].includes(key),
       )
     ) {
       throw new Error('UI manifest pages cannot declare commands or additional fields.');
@@ -144,12 +212,14 @@ export function defineUiManifest(input: {
       throw new Error('Invalid UI manifest page ID.');
     seen.add(page.id);
     const native = nativeDestinations(page.native);
+    const pagePatterns = pathPatterns(page.pathPatterns);
     const pageAliases = aliases(page.aliases);
     const pageFacts = facts(page.facts);
     return Object.freeze({
       id: page.id,
       title: text(page.title, 'page title', 120),
       path: path(page.path),
+      ...(pagePatterns?.length ? { pathPatterns: pagePatterns } : {}),
       description: text(page.description, 'page description', 600),
       ...(pageAliases?.length ? { aliases: pageAliases } : {}),
       ...(pageFacts?.length ? { facts: pageFacts } : {}),

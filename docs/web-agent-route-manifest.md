@@ -27,6 +27,33 @@ The SDK also reports the current route and visible same-origin navigation as *su
 observations cannot enable an agent, never include query strings/fragments/page source, and are
 always checked against the tenant's saved origin and path policy before a launcher appears.
 
+## Dynamic product, order, and account pages
+
+Use the UI manifest to give the widget an exact, passive identity for a dynamic page. It does not
+read page source, query values, or browser history. Parameter and trailing-wildcard patterns only
+classify the current route so the agent can respond with relevant context.
+
+```ts
+defineUiManifest({
+  pages: [
+    { id: 'catalog', title: 'Catalog', path: '/products', description: 'Browse public products.' },
+    {
+      id: 'product', title: 'Product', path: '/products',
+      pathPatterns: ['/products/:handle'],
+      description: 'A public product detail page.',
+    },
+    {
+      id: 'order-tracking', title: 'Order tracking', path: '/orders',
+      pathPatterns: ['/orders/:orderId'],
+      description: 'A customer order tracking page.',
+    },
+  ],
+});
+```
+
+The canonical `path` remains the only navigation destination. `pathPatterns` never declare
+actions or access rights, and must not contain query strings or fragments.
+
 ## Cross-origin destinations
 
 An account portal, dashboard, or customer application hosted on another domain must be declared

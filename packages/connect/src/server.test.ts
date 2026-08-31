@@ -2,6 +2,7 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createReadOnlyHandler,
+  createCommerceReadOnlyHandler,
   __testing,
   describeReadOnlyEndpoint,
   invokeReadOnlyCapability,
@@ -44,6 +45,47 @@ function handler() {
 afterEach(() => vi.restoreAllMocks());
 
 describe('read-only Connect protocol', () => {
+  it('provides a standard read-only commerce capability pack', async () => {
+    const commerce = createCommerceReadOnlyHandler({
+      connectionId,
+      secret,
+      commerce: {
+        searchProducts: ({ query }) => [
+          { id: 'linen-shirt', title: `Linen shirt: ${query}`, displayPrice: '$45', margin: 91 },
+        ],
+        getOrderStatus: ({ orderId }) => ({
+          orderId,
+          status: 'shipped',
+          trackingUrl: 'https://carrier.example/track/A-100',
+          customerPhone: '+1-555-0100',
+        }),
+      },
+    });
+    const fetchImpl: typeof fetch = async (input, init) => commerce(new Request(input, init));
+    const common = {
+      endpoint: 'http://localhost/voomate/read',
+      connectionId,
+      secret,
+      allowInsecureLoopback: true,
+      fetchImpl,
+    };
+    expect((await describeReadOnlyEndpoint(common)).map(({ name }) => name)).toEqual([
+      'search_products',
+      'get_order_status',
+    ]);
+    const order = await invokeReadOnlyCapability({
+      ...common,
+      capability: 'get_order_status',
+      input: { order_id: 'A-100', email: 'buyer@example.com' },
+    });
+    expect(order.data).toEqual({
+      orderId: 'A-100',
+      status: 'shipped',
+      trackingUrl: 'https://carrier.example/track/A-100',
+    });
+    expect(JSON.stringify(order.data)).not.toContain('customerPhone');
+  });
+
   it('rejects private, carrier-NAT, reserved, and IPv4-mapped endpoint addresses', () => {
     for (const address of [
       '10.0.0.1',

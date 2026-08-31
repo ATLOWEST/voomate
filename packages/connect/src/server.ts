@@ -56,6 +56,86 @@ export interface ReadOnlyHandlerOptions {
   }) => Promise<void> | void;
 }
 
+/**
+ * A ready-to-wire capability pack for any commerce backend. The merchant keeps provider
+ * credentials and data access in these server callbacks; Voomate receives only the explicitly
+ * projected customer-safe fields below.
+ */
+export interface CommerceReadAdapter {
+  searchProducts?: (input: Readonly<{ query: string }>) => Promise<unknown> | unknown;
+  getProduct?: (input: Readonly<{ productRef: string }>) => Promise<unknown> | unknown;
+  getOrderStatus?: (
+    input: Readonly<{ orderId: string; email: string }>,
+  ) => Promise<unknown> | unknown;
+}
+
+export type CommerceReadOnlyHandlerOptions = Omit<ReadOnlyHandlerOptions, 'capabilities'> & {
+  commerce: CommerceReadAdapter;
+};
+
+/**
+ * Creates a no-write product, price, and verified-order connection from named merchant callbacks.
+ * It is a connector convenience, not an ecommerce-specific agent: the same governed capability
+ * protocol and tenant/agent policy applies to every adapter.
+ */
+export function createCommerceReadOnlyHandler(options: CommerceReadOnlyHandlerOptions) {
+  const capabilities: Record<string, ReadCapability> = {};
+  if (options.commerce.searchProducts) {
+    capabilities.search_products = {
+      name: 'search_products',
+      description: 'Search public products with current display prices and availability.',
+      sensitivity: 'public',
+      parameters: {
+        query: { type: 'string', required: true, maxLength: 160, description: 'Product search phrase' },
+      },
+      publicFields: ['id', 'title', 'url', 'displayPrice', 'currency', 'availability', 'imageUrl'],
+      read: ({ query }) => options.commerce.searchProducts!({ query: String(query) }),
+    };
+  }
+  if (options.commerce.getProduct) {
+    capabilities.get_product = {
+      name: 'get_product',
+      description: 'Read current public details, display price, and availability for one product.',
+      sensitivity: 'public',
+      parameters: {
+        product_ref: {
+          type: 'string',
+          required: true,
+          maxLength: 160,
+          description: 'Public product ID, handle, or SKU',
+        },
+      },
+      publicFields: ['id', 'title', 'url', 'displayPrice', 'currency', 'availability', 'description', 'imageUrl'],
+      read: ({ product_ref }) => options.commerce.getProduct!({ productRef: String(product_ref) }),
+    };
+  }
+  if (options.commerce.getOrderStatus) {
+    capabilities.get_order_status = {
+      name: 'get_order_status',
+      description: 'Read a customer order status after verifying the checkout email address.',
+      sensitivity: 'customer',
+      parameters: {
+        order_id: { type: 'string', required: true, maxLength: 100, description: 'Customer order number' },
+        email: { type: 'string', required: true, maxLength: 254, description: 'Email used at checkout' },
+      },
+      verificationFields: ['email'],
+      publicFields: ['orderId', 'status', 'trackingUrl', 'estimatedDelivery', 'fulfillmentStatus'],
+      read: ({ order_id, email }) =>
+        options.commerce.getOrderStatus!({ orderId: String(order_id), email: String(email) }),
+    };
+  }
+  if (Object.keys(capabilities).length === 0) {
+    throw new Error('Commerce connection needs at least one read callback.');
+  }
+  return createReadOnlyHandler({
+    connectionId: options.connectionId,
+    secret: options.secret,
+    capabilities,
+    ...(options.nonceStore ? { nonceStore: options.nonceStore } : {}),
+    ...(options.onAudit ? { onAudit: options.onAudit } : {}),
+  });
+}
+
 export interface InvokeReadOnlyOptions {
   endpoint: string;
   connectionId: string;

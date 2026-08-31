@@ -43,3 +43,29 @@ Setup is four steps:
 
 For multi-instance deployments, provide a shared `nonceStore` backed by Redis so replay protection
 is enforced across all instances. Never put the connection secret in browser code or logs.
+
+## Commerce starter connection
+
+For a store backend, `createCommerceReadOnlyHandler()` supplies the standard product, price, and
+verified-order capability contract. The adapter is yours: it runs only on your server with your
+provider credentials, while Voomate receives the narrow public projection shown below.
+
+```ts
+import { createCommerceReadOnlyHandler } from '@voomate/connect/server';
+
+export const POST = createCommerceReadOnlyHandler({
+  connectionId: process.env.VOOMATE_CONNECTION_ID!,
+  secret: process.env.VOOMATE_CONNECTION_SECRET!,
+  commerce: {
+    searchProducts: async ({ query }) => store.searchPublicProducts(query),
+    getProduct: async ({ productRef }) => store.getPublicProduct(productRef),
+    getOrderStatus: async ({ orderId, email }) => store.findOrderForVerifiedEmail(orderId, email),
+  },
+});
+```
+
+It exposes only `search_products`, `get_product`, and `get_order_status` when their matching
+callbacks are supplied. Product results project public identifiers, names, URLs, display prices,
+availability, and images. Order status requires both an order number and checkout email, then
+projects only order status, tracking, and delivery fields. It cannot create orders, change prices,
+issue refunds, or access any undeclared data.

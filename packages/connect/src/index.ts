@@ -1,5 +1,5 @@
 import { containsSensitiveCredential } from './security.js';
-export { defineUiManifest, serializeUiManifest } from './ui-manifest.js';
+export { defineUiManifest, matchUiPagePath, serializeUiManifest } from './ui-manifest.js';
 export type {
   VoomateNativeDestination,
   VoomateNativeDestinations,
