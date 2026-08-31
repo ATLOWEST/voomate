@@ -3,6 +3,15 @@
 This is a launch plan, not an instruction to publish an unverified application. Production is
 blocked until every release gate below is green.
 
+## Delivery rule
+
+Treat localhost as a development diagnostic only, never as delivery. Any change intended for a
+merchant or visitor is complete only when it has a reviewed commit on `main`, passes the scoped
+release gates, is built from that immutable commit in AWS CodeBuild, reaches a healthy ECS service,
+and has a read-only live verification. Design choices must preserve tenant isolation, least
+privilege, observability, rollback, and production latency/cost constraints from the first change;
+local-only behavior is not an acceptable final implementation.
+
 ## Hosting decision
 
 Use AWS as the public and execution edge: Route 53/DNS, ACM, CloudFront for the static landing
