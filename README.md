@@ -96,6 +96,29 @@ Voomate is deployed as a production AWS workload:
 - API: private behind the production application load balancer; it is reached through the
   dashboard's same-origin `/api` routes rather than exposed as a public browser endpoint.
 
+## Evaluator walkthrough
+
+Voomate is designed to be evaluated as a real multi-tenant product. **There is deliberately no
+shared demo email or dummy production password in this repository.** Publishing one would allow
+unrelated visitors to enter the same workspace and is not an acceptable security boundary.
+
+To try the complete third-party flow:
+
+1. Open [Create workspace](https://app.atlowest.in/sign-up) and use your own email address and a
+   new strong password.
+2. Verify the one-time code sent to that email; this creates an isolated workspace owned by you.
+3. Open **Agents**, choose **Add agent**, and configure a Web Agent for your website.
+4. Add approved business knowledge, then use the playground to test grounded answers and page
+   guidance.
+5. Optionally connect a server-side live-read endpoint for current product, price, or verified
+   order status. The [Connect guide](docs/connect-live-read.md) provides the copy-paste contract.
+6. Publish the widget, use the generated embed snippet on an approved origin, and inspect Logs to
+   see the tenant-scoped execution evidence.
+
+This flow is intentionally plug-and-play at the browser and SDK boundaries: the public widget
+requires a domain-restricted public key, while every backend connection uses a one-time,
+server-only secret and named, permissioned capabilities.
+
 ## Run locally
 
 Requirements: Node.js 22+ and npm. Copy `.env.example` to `.env`, then supply only the services
