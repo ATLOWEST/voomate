@@ -135,7 +135,10 @@ export default function OverviewPage() {
 
   return (
     <main className="dashboard-overview mx-auto w-full max-w-[1280px] overflow-x-hidden px-5 pb-14 pt-5 sm:px-8 sm:pt-8 lg:px-10">
-      <VoomateOperatingContext agents={agentsQuery.data?.agents} />
+      <VoomateOperatingContext
+        agents={agentsQuery.data?.agents}
+        recentConversationCount={conversationsQuery.data?.conversations.length}
+      />
 
       <header
         data-dashboard-motion

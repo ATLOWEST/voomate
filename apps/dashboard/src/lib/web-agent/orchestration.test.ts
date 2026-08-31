@@ -73,17 +73,43 @@ const landingPageContext: WebAgentPageContext = {
   },
 };
 
-function dashboardContext(total: number, active = 0, draft = 0): WebAgentPageContext {
+function dashboardContext(
+  total: number,
+  active = 0,
+  draft = 0,
+  recentConversationCount?: number,
+): WebAgentPageContext {
   return {
     ...pageContext,
     operatingState: {
       source: 'host_ui',
       agentInventory: { total, active, draft, paused: total - active - draft },
+      ...(recentConversationCount === undefined
+        ? {}
+        : { conversationInventory: { recentCount: recentConversationCount } }),
     },
   };
 }
 
 describe('web agent orchestration', () => {
+  it('answers a new-user-request question from signed-in Inbox counts without a model call', () => {
+    const result = planWebAgentTurn({
+      message: 'hey what their is thier nay new user request is thier ?',
+      availableCapabilities: [],
+      pageContext: dashboardContext(1, 1, 0, 30),
+      platformMode: true,
+    });
+    expect(result.directReply).toBe(
+      'I can see 30 recent customer conversations in this workspace. Open Inbox to review which ones are new; this screen does not expose unread status.',
+    );
+    expect(result.useKnowledge).toBe(false);
+    expect(result.sources.map(({ source }) => source)).toContain('operating_state');
+    expect(result.executionSteps).toContainEqual({
+      kind: 'inbox_inventory',
+      execution: 'deterministic_reply',
+    });
+  });
+
   it('repairs known speech substitutions only for the Voomate control plane', () => {
     expect(repairPlatformTranscription('What is his roommate and how do I set it up?', true)).toBe(
       'What is Voomate and how do I set it up?',

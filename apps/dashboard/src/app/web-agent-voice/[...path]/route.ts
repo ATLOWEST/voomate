@@ -1,4 +1,5 @@
 import { corsHeaders, normalizeOrigin } from '@/lib/web-agent/security';
+import { isSupportedVoiceRelayRequest } from '@/lib/web-agent/voice-relay';
 
 export const runtime = 'nodejs';
 
@@ -37,8 +38,7 @@ async function relay(
   if (
     path.length === 0 ||
     path.some((segment) => !/^[A-Za-z0-9._-]+$/.test(segment)) ||
-    (request.method === 'POST' && requestPath !== 'start') ||
-    (request.method === 'PATCH' && !/^sessions\/[A-Za-z0-9-]+\/api\/offer$/.test(requestPath))
+    !isSupportedVoiceRelayRequest(request.method, requestPath)
   ) {
     return Response.json(
       { error: 'Unsupported voice request.' },

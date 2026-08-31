@@ -69,6 +69,8 @@ const platformSetupIntent =
   /\b(?:set ?up|onboard|connect|configure|start|create)\b[\s\S]{0,100}\b(?:account|business|workspace|agent|voomate)\b|\bhow (?:do|can|to) (?:i|we) (?:get started|set ?up)\b/i;
 const agentInventoryIntent =
   /\b(?:do (?:i|we) have|is there|are there|how many|check|show)\b[\s\S]{0,80}\bagents?\b|\bagents?\b[\s\S]{0,80}\b(?:active|configured|installed|added|running)\b/i;
+const inboxInventoryIntent =
+  /\b(?:new|recent|latest|unread|user)\b[\s\S]{0,40}\b(?:request|requests|message|messages|conversation|conversations|inbox)\b|\b(?:request|requests|message|messages|conversation|conversations)\b[\s\S]{0,40}\b(?:new|recent|latest|unread|user)\b/i;
 
 /**
  * Repairs only the small set of product-name substitutions that are repeatedly produced by
@@ -110,6 +112,7 @@ export interface WebAgentOrchestrationPlan {
   executionSteps: Array<
     | { kind: 'navigate'; execution: 'client_command'; label: string }
     | { kind: 'identity'; execution: 'deterministic_reply' }
+    | { kind: 'inbox_inventory'; execution: 'deterministic_reply' }
     | { kind: 'page_facts'; execution: 'deterministic_reply'; label: string }
     | { kind: 'knowledge'; execution: 'retrieval' }
     | { kind: 'live_read'; execution: 'controlled_tool'; capabilityNames: string[] }
@@ -353,6 +356,11 @@ export function planWebAgentTurn(input: {
     ? (informationTarget ?? navigationTarget)
     : undefined;
   const currentPageAssistance = currentPageAssistanceIntent.test(input.message);
+  const inboxInventoryRequest = Boolean(
+    input.platformMode &&
+      inboxInventoryIntent.test(input.message) &&
+      input.pageContext?.operatingState?.conversationInventory,
+  );
   const useKnowledge =
     !casualConversation.test(input.message) &&
     factualKnowledgeRequest.test(input.message) &&
@@ -360,6 +368,7 @@ export function planWebAgentTurn(input: {
     (!liveOrActionIntent.test(input.message) || stableKnowledgeTopic.test(input.message)) &&
     !command &&
     !informationTarget &&
+    !inboxInventoryRequest &&
     // The current surface is sufficient for a location or orientation question. Keep a real
     // product question (for example, "what is the pricing on this?") on the RAG + model path.
     !(currentPageAssistance && !productKnowledgeIntent.test(input.message));
@@ -370,6 +379,7 @@ export function planWebAgentTurn(input: {
       requestedIntent ||
       informationTarget ||
       platformJourney ||
+      inboxInventoryRequest ||
       /\b(about|business|company|product)\b/i.test(input.message)),
   );
   const controlledActions: Array<'check_order_status'> = /\b(order|track|delivery)\b/i.test(
@@ -382,10 +392,10 @@ export function planWebAgentTurn(input: {
   ];
   if (usePageContext)
     sources.push({ source: 'page_context', reason: 'request depends on the current client UI' });
-  if (platformJourney && input.pageContext?.operatingState)
+  if ((platformJourney || inboxInventoryRequest) && input.pageContext?.operatingState)
     sources.push({
       source: 'operating_state',
-      reason: 'request depends on safe workspace agent counts supplied by the signed-in host UI',
+      reason: 'request depends on safe count-only workspace state supplied by the signed-in host UI',
     });
   if (useKnowledge)
     sources.push({
@@ -406,6 +416,9 @@ export function planWebAgentTurn(input: {
   }
   if (identityRequest.test(input.message)) {
     executionSteps.push({ kind: 'identity', execution: 'deterministic_reply' });
+  }
+  if (inboxInventoryRequest) {
+    executionSteps.push({ kind: 'inbox_inventory', execution: 'deterministic_reply' });
   }
   if (followUpPageAnswer) {
     executionSteps.push({
@@ -501,6 +514,11 @@ export function planWebAgentTurn(input: {
       'Ask the customer directly for the two verified order lookup fields. Do not call the tool until both are present.';
     directReply =
       'Please share the order ID and the email used at checkout, and I’ll check it for you.';
+  } else if (inboxInventoryRequest) {
+    const count = input.pageContext?.operatingState?.conversationInventory?.recentCount ?? 0;
+    responseGuidance =
+      'Report only the trusted recent-conversation count supplied by the signed-in host UI. Do not claim an unread count or expose conversation details.';
+    directReply = `I can see ${count} recent customer conversation${count === 1 ? '' : 's'} in this workspace. Open Inbox to review which ones are new; this screen does not expose unread status.`;
   } else if (platformJourney?.kind === 'agent_inventory') {
     const inventory = input.pageContext?.operatingState?.agentInventory;
     responseGuidance =

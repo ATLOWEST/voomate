@@ -90,6 +90,12 @@ export const pageContextSchema = z
             paused: z.number().int().min(0).max(10_000),
           })
           .strict(),
+        conversationInventory: z
+          .object({
+            recentCount: z.number().int().min(0).max(100),
+          })
+          .strict()
+          .optional(),
       })
       .strict()
       .optional(),

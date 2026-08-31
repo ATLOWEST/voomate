@@ -173,6 +173,13 @@ function readOperatingState() {
     ) {
       return undefined;
     }
+    const recentCount = parsed?.conversationInventory?.recentCount;
+    if (
+      parsed?.conversationInventory &&
+      (!Number.isInteger(recentCount) || recentCount < 0 || recentCount > 100)
+    ) {
+      return undefined;
+    }
     return {
       source: 'host_ui',
       agentInventory: {
@@ -181,6 +188,7 @@ function readOperatingState() {
         draft: inventory.draft,
         paused: inventory.paused,
       },
+      ...(parsed?.conversationInventory ? { conversationInventory: { recentCount } } : {}),
     };
   } catch {
     return undefined;

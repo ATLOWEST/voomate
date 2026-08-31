@@ -11,6 +11,7 @@ describe('Web Agent page context', () => {
       operatingState: {
         source: 'host_ui',
         agentInventory: { total: 2, active: 1, draft: 1, paused: 0 },
+        conversationInventory: { recentCount: 30 },
       },
       navigation: [
         {
@@ -124,5 +125,21 @@ describe('Web Agent page context', () => {
       },
     };
     expect(() => pageContextSchema.parse(input)).toThrow('Agent inventory counts');
+  });
+
+  it('accepts a bounded count-only recent conversation inventory', () => {
+    const context = pageContextSchema.parse({
+      url: 'https://app.example/overview',
+      title: 'Overview',
+      description: '',
+      headings: [],
+      navigation: [],
+      operatingState: {
+        source: 'host_ui',
+        agentInventory: { total: 1, active: 1, draft: 0, paused: 0 },
+        conversationInventory: { recentCount: 30 },
+      },
+    });
+    expect(context.operatingState?.conversationInventory).toEqual({ recentCount: 30 });
   });
 });

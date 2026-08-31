@@ -13,11 +13,22 @@ function serialize(value: unknown): string {
  * Publishes a count-only view of state already visible in the signed-in dashboard. The widget
  * gets enough context to guide setup without receiving agent IDs, names, domains, or credentials.
  */
-export function VoomateOperatingContext({ agents }: { agents: readonly Agent[] | undefined }) {
+export function VoomateOperatingContext({
+  agents,
+  recentConversationCount,
+}: {
+  agents: readonly Agent[] | undefined;
+  recentConversationCount?: number;
+}) {
   if (!agents) return null;
   const active = agents.filter(({ status }) => status === 'active').length;
   const draft = agents.filter(({ status }) => status === 'draft').length;
   const paused = agents.filter(({ status }) => status === 'paused').length;
+  const hasRecentConversationCount =
+    typeof recentConversationCount === 'number' &&
+    Number.isInteger(recentConversationCount) &&
+    recentConversationCount >= 0 &&
+    recentConversationCount <= 100;
 
   return (
     <script
@@ -27,6 +38,9 @@ export function VoomateOperatingContext({ agents }: { agents: readonly Agent[] |
         __html: serialize({
           version: 1,
           agentInventory: { total: agents.length, active, draft, paused },
+          ...(hasRecentConversationCount
+            ? { conversationInventory: { recentCount: recentConversationCount } }
+            : {}),
         }),
       }}
     />
