@@ -5,6 +5,24 @@ configure a governed Web Agent, connect approved business data, and embed a cust
 assistant on its website. The project is built around a simple principle: agents should be useful
 without receiving unrestricted data access or unreviewed permissions.
 
+## Why I built Voomate
+
+I have always been obsessed with one question: **how can technology work for people, instead of
+making people work around technology?** That question led me to build Voomate.
+
+Voomate is an AI-powered operating system built around multiple intelligent agents. The goal is not
+another chatbot: agents should understand a request, use the right approved context or capability,
+and help complete real work across a business workflow.
+
+The first released agent is the **Web Agent**—an AI assistant that lives directly inside a website
+or product as a widget. It can answer grounded questions, explain the current page, guide visitors,
+navigate them to verified destinations, and use explicitly approved, tenant-scoped capabilities for
+live information such as product availability or a verified order status.
+
+The platform is designed to grow beyond one agent. Each additional agent must use the same
+governed catalog, connection, lifecycle, policy, and audit contracts so the system stays useful,
+safe, and accountable as it expands.
+
 > Current status: the Web Agent loop is deployed with grounded text and browser voice, website
 > knowledge retrieval, governed live-read connections, controlled order status, and a merchant
 > Operating Panel. Later catalog agents and write workflows remain intentionally gated; see the
