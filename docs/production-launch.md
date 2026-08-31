@@ -53,6 +53,9 @@ repository file:
 - `REDIS_URL` for BullMQ workers, using a TLS Redis endpoint.
 - `DATABASE_URL` for the runtime pool and `DATABASE_DIRECT_URL` only for the one-off migration
   job.
+- `BEDROCK_MAX_REQUESTS_PER_MINUTE`, set conservatively below the actual Bedrock quota for the
+  selected model and region. This is a shared admission limit backed by Upstash, not a per-task
+  guess; raise the provider quota before raising this value.
 - Supabase server credentials, widget signing secret, connection encryption key, and webhook
   signing secret.
 - No `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY` in ECS. Attach the least-privilege CDK task

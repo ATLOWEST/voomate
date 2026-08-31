@@ -121,6 +121,15 @@ const UI_MANIFEST = serializeUiManifest(
         aliases: ['company', 'story', 'mission', 'why Voomate'],
       },
     ],
+    trustedDestinations: [
+      {
+        id: 'dashboard',
+        title: 'Dashboard',
+        url: 'https://app.atlowest.in/',
+        description: 'Sign in to access and manage your Voomate workspace.',
+        aliases: ['dashboard', 'workspace', 'my account', 'account dashboard', 'admin panel'],
+      },
+    ],
   }),
 );
 

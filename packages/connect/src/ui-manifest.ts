@@ -10,6 +10,20 @@ export interface VoomateUiPage {
   native?: VoomateNativeDestinations;
 }
 
+/**
+ * An explicit, public handoff to a separately hosted surface such as an account portal or
+ * dashboard. The runtime verifies it against the tenant's approved deployment policy before it
+ * can become a browser command; manifest text alone never authorizes a cross-origin redirect.
+ */
+export interface VoomateUiTrustedDestination {
+  id: string;
+  title: string;
+  url: string;
+  description: string;
+  aliases?: readonly string[];
+  facts?: readonly string[];
+}
+
 export interface VoomateNativeDestination {
   /** HTTPS universal/app link registered to the native application. */
   url: string;
@@ -26,6 +40,7 @@ export interface VoomateUiManifest {
   version: 1;
   businessSummary?: string;
   pages: readonly VoomateUiPage[];
+  trustedDestinations?: readonly VoomateUiTrustedDestination[];
 }
 
 const PAGE_ID = /^[a-z][a-z0-9_-]{1,63}$/;
@@ -110,6 +125,7 @@ function nativeDestinations(
 export function defineUiManifest(input: {
   businessSummary?: string;
   pages: readonly VoomateUiPage[];
+  trustedDestinations?: readonly VoomateUiTrustedDestination[];
 }): Readonly<VoomateUiManifest> {
   if (!Array.isArray(input.pages) || input.pages.length === 0 || input.pages.length > 100) {
     throw new Error('A UI manifest needs 1-100 pages.');
@@ -140,12 +156,43 @@ export function defineUiManifest(input: {
       ...(native ? { native } : {}),
     });
   });
+  const trustedDestinations = input.trustedDestinations?.map((destination) => {
+    if (
+      Object.keys(destination).some(
+        (key) => !['id', 'title', 'url', 'description', 'aliases', 'facts'].includes(key),
+      )
+    ) {
+      throw new Error(
+        'UI manifest trusted destinations cannot declare commands or additional fields.',
+      );
+    }
+    if (!PAGE_ID.test(destination.id) || seen.has(destination.id)) {
+      throw new Error('Invalid UI manifest trusted destination ID.');
+    }
+    seen.add(destination.id);
+    const destinationAliases = aliases(destination.aliases);
+    const destinationFacts = facts(destination.facts);
+    return Object.freeze({
+      id: destination.id,
+      title: text(destination.title, 'trusted destination title', 120),
+      url: httpsUrl(destination.url, 'trusted destination URL'),
+      description: text(destination.description, 'trusted destination description', 600),
+      ...(destinationAliases?.length ? { aliases: destinationAliases } : {}),
+      ...(destinationFacts?.length ? { facts: destinationFacts } : {}),
+    });
+  });
+  if (trustedDestinations && trustedDestinations.length > 20) {
+    throw new Error('A UI manifest can declare no more than 20 trusted destinations.');
+  }
   return Object.freeze({
     version: 1 as const,
     ...(input.businessSummary
       ? { businessSummary: text(input.businessSummary, 'business summary', 1_200) }
       : {}),
     pages: Object.freeze(pages),
+    ...(trustedDestinations?.length
+      ? { trustedDestinations: Object.freeze(trustedDestinations) }
+      : {}),
   });
 }
 

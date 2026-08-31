@@ -60,6 +60,40 @@ describe('Voomate UI manifest', () => {
     ).toThrow('cannot declare commands');
   });
 
+  it('allows an explicit HTTPS dashboard handoff while keeping it passive', () => {
+    const manifest = defineUiManifest({
+      pages: [{ id: 'home', title: 'Home', path: '/', description: 'Public site.' }],
+      trustedDestinations: [
+        {
+          id: 'dashboard',
+          title: 'Dashboard',
+          url: 'https://app.example.com/',
+          description: 'Sign in to manage the workspace.',
+          aliases: ['workspace', 'account portal'],
+        },
+      ],
+    });
+    expect(manifest.trustedDestinations?.[0]).toMatchObject({
+      title: 'Dashboard',
+      url: 'https://app.example.com/',
+      aliases: ['workspace', 'account portal'],
+    });
+    expect(Object.isFrozen(manifest.trustedDestinations)).toBe(true);
+    expect(() =>
+      defineUiManifest({
+        pages: [{ id: 'home', title: 'Home', path: '/', description: 'Public site.' }],
+        trustedDestinations: [
+          {
+            id: 'unsafe',
+            title: 'Unsafe',
+            url: 'http://example.com/',
+            description: 'Unsafe destination.',
+          },
+        ],
+      }),
+    ).toThrow('HTTPS');
+  });
+
   it('serializes safely for an application/json script element', () => {
     const manifest = defineUiManifest({
       pages: [

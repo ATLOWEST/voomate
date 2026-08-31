@@ -55,7 +55,9 @@ export async function runWebAgentTurn(args: {
   onStarted?: (context: RunContext) => void | Promise<void>;
 }): Promise<WebAgentTurnResult> {
   const { claims, origin, input } = args;
-  const pageContext = sanitizePageContext(input.pageContext, origin);
+  // The first pass binds the active browser location to the signed widget origin. Cross-origin
+  // handoffs are evaluated only after the tenant's verified deployment policy is loaded.
+  const requestPageContext = sanitizePageContext(input.pageContext, origin);
   const turnStartedAt = Date.now();
   const db = getWebAgentDb();
   const visitorFingerprint = widgetVisitorFingerprint(claims);
@@ -106,10 +108,10 @@ export async function runWebAgentTurn(args: {
 
   // A session may have been created on an allowed page before an SPA navigation or a policy
   // toggle. Re-evaluate the exact current URL before recording or processing any page context.
-  const activePageUrl = pageContext?.url ?? input.pageUrl;
+  const activePageUrl = requestPageContext?.url ?? input.pageUrl;
+  const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
   if (activePageUrl) {
     const url = new URL(activePageUrl);
-    const policy = webDeploymentPolicyFromAppearance(agent.appearance, agent.allowedOrigins);
     if (
       url.origin.toLowerCase() !== claims.origin ||
       webSurfaceForLocation(policy, claims.origin, url.pathname) === undefined
@@ -117,6 +119,7 @@ export async function runWebAgentTurn(args: {
       throw new Error('Agent is not enabled on this page.');
     }
   }
+  const pageContext = sanitizePageContext(input.pageContext, origin, policy);
 
   let conversationId = input.conversationId;
   if (conversationId) {

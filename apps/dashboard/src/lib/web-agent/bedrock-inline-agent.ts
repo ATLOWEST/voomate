@@ -19,6 +19,7 @@ import { logRunEvent, recordRunUsage, type RunContext } from './log';
 import { executeLiveRead, type LiveReadCapability } from './live-data';
 import type { WebAgentPageContext } from './page-context';
 import { compactPromptContext } from './prompt-optimizer';
+import { enforceBedrockModelCapacity } from './rate-limit';
 
 const configuredModel = process.env.BEDROCK_MODEL_ID ?? 'us.amazon.nova-pro-v1:0';
 let client: BedrockAgentRuntimeClient | undefined;
@@ -378,6 +379,7 @@ export async function runBedrockInlineAgentTurn(
     historyTurns: compacted.history.length,
     knowledgeChunks: compacted.knowledge.length,
   });
+  await enforceBedrockModelCapacity(model);
   const first = await invokeWithBackoff({
     ...common,
     inputText: preparedConversation.inputText,
@@ -470,6 +472,7 @@ export async function runBedrockInlineAgentTurn(
     };
     // Once every tool result has a reviewed deterministic formatter, repeated prose-generation
     // retries only add latency. Give Nova one chance, then return the verified public projection.
+    await enforceBedrockModelCapacity(model);
     const second =
       deterministicFallbacks.length === results.length
         ? await bedrockAgent().send(new InvokeInlineAgentCommand(completionInput))

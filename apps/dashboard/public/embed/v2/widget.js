@@ -312,10 +312,24 @@ function collectPageContext() {
   const navigation = [];
   const portalScope = activePortalScope();
   const seen = new Set();
-  const addNavigation = (label, value, pageDescription, aliases, facts, native) => {
+  const addNavigation = (
+    label,
+    value,
+    pageDescription,
+    aliases,
+    facts,
+    native,
+    navigationKind = 'same_origin',
+  ) => {
     try {
       const url = new URL(value, window.location.href);
-      if (url.origin !== window.location.origin || !['http:', 'https:'].includes(url.protocol))
+      const sameOrigin = url.origin === window.location.origin;
+      const trustedHandoff =
+        navigationKind === 'trusted_handoff' &&
+        url.protocol === 'https:' &&
+        !url.username &&
+        !url.password;
+      if ((!sameOrigin && !trustedHandoff) || !['http:', 'https:'].includes(url.protocol))
         return;
       const normalizedLabel = compactText(label, 120);
       if (!normalizedLabel || seen.has(url.href) || navigation.length >= 40) return;
@@ -324,6 +338,7 @@ function collectPageContext() {
         label: normalizedLabel,
         url: url.href,
         portalScope: portalScopeForUrl(url.href),
+        navigationKind: sameOrigin ? 'same_origin' : 'trusted_handoff',
         ...(pageDescription ? { description: compactText(pageDescription, 600) } : {}),
         ...(Array.isArray(aliases)
           ? {
@@ -350,13 +365,23 @@ function collectPageContext() {
   for (const page of manifest?.pages ?? []) {
     addNavigation(page.title, page.path, page.description, page.aliases, page.facts, page.native);
   }
+  for (const destination of manifest?.trustedDestinations ?? []) {
+    addNavigation(
+      destination.title,
+      destination.url,
+      destination.description,
+      destination.aliases,
+      destination.facts,
+      undefined,
+      'trusted_handoff',
+    );
+  }
   const semanticAnchors = document.querySelectorAll(
     'aside nav a[href], header nav a[href], [role="navigation"] a[href], [data-sidebar] a[href]',
   );
   const anchors = semanticAnchors.length ? semanticAnchors : document.querySelectorAll('a[href]');
   for (const anchor of anchors) {
     if (anchor.closest('voomate-widget')) continue;
-    const anchorUrl = new URL(anchor.href, window.location.href);
     addNavigation(anchor.getAttribute('aria-label') || anchor.textContent, anchor.href);
   }
   const currentPath = `${window.location.pathname}${window.location.search}`;
@@ -463,14 +488,18 @@ function resolveClientNavigation(commands, pageContext) {
         return false;
       }
     });
-    if (target.origin !== window.location.origin || !advertised) return undefined;
+    if (!advertised) return undefined;
+    const trustedHandoff = advertised.navigationKind === 'trusted_handoff';
+    if (target.origin !== window.location.origin && !trustedHandoff) return undefined;
     const intent = ['web', 'open_app', 'install_app'].includes(navigation.intent)
       ? navigation.intent
       : 'web';
     const platform = mobilePlatform();
-    if (intent === 'web' || platform === 'web') {
-      return { command: navigation, destination: target.href, kind: 'web' };
+    if (intent === 'web') {
+      return { command: navigation, destination: target.href, kind: 'web', trustedHandoff };
     }
+    if (trustedHandoff) return undefined;
+    if (platform === 'web') return { command: navigation, destination: target.href, kind: 'web' };
     const native = advertised.native?.[platform];
     if (!native || navigation.native?.[platform]?.url !== native.url) return undefined;
     if (intent === 'open_app') {
@@ -927,13 +956,19 @@ export async function mountWidget(host, config) {
           : `Opening ${resolved.command.label}`;
     navigationDetail.textContent =
       resolved.kind === 'web'
-        ? 'Keeping this conversation and voice state active while the page changes.'
+        ? resolved.trustedHandoff
+          ? 'Opening the verified destination. Its own sign-in and access controls stay in effect.'
+          : 'Keeping this conversation and voice state active while the page changes.'
         : 'Handing off securely to your operating system.';
     navigationStage.classList.add('active');
     navigationShownAt = Date.now();
     persistJourney(Boolean(voiceSession || voiceStarting));
 
     if (resolved.kind === 'web') {
+      if (resolved.trustedHandoff) {
+        navigationTimer = window.setTimeout(() => window.location.assign(resolved.destination), 450);
+        return;
+      }
       const request = new window.CustomEvent('voomate:navigation-request', {
         cancelable: true,
         detail: {

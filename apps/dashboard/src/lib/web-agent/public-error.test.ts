@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { publicWebAgentError } from './public-error';
 
 describe('public Web Agent errors', () => {
+  it('returns a clear retry message when shared provider capacity is full', () => {
+    expect(publicWebAgentError(new Error('MODEL_CAPACITY'))).toEqual({
+      message: 'The assistant is at capacity right now. Please try again in a moment.',
+      status: 503,
+      code: 'model_busy',
+    });
+  });
+
   it('does not describe a text throttle as an image failure', () => {
     const error = new Error('Your request rate is too high.');
     error.name = 'ThrottlingException';

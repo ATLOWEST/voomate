@@ -37,10 +37,11 @@ const explicitWebNavigation = [
   // Voice transcription and fast typing commonly misspell "navigate". This only recognizes
   // a navigation *intent*; destination resolution below still requires an advertised route.
   /\b(?:navigat\w*|navag\w*)\s+(?:me\s+)?(?:back\s+)?(?:to|into)\b/i,
-  /\b(?:redirect\w*|rediect\w*|rediet\w*)\s+(?:this\s+)?(?:me\s+)?(?:to|into)\b/i,
+  /\b(?:redirec\w*|rediect\w*|rediet\w*)\s+(?:this\s+)?(?:(?:me|tme)\s+)?(?:to|into)\b/i,
   /\bvisit(?: the)?\b/i,
   /\bopen(?: the)?\b/i,
-  /\b(?:redirect|take|lead|move|switch)\s+(?:me\s+)?(?:to\s+)?/i,
+  /\b(?:redirec\w*|take|lead|move|switch)\s+(?:(?:me|tme)\s+)?(?:to\s+)?/i,
+  /\b(?:redirec\w*|rediect\w*|rediet\w*)\b/i,
 ];
 const informationRequest =
   /\b(what(?:'s| is| are)|how much|cost|price|pricing (?:details|plans|options)|tell me|explain|compare|comparison|difference|which plan|show me|learn about|details about|where (?:is|can))\b/i;

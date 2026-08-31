@@ -5,6 +5,7 @@ const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 30;
 const MAX_ACCESS_CHECKS = 120;
 const MAX_IMAGE_UPLOADS = 6;
+const MAX_MODEL_REQUESTS = Number(process.env.BEDROCK_MAX_REQUESTS_PER_MINUTE ?? 20);
 
 function consumeLocalBucket(key: string, maximum: number, weight: number): void {
   const now = Date.now();
@@ -61,4 +62,24 @@ export async function enforceWidgetAccessRateLimit(key: string): Promise<void> {
 /** Separate weighted limiter: six image files per public key + origin + session per minute. */
 export async function enforceImageUploadRateLimit(key: string, imageCount: number): Promise<void> {
   await enforceRateLimit(`images:${key}`, MAX_IMAGE_UPLOADS, imageCount);
+}
+
+/**
+ * Shared provider admission control. Per-visitor limits prevent one browser from flooding the
+ * system; this separate distributed bucket keeps every ECS task together below the configured
+ * Bedrock account quota. Set the value from the approved Bedrock quota, not a local benchmark.
+ */
+export async function enforceBedrockModelCapacity(model: string): Promise<void> {
+  if (!Number.isInteger(MAX_MODEL_REQUESTS) || MAX_MODEL_REQUESTS < 1) {
+    throw new Error('Invalid BEDROCK_MAX_REQUESTS_PER_MINUTE configuration.');
+  }
+  const modelKey = model.replace(/[^a-z0-9:_-]+/gi, '_').slice(0, 160);
+  try {
+    await enforceRateLimit(`bedrock:${modelKey}`, MAX_MODEL_REQUESTS, 1);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'RATE_LIMITED') {
+      throw new Error('MODEL_CAPACITY');
+    }
+    throw error;
+  }
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { webSurfaceForLocation, type WebDeploymentPolicy } from '@voomate/core';
 
 export type PortalRole = 'super_admin' | 'merchant_admin' | 'end_user';
 
@@ -61,6 +62,7 @@ export const pageContextSchema = z
               })
               .strict()
               .optional(),
+            navigationKind: z.enum(['same_origin', 'trusted_handoff']).optional(),
           })
           .strict(),
       )
@@ -147,6 +149,22 @@ function sameOriginUrl(value: string, origin: string): string | undefined {
   }
 }
 
+function trustedNavigationUrl(
+  value: string,
+  origin: string,
+  policy: WebDeploymentPolicy | undefined,
+): { url: string; navigationKind: 'same_origin' | 'trusted_handoff' } | undefined {
+  const sameOrigin = sameOriginUrl(value, origin);
+  if (sameOrigin) return { url: sameOrigin, navigationKind: 'same_origin' };
+  if (!policy) return undefined;
+  const url = safeHttpsUrl(value);
+  if (!url) return undefined;
+  const parsed = new URL(url);
+  return webSurfaceForLocation(policy, parsed.origin, parsed.pathname)
+    ? { url, navigationKind: 'trusted_handoff' }
+    : undefined;
+}
+
 function safeHttpsUrl(value: string | undefined): string | undefined {
   if (!value) return undefined;
   try {
@@ -168,13 +186,14 @@ function safeStoreUrl(value: string | undefined, platform: 'ios' | 'android'): s
 export function sanitizePageContext(
   input: WebAgentPageContext | undefined,
   origin: string,
+  policy?: WebDeploymentPolicy,
 ): WebAgentPageContext | undefined {
   if (!input) return undefined;
   const url = sameOriginUrl(input.url, origin);
   if (!url) return undefined;
   const navigation = input.navigation.flatMap((item) => {
-    const itemUrl = sameOriginUrl(item.url, origin);
-    if (!itemUrl) return [];
+    const destination = trustedNavigationUrl(item.url, origin, policy);
+    if (!destination) return [];
     const native: NonNullable<WebAgentPageContext['navigation'][number]['native']> = {};
     for (const platform of ['ios', 'android'] as const) {
       const destination = item.native?.[platform];
@@ -186,8 +205,9 @@ export function sanitizePageContext(
     return [
       {
         ...item,
-        url: itemUrl,
-        portalScope: portalScopeForUrl(itemUrl),
+        url: destination.url,
+        navigationKind: destination.navigationKind,
+        portalScope: portalScopeForUrl(destination.url),
         ...(Object.keys(native).length ? { native } : {}),
       },
     ];

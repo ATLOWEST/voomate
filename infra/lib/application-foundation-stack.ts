@@ -337,6 +337,12 @@ export class ApplicationFoundationStack extends Stack {
           this.runtimeSecret,
           'BEDROCK_UTILITY_MODEL_ID',
         ),
+        // Shared admission control is configured from the encrypted runtime secret so it can be
+        // set below the actual Bedrock account quota without rebuilding the dashboard image.
+        BEDROCK_MAX_REQUESTS_PER_MINUTE: ecs.Secret.fromSecretsManager(
+          this.runtimeSecret,
+          'BEDROCK_MAX_REQUESTS_PER_MINUTE',
+        ),
         WIDGET_TOKEN_SECRET: ecs.Secret.fromSecretsManager(
           this.runtimeSecret,
           'WIDGET_TOKEN_SECRET',

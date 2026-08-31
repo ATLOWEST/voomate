@@ -15,6 +15,13 @@ function bedrockThrottled(error: unknown): boolean {
 }
 
 export function publicWebAgentError(error: unknown, imageCount = 0): PublicWebAgentError {
+  if (error instanceof Error && error.message === 'MODEL_CAPACITY') {
+    return {
+      message: 'The assistant is at capacity right now. Please try again in a moment.',
+      status: 503,
+      code: 'model_busy',
+    };
+  }
   if (error instanceof Error && error.message === 'RATE_LIMITED') {
     return {
       message: 'Too many requests. Please try again shortly.',

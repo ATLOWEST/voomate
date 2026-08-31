@@ -32,6 +32,7 @@ describe('Web Agent page context', () => {
         label: 'Agents',
         url: 'https://app.example/agents',
         portalScope: '/',
+        navigationKind: 'same_origin',
         aliases: ['agent board'],
         native: {
           ios: {
@@ -42,6 +43,53 @@ describe('Web Agent page context', () => {
       },
     ]);
     expect(sanitizePageContext(input, 'https://other.example')).toBeUndefined();
+  });
+
+  it('keeps an explicit cross-origin handoff only when the tenant policy enables that route', () => {
+    const input = pageContextSchema.parse({
+      url: 'https://www.example.com/pricing',
+      title: 'Pricing',
+      description: '',
+      headings: [],
+      navigation: [
+        { label: 'Dashboard', url: 'https://app.example.com/' },
+        { label: 'Unsafe', url: 'https://evil.example.com/' },
+      ],
+    });
+    const policy = {
+      version: 1 as const,
+      surfaces: [
+        {
+          id: 'marketing',
+          name: 'Marketing site',
+          kind: 'declared' as const,
+          origin: 'https://www.example.com',
+          pathPrefixes: ['/'],
+          excludedPaths: [],
+          excludedPathPrefixes: [],
+          enabled: true,
+        },
+        {
+          id: 'dashboard',
+          name: 'Dashboard',
+          kind: 'declared' as const,
+          origin: 'https://app.example.com',
+          pathPrefixes: ['/'],
+          excludedPaths: [],
+          excludedPathPrefixes: [],
+          identity: 'required' as const,
+          enabled: true,
+        },
+      ],
+    };
+    expect(sanitizePageContext(input, 'https://www.example.com', policy)?.navigation).toEqual([
+      {
+        label: 'Dashboard',
+        url: 'https://app.example.com/',
+        portalScope: '/',
+        navigationKind: 'trusted_handoff',
+      },
+    ]);
   });
 
   it('derives portal and role from the verified current URL rather than browser input', () => {

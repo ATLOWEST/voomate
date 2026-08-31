@@ -78,9 +78,11 @@ data access bounded while preserving explicitly scoped Web Agent to Integration 
 
 The widget also sends a bounded passive UI manifest: page title, meta description, visible main
 headings, and same-origin navigation destinations. It never sends form values or a page text dump.
-Navigation is the only browser command in this contract, and both server and widget require its URL
-to be same-origin and previously advertised by the page. All record changes remain separately
-scoped tools behind the Secure Execution Harness.
+An account portal or dashboard on another origin is allowed only as an explicit HTTPS
+`trustedDestination`, and only when the tenant's enabled deployment policy independently approves
+that exact origin and path. Navigation is the only browser command in this contract; both server
+and widget validate it before execution. All record changes remain separately scoped tools behind
+the Secure Execution Harness.
 
 On signed-in Operating Panel surfaces, the host may additionally publish count-only agent
 inventory: total, active, draft, and paused. It contains no names, IDs, domains, credentials, or
@@ -100,13 +102,14 @@ facts continue in the same turn. This does not wait for another prompt or send t
 Bedrock. Information-only requests still answer in the widget without navigation.
 
 The destination resolver is separate from both orchestration and browser execution. It ranks only
-host-advertised titles, natural-language aliases, and same-origin path segments. Bounded edit
-distance repairs ordinary spelling and transposition errors such as `priing`, `agnets`, or
-`histroy`. Title and alias evidence outrank path-only evidence, document-local hash anchors are not
-treated as feature destinations, and close candidates fail as ambiguous. Unknown or ambiguous
-requests never ask the visitor for a URL: the agent offers verified choices while remaining on the
-current page. The Logs trace records the outcome, match type, confidence score, and candidate names
-without storing the visitor's routing phrase in metadata.
+host-advertised titles, natural-language aliases, same-origin path segments, and explicit trusted
+handoffs. Bounded edit distance repairs ordinary spelling and transposition errors such as
+`priing`, `agnets`, or `histroy`. Title and alias evidence outrank path-only evidence,
+document-local hash anchors are not treated as feature destinations, and close candidates fail as
+ambiguous. Unknown or ambiguous requests never ask the visitor for a URL: the agent offers
+verified choices while remaining on the current page. The Logs trace records the outcome, match
+type, confidence score, and candidate names without storing the visitor's routing phrase in
+metadata.
 
 Each manifest page may also carry bounded, public, founder-curated facts. Factual questions use
 those facts inside the widget without navigation or a model guessing around missing knowledge.
@@ -144,6 +147,16 @@ signed requests, and should run under a database principal with `SELECT` only.
 The database transcript is canonical memory. Every Inline Agent turn receives a bounded transcript
 and a fresh Bedrock session ID, preventing hidden managed-session state from outliving the signed
 widget session or crossing a tenant boundary.
+
+## Capacity and cost control
+
+Deterministic navigation, host-curated page facts, identity replies, and clarification never call
+Bedrock or retrieval. Factual questions use retrieval only when the orchestration plan says it is
+needed, and tool catalogs are narrowed before inference. Model calls are admitted through one
+Upstash-backed per-model counter shared by all dashboard tasks. Its configured limit remains below
+the provider quota, so a burst receives a clear, retryable capacity response instead of driving
+Bedrock into throttling. Horizontal ECS scaling can add request capacity without multiplying the
+Bedrock limit; provider quota increases remain an explicit operations decision.
 
 ## Human escalation
 

@@ -437,6 +437,25 @@ describe('web agent orchestration', () => {
     expect(result.directReply).toBe('Opening Pricing.');
   });
 
+  it('routes a partial redirect typo to an advertised About page without a model call', () => {
+    const result = planWebAgentTurn({
+      message: 'now can you redirec tme about page',
+      availableCapabilities: [],
+      pageContext: {
+        ...pageContext,
+        navigation: [
+          ...pageContext.navigation,
+          { label: 'About', url: 'https://app.voomate.test/about', aliases: ['company'] },
+        ],
+      },
+    });
+    expect(result.clientCommands).toMatchObject([
+      { type: 'navigate', label: 'About', intent: 'web' },
+    ]);
+    expect(result.directReply).toBe('Opening About.');
+    expect(result.useKnowledge).toBe(false);
+  });
+
   it('clarifies ambiguous destinations and never asks the visitor for a URL', () => {
     const result = planWebAgentTurn({
       message: 'Open agent.',

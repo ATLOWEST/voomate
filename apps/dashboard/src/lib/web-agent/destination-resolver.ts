@@ -16,7 +16,6 @@ type MatchKind = 'title' | 'alias' | 'path' | 'fuzzy';
 
 const fillerWords = new Set([
   'a',
-  'about',
   'an',
   'and',
   'app',
@@ -213,10 +212,10 @@ function navigationSubject(message: string): string {
   const patterns = [
     /\b(?:go|send)(?:\s+me)?(?:\s+back)?\s+to\s+(.+)/i,
     /\b(?:take|bring)\s+me(?:\s+back)?\s+to\s+(.+)/i,
-    /\b(?:navigate|head|switch|redirect|rediect|rediet|route)(?:\s+me)?\s+(?:back\s+)?to\s+(.+)/i,
+    /\b(?:navigate|head|switch|redirec\w*|rediect|rediet|route)(?:\s+(?:me|tme))?\s+(?:back\s+)?to\s+(.+)/i,
     /\bvisit(?:\s+the)?\s+(.+)/i,
     /\bopen(?:\s+the)?\s+(.+)/i,
-    /\b(?:redirect|rediect|rediet|take|lead|move|switch)\s+(?:this\s+)?(?:me\s+)?(?:to\s+)?(.+)/i,
+    /\b(?:redirec\w*|rediect|rediet|take|lead|move|switch)\s+(?:this\s+)?(?:(?:me|tme)\s+)?(?:to\s+)?(.+)/i,
   ];
   const subject = patterns.map((pattern) => message.match(pattern)?.[1]).find(Boolean) ?? message;
   return subject.split(/\b(?:and|then|so that|because)\b/i, 1)[0] ?? subject;
