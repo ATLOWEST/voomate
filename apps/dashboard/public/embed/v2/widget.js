@@ -479,7 +479,6 @@ function resolveClientNavigation(commands, pageContext) {
   if (!navigation) return undefined;
   try {
     const target = new URL(navigation.url, window.location.origin);
-    if (portalScopeForUrl(target.href) !== pageContext.portalScope) return undefined;
     const advertised = pageContext.navigation.find((item) => {
       if (item.url === target.href) return true;
       try {
@@ -491,6 +490,11 @@ function resolveClientNavigation(commands, pageContext) {
     if (!advertised) return undefined;
     const trustedHandoff = advertised.navigationKind === 'trusted_handoff';
     if (target.origin !== window.location.origin && !trustedHandoff) return undefined;
+    // A verified cross-origin handoff intentionally crosses a portal boundary, for example from
+    // a public marketing page into a signed-in dashboard. Same-origin routing remains scoped to
+    // the current portal to prevent a browser command from reaching a sibling product area.
+    if (!trustedHandoff && portalScopeForUrl(target.href) !== pageContext.portalScope)
+      return undefined;
     const intent = ['web', 'open_app', 'install_app'].includes(navigation.intent)
       ? navigation.intent
       : 'web';
