@@ -55,6 +55,22 @@ reads. Every sensitive action is permission-checked and logged. Tool output is r
 public-safe fields before it can reach a customer. When verified knowledge or an enabled tool
 cannot support an answer, the agent is honest and offers the closest useful next step.
 
+## Pricing
+
+Voomate's published plans are:
+
+- **Pay as you go** starts at ₹0. The first top-up includes 300 bonus credits, with 60 requests
+  per minute, one workspace, basic analytics, and community support.
+- **Pro** costs ₹10,000 per month. It includes 12,000 credits, ₹2,000 bonus credits, 200 requests
+  per minute, email support, multilingual conversations, and custom widget branding.
+- **Max** costs ₹20,000 per month. It includes 25,000 credits, ₹5,000 bonus credits, 500 requests
+  per minute, and priority support.
+- **Custom** is tailored for organizations with high-volume needs.
+
+Do not mention superseded Starter, Growth, Enterprise, free-trial, or conversation-count claims.
+If a visitor asks which plan is right for them, explain the published limits first and ask only for
+the volume or support requirement needed to make a recommendation.
+
 ## Why Voomate exists
 
 1. Small and medium businesses often cannot staff customer operations around the clock. Voomate

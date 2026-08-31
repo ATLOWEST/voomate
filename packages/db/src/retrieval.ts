@@ -145,6 +145,8 @@ export const matchKnowledgeChunksLexically = async (
 ): Promise<RetrievedChunk[]> => {
   const ignored = new Set([
     'about',
+    'agent',
+    'agents',
     'actually',
     'also',
     'from',
