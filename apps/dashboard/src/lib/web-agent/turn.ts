@@ -254,9 +254,16 @@ export async function runWebAgentTurn(args: {
     pageContext,
     platformMode: businessName.trim().toLowerCase() === 'voomate',
   });
+  // Navigation and answers backed entirely by the signed host page context must not wait for
+  // lexical/vector retrieval or a model call. On cold Bedrock paths that unnecessary embedding
+  // request was the dominant source of the widget's multi-second delay.
   const knowledge =
     decision.kind === 'agent'
-      ? await retrieveWebAgentKnowledge(context, runtimeMessage, orchestration.useKnowledge)
+      ? await retrieveWebAgentKnowledge(
+          context,
+          runtimeMessage,
+          orchestration.useKnowledge && !orchestration.directReply,
+        )
       : [];
   const businessProfile = inferBusinessProfile(
     pageContext?.businessSummary,
@@ -279,6 +286,10 @@ export async function runWebAgentTurn(args: {
     clientCommands: orchestration.clientCommands.map(({ type, label }) => ({ type, label })),
     destinationDecision: orchestration.destinationDecision,
     platformJourney: orchestration.platformJourney,
+    deterministicReply: Boolean(orchestration.directReply),
+    knowledgeSkippedForDeterministicReply: Boolean(
+      orchestration.directReply && orchestration.useKnowledge,
+    ),
     learningMode: 'offline_reviewed_promotion',
     businessProfile: approvedProfileRow
       ? {

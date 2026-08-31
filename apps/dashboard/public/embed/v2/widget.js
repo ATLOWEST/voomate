@@ -353,13 +353,6 @@ function collectPageContext() {
   for (const anchor of anchors) {
     if (anchor.closest('voomate-widget')) continue;
     const anchorUrl = new URL(anchor.href, window.location.href);
-    if (
-      anchorUrl.hash &&
-      anchorUrl.pathname === window.location.pathname &&
-      anchorUrl.search === window.location.search
-    ) {
-      continue;
-    }
     addNavigation(anchor.getAttribute('aria-label') || anchor.textContent, anchor.href);
   }
   const currentPath = `${window.location.pathname}${window.location.search}`;

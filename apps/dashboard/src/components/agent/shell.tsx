@@ -11,6 +11,7 @@ import {
   Globe2,
   LayoutDashboard,
   Power,
+  ScanSearch,
   Settings,
 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -202,6 +203,7 @@ function AgentNav({ agentId, isPlaceholder }: { agentId: string; isPlaceholder: 
   const items = [
     { name: 'Info', href: basePath, icon: LayoutDashboard },
     { name: 'Setup', href: basePath + '/install', icon: Globe2 },
+    { name: 'Profile', href: basePath + '/profile', icon: ScanSearch },
     { name: 'Test', href: basePath + '/playground', icon: FlaskConical },
     { name: 'Settings', href: basePath + '/configuration', icon: Settings },
   ];

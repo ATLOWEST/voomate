@@ -236,9 +236,10 @@
       const routeInventory = collectRouteInventory();
       const inventorySignature = JSON.stringify(routeInventory.routes);
       if (inventorySignature !== lastReportedInventory) {
-        // Reporting is path-only and never grants access. The backend challenge proves domain
-        // ownership; a temporary legacy setup-endpoint failure must not break a live agent.
-        await Promise.all([
+        // Reporting is path-only and never grants access. Do not make it part of the launcher
+        // critical path: the lightweight access gate below is the only authority to render the
+        // widget, while an observation or legacy setup endpoint can be slow or temporarily down.
+        void Promise.all([
           observeInstallation(routeInventory).catch(() => undefined),
           announceInstallation(routeInventory).catch(() => undefined),
         ]);

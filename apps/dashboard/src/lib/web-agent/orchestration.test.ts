@@ -49,6 +49,16 @@ const pageContext: WebAgentPageContext = {
         },
       },
     },
+    {
+      label: 'Product',
+      url: 'https://app.voomate.test/product',
+      description: 'How Voomate coordinates agents, governed tools, and approved workflows.',
+      aliases: ['features', 'how it works', 'how voomate works'],
+      facts: [
+        'Voomate connects Web Agent, Voice Calling Agent, and Integration Agent through one shared business context.',
+        'Read-only data, separately permissioned actions, approvals, and logs keep the business in control.',
+      ],
+    },
   ],
 };
 
@@ -179,6 +189,41 @@ describe('web agent orchestration', () => {
     expect(result.directReply).toBe('Opening Agents.');
   });
 
+  it('repairs the rediet typo and a noisy Product destination without a model call', () => {
+    const result = planWebAgentTurn({
+      message: 'can you pleace rediet me to proding pages',
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.clientCommands).toEqual([
+      {
+        type: 'navigate',
+        label: 'Product',
+        url: 'https://app.voomate.test/product',
+        intent: 'web',
+      },
+    ]);
+    expect(result.directReply).toBe('Opening Product.');
+  });
+
+  it('answers how Voomate works from host-curated Product facts without navigating', () => {
+    const result = planWebAgentTurn({
+      message: 'how voomate works',
+      availableCapabilities: [],
+      pageContext,
+      platformMode: true,
+    });
+    expect(result.clientCommands).toEqual([]);
+    expect(result.destinationDecision).toMatchObject({
+      request: 'information',
+      outcome: 'resolved',
+      label: 'Product',
+    });
+    expect(result.directReply).toContain('Web Agent, Voice Calling Agent, and Integration Agent');
+    expect(result.directReply).toContain('business in control');
+  });
+
   it('uses page context to explain the current dashboard', () => {
     const result = planWebAgentTurn({
       message: 'What is this dashboard about and how do I use it?',
@@ -199,7 +244,7 @@ describe('web agent orchestration', () => {
       pageContext,
       platformMode: true,
     });
-    expect(result.directReply).toContain('Overview is A live operating overview of Voomate.');
+    expect(result.directReply).toContain('Overview — A live operating overview of Voomate.');
     expect(result.directReply).toContain('Available here:');
   });
 

@@ -168,6 +168,9 @@ function canonicalToken(value: string): string {
   ) {
     return 'inbox';
   }
+  if (norm === 'proding' || norm === 'produt' || norm === 'product' || norm === 'products') {
+    return 'product';
+  }
   if (norm === 'setting' || norm === 'settings') {
     return 'setting';
   }
@@ -210,10 +213,10 @@ function navigationSubject(message: string): string {
   const patterns = [
     /\b(?:go|send)(?:\s+me)?(?:\s+back)?\s+to\s+(.+)/i,
     /\b(?:take|bring)\s+me(?:\s+back)?\s+to\s+(.+)/i,
-    /\b(?:navigate|head|switch|redirect|rediect|route)(?:\s+me)?\s+(?:back\s+)?to\s+(.+)/i,
+    /\b(?:navigate|head|switch|redirect|rediect|rediet|route)(?:\s+me)?\s+(?:back\s+)?to\s+(.+)/i,
     /\bvisit(?:\s+the)?\s+(.+)/i,
     /\bopen(?:\s+the)?\s+(.+)/i,
-    /\b(?:redirect|rediect|take|lead|move|switch)\s+(?:this\s+)?(?:me\s+)?(?:to\s+)?(.+)/i,
+    /\b(?:redirect|rediect|rediet|take|lead|move|switch)\s+(?:this\s+)?(?:me\s+)?(?:to\s+)?(.+)/i,
   ];
   const subject = patterns.map((pattern) => message.match(pattern)?.[1]).find(Boolean) ?? message;
   return subject.split(/\b(?:and|then|so that|because)\b/i, 1)[0] ?? subject;

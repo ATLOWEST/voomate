@@ -76,6 +76,12 @@ const UI_MANIFEST = serializeUiManifest(
         description:
           'How Voomate coordinates customer-facing agents, governed tools, and approved business workflows.',
         aliases: ['features', 'how it works', 'AI agents', 'platform'],
+        facts: [
+          'Voomate connects Web Agent, Voice Calling Agent, and Integration Agent through one shared business context.',
+          'Web Agent handles customer questions on the website and can use only approved actions.',
+          'Voice Calling Agent supports natural phone conversations, while Integration Agent provides governed access to connected business systems.',
+          'Read-only data, separately permissioned actions, approvals, and logs keep the business in control.',
+        ],
       },
       {
         id: 'integrations',

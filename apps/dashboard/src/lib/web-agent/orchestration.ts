@@ -37,13 +37,16 @@ const explicitWebNavigation = [
   // Voice transcription and fast typing commonly misspell "navigate". This only recognizes
   // a navigation *intent*; destination resolution below still requires an advertised route.
   /\b(?:navigat\w*|navag\w*)\s+(?:me\s+)?(?:back\s+)?(?:to|into)\b/i,
-  /\b(?:redirect\w*|rediect\w*)\s+(?:this\s+)?(?:me\s+)?(?:to|into)\b/i,
+  /\b(?:redirect\w*|rediect\w*|rediet\w*)\s+(?:this\s+)?(?:me\s+)?(?:to|into)\b/i,
   /\bvisit(?: the)?\b/i,
   /\bopen(?: the)?\b/i,
   /\b(?:redirect|take|lead|move|switch)\s+(?:me\s+)?(?:to\s+)?/i,
 ];
 const informationRequest =
   /\b(what(?:'s| is| are)|how much|cost|price|pricing (?:details|plans|options)|tell me|explain|compare|comparison|difference|which plan|show me|learn about|details about|where (?:is|can))\b/i;
+// "How Voomate works" is an information request, not a request to navigate. Keep this
+// separate from broad "how" matching so operational questions still use their normal paths.
+const howItWorksRequest = /\bhow\s+(?:(?:does|do)\s+)?(?:[a-z0-9][a-z0-9'’-]*\s+){0,4}works?\b/i;
 const installAppIntent = /\b(?:install|download)(?: the)? (?:mobile )?app\b/i;
 const openAppIntent =
   /\bopen\b[\s\S]{0,80}\b(?:in|inside) the (?:mobile )?app\b|\bopen the (?:mobile )?app\b/i;
@@ -273,7 +276,8 @@ export function planWebAgentTurn(input: {
     .slice(0, MAX_LIVE_CAPABILITIES_PER_TURN)
     .map(({ capability }) => capability);
   const requestedIntent = requestedNavigationIntent(input.message);
-  const asksForInformation = informationRequest.test(input.message);
+  const asksForInformation =
+    informationRequest.test(input.message) || howItWorksRequest.test(input.message);
   const navigationResolution: DestinationResolution =
     requestedIntent && !asksForInformation
       ? resolveDestination(input.message, input.pageContext, 'navigation')
@@ -382,6 +386,9 @@ export function planWebAgentTurn(input: {
       `${informationTarget.label}:`,
       ...informationTarget.facts.map((fact, index) => `${index + 1}. ${fact}`),
     ].join('\n');
+  } else if (informationTarget?.description) {
+    responseGuidance = `Answer the visitor's question from the verified, host-curated ${informationTarget.label} description. Do not redirect or invent additional product claims: ${informationTarget.description}`;
+    directReply = `${informationTarget.label} — ${informationTarget.description}`;
   } else if (
     /\b(?:(?:what|which) (?:information|details)|what do you need|information you need)[\s\S]{0,80}\border\b/i.test(
       input.message,
@@ -448,7 +455,7 @@ export function planWebAgentTurn(input: {
         .filter((item) => (item.portalScope ?? portalScopeForUrl(item.url)) === portalScope)
         .map(({ label }) => label)
         .slice(0, 4);
-      directReply = `${(surface?.title ?? input.pageContext.title) || 'This page'} is ${
+      directReply = `${(surface?.title ?? input.pageContext.title) || 'This page'} — ${
         (surface?.description ?? input.pageContext.description) || 'your current Voomate workspace'
       }${labels.length ? ` Available here: ${labels.join(', ')}.` : ''}`;
     }

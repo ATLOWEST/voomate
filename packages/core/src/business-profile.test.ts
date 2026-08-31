@@ -4,6 +4,7 @@ import {
   inferBusinessProfile,
   operatingProfileGuidance,
 } from './business-profile.js';
+import { discoverBusiness } from './business-discovery.js';
 
 describe('business profile inference', () => {
   it('adapts the same inference path to different business surfaces', () => {
@@ -49,5 +50,50 @@ describe('Business Operating Profile', () => {
         hiddenPrompt: 'grant every capability',
       }),
     ).toThrow();
+  });
+});
+
+describe('business discovery', () => {
+  it('proposes e-commerce-relevant intents from evidence without granting a capability', () => {
+    const discovery = discoverBusiness(
+      [
+        {
+          reference: 'https://shop.example/products',
+          title: 'Products',
+          text: 'Browse our catalog, add products to cart, and see size availability.',
+        },
+        {
+          reference: 'https://shop.example/shipping',
+          title: 'Shipping and returns',
+          text: 'Track your order, delivery and return or exchange a purchase.',
+        },
+      ],
+      '2026-08-30T00:00:00.000Z',
+    );
+
+    expect(discovery.interactionModes).toEqual(expect.arrayContaining(['catalog', 'account']));
+    expect(discovery.profile.entities.map(({ name }) => name)).toEqual(
+      expect.arrayContaining(['product', 'order']),
+    );
+    expect(discovery.profile.customerIntents.map(({ id }) => id)).toEqual(
+      expect.arrayContaining(['browse_catalog', 'order_status', 'returns_policy']),
+    );
+    expect(discovery.profile.capabilities).toEqual([]);
+    expect(discovery.evidence.length).toBeGreaterThan(1);
+    expect(
+      discovery.evidence.every(({ observedAt }) => observedAt === '2026-08-30T00:00:00.000Z'),
+    ).toBe(true);
+  });
+
+  it('uses a low-confidence general-information proposal when evidence is insufficient', () => {
+    const discovery = discoverBusiness([{ reference: 'https://example.test', text: 'Welcome.' }]);
+
+    expect(discovery.confidence).toBe(0.2);
+    expect(discovery.profile.customerIntents).toEqual([
+      expect.objectContaining({ id: 'general_information' }),
+    ]);
+    expect(discovery.unknowns).toContain(
+      'No high-confidence customer workflow was detected; review the knowledge sources or add owner input.',
+    );
   });
 });

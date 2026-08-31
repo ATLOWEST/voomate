@@ -12,6 +12,7 @@
  */
 import { useState } from 'react';
 import type { KnowledgeSource } from '@voomate/core';
+import Link from 'next/link';
 import { useAgent } from '@/components/agent/shell';
 import { PageBody } from '@/components/shell/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +50,7 @@ export function KnowledgePanels() {
   const current = polled.data?.sources ?? sources;
 
   const byType = (type: string) => current.filter((source) => source.type === type);
+  const websiteReady = byType('website').some((source) => source.status === 'ready');
 
   return (
     <PageBody>
@@ -63,6 +65,24 @@ export function KnowledgePanels() {
           }
         >
           {error}
+        </Callout>
+      )}
+
+      {websiteReady && (
+        <Callout
+          tone="info"
+          title="Website knowledge is ready to analyze"
+          action={
+            <Link
+              href={`/agents/${agent.id}/profile`}
+              className="rounded-lg bg-accent-700 px-3 py-2 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
+            >
+              Review profile
+            </Link>
+          }
+        >
+          Detect customer intents and business entities from the pages you approved. Review the
+          proposal before it changes agent behavior.
         </Callout>
       )}
 
