@@ -253,6 +253,8 @@ export async function runWebAgentTurn(args: {
     availableCapabilities: availableLiveCapabilities,
     pageContext,
     platformMode: businessName.trim().toLowerCase() === 'voomate',
+    agentName,
+    businessName,
   });
   // Navigation and answers backed entirely by the signed host page context must not wait for
   // lexical/vector retrieval or a model call. On cold Bedrock paths that unnecessary embedding
@@ -282,6 +284,7 @@ export async function runWebAgentTurn(args: {
     availableCapabilityCount: orchestration.availableCapabilityCount,
     selectedCapabilities: orchestration.capabilities.map(({ name }) => name),
     controlledActions: orchestration.controlledActions,
+    executionSteps: orchestration.executionSteps,
     sources: orchestration.sources,
     clientCommands: orchestration.clientCommands.map(({ type, label }) => ({ type, label })),
     destinationDecision: orchestration.destinationDecision,

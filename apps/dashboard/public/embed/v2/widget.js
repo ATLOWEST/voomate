@@ -48,8 +48,8 @@ stylesheet.replaceSync(`
   .message-feedback{grid-column:2;display:flex;gap:4px;margin-top:-4px}.feedback-button{width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#929292;cursor:pointer;font-size:12px;transition:background .16s ease,color .16s ease,transform .16s ease}.feedback-button:hover{background:#efefef;color:#111;transform:translateY(-1px)}.feedback-button.selected{background:#111;color:#fff}.feedback-button:disabled{cursor:default;opacity:.7}
   .status{min-height:0;padding:0 16px;color:#6d6d6d;font-size:11px;line-height:1.4;transition:padding .2s ease}.status:not(:empty){padding-top:6px}.status[data-tone="error"]{color:#a22626}
   .attachments{display:flex;gap:8px;overflow-x:auto;padding:8px 12px 0;background:#fff}.attachments:empty{display:none}.preview{position:relative;display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center;gap:7px;min-width:140px;max-width:175px;padding:4px 26px 4px 4px;border:1px solid var(--line);border-radius:12px;background:#fafafa;animation:message-in .35s cubic-bezier(.16,1,.3,1) both}.preview img{width:36px;height:36px;object-fit:cover;border-radius:8px;filter:saturate(.85)}.preview-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9.5px;color:#535353}.remove{position:absolute;right:4px;top:4px;width:21px;height:21px;display:grid;place-items:center;border:0;border-radius:50%;background:#ececec;color:#333;cursor:pointer;font:500 14px/1 inherit}
-  .composer{margin:8px 10px 4px;min-height:56px;display:grid;grid-template-columns:40px minmax(0,1fr) 44px;align-items:center;gap:3px;padding:5px;border:1px solid #dedede;border-radius:24px;background:#f8f8f8;box-shadow:0 4px 16px rgba(0,0,0,.04),inset 0 1px 0 #fff;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}.composer:focus-within{border-color:#bcbcbc;box-shadow:0 6px 20px rgba(0,0,0,.06),0 0 0 3px rgba(0,0,0,.035)}.composer.busy{opacity:.72}
-  .attach,.mic{width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#111;cursor:pointer;transition:background .18s ease,transform .24s cubic-bezier(.34,1.56,.64,1),box-shadow .24s ease}.attach:hover{background:#e9e9e9;transform:rotate(7deg)}.mic{width:44px;height:44px;background:#0a0a0a;color:#fff}.mic:hover{transform:scale(1.055)}.mic:active,.attach:active{transform:scale(.92)}.mic.active{background:#e92d32;color:#fff;box-shadow:0 0 0 calc(4px + var(--audio-level) * 7px) rgba(233,45,50,.2),0 10px 24px rgba(185,25,30,.25);animation:stop-breathe 1.8s ease-in-out infinite}.mic .wave{display:flex;align-items:center;justify-content:center;gap:2px;height:16px}.mic .wave i{display:block;width:2px;border-radius:2px;background:currentColor;animation:wave-idle 1.5s ease-in-out infinite}.mic .wave i:nth-child(1),.mic .wave i:nth-child(5){height:5px}.mic .wave i:nth-child(2),.mic .wave i:nth-child(4){height:10px;animation-delay:-.2s}.mic .wave i:nth-child(3){height:15px;animation-delay:-.4s}.mic.active .wave i{animation-duration:.72s;transform:scaleY(calc(.55 + var(--audio-level) * .9));transition:transform .055s linear}
+  .composer{margin:8px 10px 4px;min-height:56px;display:grid;grid-template-columns:40px minmax(0,1fr) 40px 44px;align-items:center;gap:3px;padding:5px;border:1px solid #dedede;border-radius:24px;background:#f8f8f8;box-shadow:0 4px 16px rgba(0,0,0,.04),inset 0 1px 0 #fff;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}.composer:focus-within{border-color:#bcbcbc;box-shadow:0 6px 20px rgba(0,0,0,.06),0 0 0 3px rgba(0,0,0,.035)}.composer.busy{opacity:.72}
+  .attach,.send,.mic{width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#111;cursor:pointer;transition:background .18s ease,transform .24s cubic-bezier(.34,1.56,.64,1),box-shadow .24s ease}.attach:hover{background:#e9e9e9;transform:rotate(7deg)}.send{background:#e9e9e9}.send:hover{background:#dcdcdc;transform:translateY(-1px)}.mic{width:44px;height:44px;background:#0a0a0a;color:#fff}.mic:hover{transform:scale(1.055)}.mic:active,.attach:active,.send:active{transform:scale(.92)}.mic.active{background:#e92d32;color:#fff;box-shadow:0 0 0 calc(4px + var(--audio-level) * 7px) rgba(233,45,50,.2),0 10px 24px rgba(185,25,30,.25);animation:stop-breathe 1.8s ease-in-out infinite}.mic .wave{display:flex;align-items:center;justify-content:center;gap:2px;height:16px}.mic .wave i{display:block;width:2px;border-radius:2px;background:currentColor;animation:wave-idle 1.5s ease-in-out infinite}.mic .wave i:nth-child(1),.mic .wave i:nth-child(5){height:5px}.mic .wave i:nth-child(2),.mic .wave i:nth-child(4){height:10px;animation-delay:-.2s}.mic .wave i:nth-child(3){height:15px;animation-delay:-.4s}.mic.active .wave i{animation-duration:.72s;transform:scaleY(calc(.55 + var(--audio-level) * .9));transition:transform .055s linear}
   input{min-width:0;width:100%;height:40px;padding:0 7px;border:0;outline:0;background:transparent;color:#101010;font-size:15px}input::placeholder{color:#8b8b8b}input:disabled{cursor:wait}
   .branding-footer{display:flex;align-items:center;justify-content:center;gap:6px;padding:3px 14px 10px;font-size:11.5px;color:#707070;line-height:1;user-select:none}
   .branding-footer a{color:#666;text-decoration:none;font-weight:500;transition:color .18s ease}
@@ -67,7 +67,7 @@ stylesheet.replaceSync(`
   .panel.dragging{box-shadow:0 32px 90px rgba(0,0,0,.19),inset 0 0 0 2px #111}.panel.dragging .composer{transform:translateY(-3px)}
   .navigation-stage{position:absolute;inset:0;z-index:20;display:grid;place-items:center;padding:24px;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility 0s linear .25s}.navigation-stage.active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .2s ease,visibility 0s}.navigation-state{display:grid;justify-items:center;gap:12px;max-width:240px;text-align:center}.navigation-spinner{width:34px;height:34px;border:2px solid #dedede;border-top-color:#111;border-radius:50%;animation:navigation-spin .75s linear infinite}.navigation-title{font-size:14.5px;font-weight:650}.navigation-detail{color:#717171;font-size:11.5px;line-height:1.5}.navigation-cancel{margin-top:3px;padding:6px 10px;border:0;background:transparent;color:#595959;font-size:11.5px;text-decoration:underline;cursor:pointer}
   .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-  .minimize:focus-visible,.header-close:focus-visible,.compact-open:focus-visible,.compact-close:focus-visible,.compact-stop:focus-visible,.launcher:focus-visible,.attach:focus-visible,.mic:focus-visible,.remove:focus-visible{outline:3px solid rgba(72,100,255,.3);outline-offset:3px}
+  .minimize:focus-visible,.header-close:focus-visible,.compact-open:focus-visible,.compact-close:focus-visible,.compact-stop:focus-visible,.launcher:focus-visible,.attach:focus-visible,.send:focus-visible,.mic:focus-visible,.remove:focus-visible{outline:3px solid rgba(72,100,255,.3);outline-offset:3px}
   [hidden]{display:none!important}
   @keyframes message-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
   @keyframes dots{to{background-position:21px 0}}
@@ -108,6 +108,10 @@ function svgIcon(paths, viewBox = '0 0 24 24') {
 const chevronIcon = () => svgIcon([{ attributes: { d: 'm7 10 5 5 5-5' } }]);
 const plusIcon = () =>
   svgIcon([{ attributes: { d: 'M12 5v14' } }, { attributes: { d: 'M5 12h14' } }]);
+const sendIcon = () =>
+  svgIcon([
+    { attributes: { d: 'M4 4l16 8-16 8 3-8-3-8Z', fill: 'currentColor', stroke: 'none' } },
+  ]);
 
 function waveIcon() {
   const wave = element('span', 'wave');
@@ -613,6 +617,11 @@ export async function mountWidget(host, config) {
   input.placeholder = 'Ask anything';
   input.maxLength = 4000;
   input.disabled = true;
+  const send = element('button', 'send');
+  send.type = 'submit';
+  send.setAttribute('aria-label', 'Send message');
+  send.disabled = true;
+  send.append(sendIcon());
   const mic = element('button', 'mic');
   mic.type = 'button';
   mic.setAttribute('aria-label', 'Start voice conversation');
@@ -620,7 +629,7 @@ export async function mountWidget(host, config) {
   mic.disabled = true;
   mic.append(waveIcon());
   attach.disabled = true;
-  form.append(attach, fileInput, label, input, mic);
+  form.append(attach, fileInput, label, input, send, mic);
 
   const navigationStage = element('div', 'navigation-stage');
   navigationStage.setAttribute('role', 'status');
@@ -1276,6 +1285,7 @@ export async function mountWidget(host, config) {
     addMessage('assistant', error instanceof Error ? error.message : 'Assistant unavailable.');
     input.disabled = true;
     attach.disabled = true;
+    send.disabled = true;
     mic.disabled = true;
     return;
   }
@@ -1433,6 +1443,7 @@ export async function mountWidget(host, config) {
       form.classList.remove('busy');
       input.disabled = false;
       attach.disabled = false;
+      send.disabled = false;
       mic.disabled = false;
       if (completed) compactStatus.textContent = 'Online for chat';
       if (isOpen && matchMedia('(pointer:fine)').matches) input.focus();
@@ -1441,6 +1452,7 @@ export async function mountWidget(host, config) {
 
   input.disabled = false;
   attach.disabled = false;
+  send.disabled = false;
   mic.disabled = false;
 
   if (resumeVoiceAfterReload) {

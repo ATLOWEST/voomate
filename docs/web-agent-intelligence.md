@@ -9,8 +9,9 @@ by typed chat. Polly speaks the returned public answer.
 1. A signed, origin-bound widget session resolves the organization and one published Web Agent.
 2. A deterministic dialogue manager handles identity and human-handoff state without spending a
    model call or allowing the model to invent operational state.
-3. A distinct deterministic orchestration layer plans conversation, current-page context,
-   tenant-scoped knowledge, live reads, and separately controlled actions for each turn.
+3. A distinct deterministic orchestration layer splits one message into ordered intents, then
+   plans current-page context, tenant-scoped knowledge, live reads, and separately controlled
+   actions for each turn.
 4. Tenant-scoped retrieval supplies only relevant approved knowledge, including on compound turns
    that also need live data.
 5. Bedrock Inline Agents orchestrate Amazon Nova and return-control action groups. The runtime has
@@ -50,6 +51,25 @@ synthesize one customer-facing answer, then apply customer-language and policy v
 planner never grants itself a capability, expands a credential scope, or learns directly into the
 live policy from a successful-looking response.
 
+## Voomate Brain and tenant branches
+
+Voomate Brain is the shared, versioned execution layer: intent planning, response rules, approved
+tool contracts, retrieval policy, and the Bedrock harness. It is not a shared memory or one AWS
+agent that sees every merchant.
+
+```text
+Voomate Brain (shared code and reviewed harness)
+  -> tenant execution branch: organizationId + agentId + configuration revision
+      -> approved knowledge index, tools, policies, conversation, and audit trail
+```
+
+Creating an account creates a new scoped agent instance and configuration branch, not a clone of
+the model. Every read, retrieval query, tool grant, conversation lookup, and run event carries the
+organization and agent scope; Postgres RLS enforces that boundary again. One thousand customers
+therefore use one maintained product runtime with one thousand isolated execution contexts. This
+keeps personalization and data isolation without multiplying infrastructure cost or allowing a
+tenant's knowledge to affect another tenant's answer.
+
 Before inference, a deterministic coordination policy ranks the Integration Agent's read-only
 capabilities against the current message and exposes at most eight relevant functions. An unrelated
 turn sees no client-data tools. The plan records capability names and counts, never query values or
@@ -73,9 +93,11 @@ instead of inferring that an account or agent exists.
 
 Navigation is a typed client command, not a link hidden in model prose. The deterministic intent
 gate separates an explicit movement request such as "take me to Pricing" from an information
-request such as "what does Pricing cost?" The former may emit a verified `navigate` command; the
-latter answers inside the widget from page context and approved knowledge. A mixed request defaults
-to answering in place so an incidental movement verb cannot cause an unwanted redirect.
+request such as "what does Pricing cost?" A known destination always receives the verified
+`navigate` command before retrieval or model inference. When the visitor combines both requests,
+such as "Open Pricing and tell me what it costs", the command is issued first and host-curated
+facts continue in the same turn. This does not wait for another prompt or send the same request to
+Bedrock. Information-only requests still answer in the widget without navigation.
 
 The destination resolver is separate from both orchestration and browser execution. It ranks only
 host-advertised titles, natural-language aliases, and same-origin path segments. Bounded edit

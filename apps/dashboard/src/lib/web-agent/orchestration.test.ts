@@ -350,13 +350,56 @@ describe('web agent orchestration', () => {
     'How much does pricing cost?',
     'Tell me about the Pricing page.',
     'Compare your pricing plans.',
-    'Open Pricing and tell me what it costs.',
-  ])('keeps informational pricing requests in the widget: %s', (message) => {
+  ])('keeps information-only pricing requests in the widget: %s', (message) => {
     const result = planWebAgentTurn({ message, availableCapabilities: [], pageContext });
     expect(result.clientCommands).toEqual([]);
-    expect(result.useKnowledge).toBe(true);
+    expect(result.useKnowledge).toBe(false);
     expect(result.usePageContext).toBe(true);
     expect(result.responseGuidance).toContain('host-curated Pricing facts');
+  });
+
+  it('splits the exact identity and navigation request into ordered deterministic work', () => {
+    const result = planWebAgentTurn({
+      message: 'What is your name, can you please redirect me to pricing pages?',
+      availableCapabilities: [],
+      pageContext,
+      agentName: 'Voomate',
+      businessName: 'Voomate',
+    });
+    expect(result.clientCommands).toMatchObject([
+      { type: 'navigate', label: 'Pricing', intent: 'web' },
+    ]);
+    expect(result.directReply).toBe(
+      'Opening Pricing.\n\nI’m Voomate, the assistant for this site.',
+    );
+    expect(result.useKnowledge).toBe(false);
+    expect(result.executionSteps).toEqual([
+      { kind: 'navigate', execution: 'client_command', label: 'Pricing' },
+      { kind: 'identity', execution: 'deterministic_reply' },
+    ]);
+  });
+
+  it('navigates first and continues with verified page facts for a combined request', () => {
+    const result = planWebAgentTurn({
+      message: 'Open Pricing and tell me what it costs.',
+      availableCapabilities: [],
+      pageContext,
+    });
+    expect(result.clientCommands).toMatchObject([
+      { type: 'navigate', label: 'Pricing', intent: 'web' },
+    ]);
+    expect(result.directReply).toContain('Opening Pricing.');
+    expect(result.directReply).toContain('Growth costs ₹2,499 per month.');
+    expect(result.useKnowledge).toBe(false);
+    expect(result.destinationDecision).toMatchObject({
+      request: 'navigation',
+      outcome: 'resolved',
+      label: 'Pricing',
+    });
+    expect(result.executionSteps).toEqual([
+      { kind: 'navigate', execution: 'client_command', label: 'Pricing' },
+      { kind: 'page_facts', execution: 'deterministic_reply', label: 'Pricing' },
+    ]);
   });
 
   it('answers from curated pricing facts without redirecting in platform mode', () => {

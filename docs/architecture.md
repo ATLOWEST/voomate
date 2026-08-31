@@ -51,6 +51,26 @@ system; the website widget serves a visitor. Neither starts "inside" the other.
                     crawl -> sanitise -> chunk -> embed -> store
 ```
 
+## Voomate Brain execution model
+
+Voomate Brain is the shared control plane and runtime policy. A merchant account does not create a
+new copy of the AI model or a separate global knowledge base. It creates an isolated execution
+branch identified by `organizationId + agentId + configuration revision`.
+
+```text
+shared Voomate Brain
+  -> tenant-agent execution branch
+      -> approved knowledge + pgvector namespace
+      -> enabled governed tools and policies
+      -> customer conversations and memory
+      -> traces, usage, evaluations, and configuration history
+```
+
+The branch is a data and policy boundary, not a prompt convention. Application queries include the
+organization and agent identifiers, and Postgres RLS independently restricts the rows returned.
+This lets the product serve many merchants with a single maintained runtime while keeping each
+merchant's customer data, retrieval evidence, and tool access separate.
+
 ## 1. Merchant control-plane flow
 
 The Operating Panel is the merchant's source of control, not part of a visitor conversation.

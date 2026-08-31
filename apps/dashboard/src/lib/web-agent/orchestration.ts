@@ -44,6 +44,13 @@ const explicitWebNavigation = [
 ];
 const informationRequest =
   /\b(what(?:'s| is| are)|how much|cost|price|pricing (?:details|plans|options)|tell me|explain|compare|comparison|difference|which plan|show me|learn about|details about|where (?:is|can))\b/i;
+const factualKnowledgeRequest =
+  /\?|\b(?:what(?:'s| is| are)|how much|cost|price|tell me|explain|compare|difference|which|when|where|why|how|policy|policies|terms|returns?|shipping|warranty|features?|plans?|pricing)\b/i;
+const identityRequest = /\b(?:(?:what(?:'s| is)|tell me)\s+(?:your|ur)\s+name|who are you)\b/i;
+const destinationExplanationRequest =
+  /\b(?:tell me|explain|how much|cost|price|details|compare|difference|features?|plans?)\b/i;
+const stableKnowledgeTopic =
+  /\b(?:about|business|company|policy|policies|terms|returns?|shipping|warranty|features?|plans?|pricing|product|setup)\b/i;
 // "How Voomate works" is an information request, not a request to navigate. Keep this
 // separate from broad "how" matching so operational questions still use their normal paths.
 const howItWorksRequest = /\bhow\s+(?:(?:does|do)\s+)?(?:[a-z0-9][a-z0-9'’-]*\s+){0,4}works?\b/i;
@@ -94,6 +101,14 @@ export interface WebAgentOrchestrationPlan {
   usePageContext: boolean;
   controlledActions: Array<'check_order_status'>;
   clientCommands: NavigateClientCommand[];
+  executionSteps: Array<
+    | { kind: 'navigate'; execution: 'client_command'; label: string }
+    | { kind: 'identity'; execution: 'deterministic_reply' }
+    | { kind: 'page_facts'; execution: 'deterministic_reply'; label: string }
+    | { kind: 'knowledge'; execution: 'retrieval' }
+    | { kind: 'live_read'; execution: 'controlled_tool'; capabilityNames: string[] }
+    | { kind: 'controlled_action'; execution: 'harness_action'; action: 'check_order_status' }
+  >;
   destinationDecision: {
     request: 'none' | 'navigation' | 'information';
     outcome: DestinationResolution['kind'];
@@ -254,6 +269,29 @@ function routeFor(input: {
   return 'web';
 }
 
+function identityReply(agentName?: string, businessName?: string): string {
+  if (agentName && businessName) {
+    return agentName.trim().toLowerCase() === businessName.trim().toLowerCase()
+      ? `I’m ${agentName}, the assistant for this site.`
+      : `I’m ${agentName}, ${businessName}’s assistant.`;
+  }
+  return 'I’m the assistant for this site.';
+}
+
+function pageFactsReply(destination: {
+  label: string;
+  description?: string;
+  facts?: readonly string[];
+}): string | undefined {
+  if (destination.facts?.length) {
+    return [
+      `${destination.label}:`,
+      ...destination.facts.map((fact, index) => `${index + 1}. ${fact}`),
+    ].join('\n');
+  }
+  return destination.description ? `${destination.label} — ${destination.description}` : undefined;
+}
+
 /**
  * Deterministic coordination above RAG, live reads, controlled actions, and page assistance.
  * Offline RLAIF can score this plan, but it cannot promote tools or mutate the policy at runtime.
@@ -263,6 +301,8 @@ export function planWebAgentTurn(input: {
   availableCapabilities: readonly LiveReadCapability[];
   pageContext?: WebAgentPageContext;
   platformMode?: boolean;
+  agentName?: string;
+  businessName?: string;
 }): WebAgentOrchestrationPlan {
   const platformJourney = platformJourneyFor(input.message, input.pageContext, input.platformMode);
   const messageTokens = tokens(input.message);
@@ -278,20 +318,31 @@ export function planWebAgentTurn(input: {
   const requestedIntent = requestedNavigationIntent(input.message);
   const asksForInformation =
     informationRequest.test(input.message) || howItWorksRequest.test(input.message);
-  const navigationResolution: DestinationResolution =
-    requestedIntent && !asksForInformation
-      ? resolveDestination(input.message, input.pageContext, 'navigation')
-      : ({ kind: 'none' } as const);
-  // A request for facts wins over navigation even when it contains a movement verb.
+  const asksForDestinationFacts =
+    asksForInformation &&
+    (!identityRequest.test(input.message) || destinationExplanationRequest.test(input.message));
+  const navigationResolution: DestinationResolution = requestedIntent
+    ? resolveDestination(input.message, input.pageContext, 'navigation')
+    : ({ kind: 'none' } as const);
   const command = navigationCommand(requestedIntent, navigationResolution);
-  const informationResolution: DestinationResolution = asksForInformation
+  const informationResolution: DestinationResolution = asksForDestinationFacts
     ? resolveDestination(input.message, input.pageContext, 'information')
     : ({ kind: 'none' } as const);
   const informationTarget =
     informationResolution.kind === 'resolved' ? informationResolution.destination : undefined;
+  const navigationTarget =
+    navigationResolution.kind === 'resolved' ? navigationResolution.destination : undefined;
+  // A known client command executes first. Verified page facts can continue the same turn.
+  const followUpPageAnswer = asksForDestinationFacts
+    ? (informationTarget ?? navigationTarget)
+    : undefined;
   const useKnowledge =
     !casualConversation.test(input.message) &&
-    (staticKnowledgeIntent.test(input.message) || !liveOrActionIntent.test(input.message));
+    factualKnowledgeRequest.test(input.message) &&
+    staticKnowledgeIntent.test(input.message) &&
+    (!liveOrActionIntent.test(input.message) || stableKnowledgeTopic.test(input.message)) &&
+    !command &&
+    !informationTarget;
   const usePageContext = Boolean(
     input.pageContext &&
     (pageAssistanceIntent.test(input.message) ||
@@ -329,6 +380,32 @@ export function planWebAgentTurn(input: {
       reason: 'request may need a separately scoped harness action',
     });
 
+  const executionSteps: WebAgentOrchestrationPlan['executionSteps'] = [];
+  if (command) {
+    executionSteps.push({ kind: 'navigate', execution: 'client_command', label: command.label });
+  }
+  if (identityRequest.test(input.message)) {
+    executionSteps.push({ kind: 'identity', execution: 'deterministic_reply' });
+  }
+  if (followUpPageAnswer) {
+    executionSteps.push({
+      kind: 'page_facts',
+      execution: 'deterministic_reply',
+      label: followUpPageAnswer.label,
+    });
+  }
+  if (useKnowledge) executionSteps.push({ kind: 'knowledge', execution: 'retrieval' });
+  if (capabilities.length) {
+    executionSteps.push({
+      kind: 'live_read',
+      execution: 'controlled_tool',
+      capabilityNames: capabilities.map(({ name }) => name),
+    });
+  }
+  for (const action of controlledActions) {
+    executionSteps.push({ kind: 'controlled_action', execution: 'harness_action', action });
+  }
+
   let responseGuidance: string | undefined;
   let directReply: string | undefined;
   if (command) {
@@ -345,6 +422,15 @@ export function planWebAgentTurn(input: {
         : command.intent === 'open_app'
           ? `Opening ${command.label} in the app.`
           : `Opening ${command.label}.`;
+    if (identityRequest.test(input.message)) {
+      directReply = `${directReply}\n\n${identityReply(input.agentName, input.businessName)}`;
+    }
+    const followUpReply = followUpPageAnswer ? pageFactsReply(followUpPageAnswer) : undefined;
+    if (followUpReply) {
+      responseGuidance +=
+        ' Continue the same turn with verified host-curated page facts; do not make another model call or wait for a second visitor message.';
+      directReply = `${directReply}\n\n${followUpReply}`;
+    }
     if (
       input.platformMode &&
       /\b(create|new|add)\b/i.test(input.message) &&
@@ -359,7 +445,7 @@ export function planWebAgentTurn(input: {
           : `Opening ${command.label}. This workspace has ${inventory.total} agent${inventory.total === 1 ? '' : 's'}; open one to configure it, or choose Add agent for another Web Agent.`
         : `Opening ${command.label}. Choose Web Agent from the catalog to add one, or open an existing Web Agent to configure it.`;
     }
-  } else if (requestedIntent && !asksForInformation && navigationResolution.kind === 'ambiguous') {
+  } else if (requestedIntent && navigationResolution.kind === 'ambiguous') {
     const labels = [...new Set(navigationResolution.candidates.map(({ label }) => label))].slice(
       0,
       4,
@@ -367,7 +453,7 @@ export function planWebAgentTurn(input: {
     responseGuidance =
       'The requested destination is ambiguous. Ask the visitor to choose one of the verified candidates; do not request or invent a URL.';
     directReply = `I found more than one matching place. Did you mean ${labels.join(' or ')}?`;
-  } else if (requestedIntent && !asksForInformation && navigationResolution.kind === 'none') {
+  } else if (requestedIntent && navigationResolution.kind === 'none') {
     const currentPortal =
       input.pageContext?.portalScope ?? portalScopeForUrl(input.pageContext?.url ?? '');
     const allNav = input.pageContext?.navigation ?? [];
@@ -382,13 +468,10 @@ export function planWebAgentTurn(input: {
       : `I couldn't safely match that to a page available here.`;
   } else if (informationTarget?.facts?.length) {
     responseGuidance = `Answer the visitor's question in the widget from these verified, host-curated ${informationTarget.label} facts. Synthesize naturally and do not redirect or tell them to visit the page: ${informationTarget.facts.join(' | ')}`;
-    directReply = [
-      `${informationTarget.label}:`,
-      ...informationTarget.facts.map((fact, index) => `${index + 1}. ${fact}`),
-    ].join('\n');
+    directReply = pageFactsReply(informationTarget);
   } else if (informationTarget?.description) {
     responseGuidance = `Answer the visitor's question from the verified, host-curated ${informationTarget.label} description. Do not redirect or invent additional product claims: ${informationTarget.description}`;
-    directReply = `${informationTarget.label} — ${informationTarget.description}`;
+    directReply = pageFactsReply(informationTarget);
   } else if (
     /\b(?:(?:what|which) (?:information|details)|what do you need|information you need)[\s\S]{0,80}\border\b/i.test(
       input.message,
@@ -495,43 +578,44 @@ export function planWebAgentTurn(input: {
     usePageContext,
     controlledActions,
     clientCommands: command ? [command] : [],
+    executionSteps,
     destinationDecision:
-      informationResolution.kind === 'resolved'
+      requestedIntent && navigationResolution.kind === 'resolved'
         ? {
-            request: 'information',
+            request: 'navigation',
             outcome: 'resolved',
             availableDestinations: input.pageContext?.navigation.length ?? 0,
-            label: informationResolution.destination.label,
-            match: informationResolution.match,
-            score: informationResolution.score,
+            label: navigationResolution.destination.label,
+            match: navigationResolution.match,
+            score: navigationResolution.score,
           }
-        : informationResolution.kind === 'ambiguous'
+        : requestedIntent && navigationResolution.kind === 'ambiguous'
           ? {
-              request: 'information',
+              request: 'navigation',
               outcome: 'ambiguous',
               availableDestinations: input.pageContext?.navigation.length ?? 0,
-              candidates: informationResolution.candidates.map(({ label }) => label),
+              candidates: navigationResolution.candidates.map(({ label }) => label),
             }
-          : requestedIntent && navigationResolution.kind === 'resolved'
+          : informationResolution.kind === 'resolved'
             ? {
-                request: 'navigation',
+                request: 'information',
                 outcome: 'resolved',
                 availableDestinations: input.pageContext?.navigation.length ?? 0,
-                label: navigationResolution.destination.label,
-                match: navigationResolution.match,
-                score: navigationResolution.score,
+                label: informationResolution.destination.label,
+                match: informationResolution.match,
+                score: informationResolution.score,
               }
-            : requestedIntent && navigationResolution.kind === 'ambiguous'
+            : informationResolution.kind === 'ambiguous'
               ? {
-                  request: 'navigation',
+                  request: 'information',
                   outcome: 'ambiguous',
                   availableDestinations: input.pageContext?.navigation.length ?? 0,
-                  candidates: navigationResolution.candidates.map(({ label }) => label),
+                  candidates: informationResolution.candidates.map(({ label }) => label),
                 }
               : {
                   request: requestedIntent
                     ? 'navigation'
-                    : asksForInformation
+                    : asksForDestinationFacts
                       ? 'information'
                       : 'none',
                   outcome: 'none',
