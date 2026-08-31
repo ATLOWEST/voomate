@@ -482,7 +482,8 @@ function resolveClientNavigation(commands, pageContext) {
     const advertised = pageContext.navigation.find((item) => {
       if (item.url === target.href) return true;
       try {
-        return new URL(item.url, window.location.origin).pathname === target.pathname;
+        const candidate = new URL(item.url, window.location.origin);
+        return candidate.origin === target.origin && candidate.pathname === target.pathname;
       } catch {
         return false;
       }
