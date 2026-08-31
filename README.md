@@ -104,6 +104,14 @@ The Web Agent development command starts the available local services:
 - Merchant dashboard and widget assets: `http://localhost:3001`
 - Control-plane API: `http://localhost:4000`
 
+These are intentionally local-only addresses for development. Production uses the deployed
+AWS services and public domains:
+
+- Marketing site: [atlowest.in](https://atlowest.in)
+- Merchant Operating Panel: [app.atlowest.in](https://app.atlowest.in)
+- API: private behind the production application load balancer; it is not a public browser
+  endpoint and is reached through the dashboard's same-origin `/api` routes.
+
 ## Security and contribution notes
 
 - Client bundles must never contain server credentials. Variables prefixed with `NEXT_PUBLIC_` are
