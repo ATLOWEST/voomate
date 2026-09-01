@@ -98,14 +98,15 @@ Voomate is deployed as a production AWS workload:
 
 ## Evaluator walkthrough
 
-Voomate is designed to be evaluated as a real multi-tenant product. **There is deliberately no
-shared demo email or dummy production password in this repository.** Publishing one would allow
-unrelated visitors to enter the same workspace and is not an acceptable security boundary.
+Voomate is designed to be evaluated as a real multi-tenant product. There is no shared production
+account in this repository: every evaluator creates an isolated workspace, so no reviewer can see
+another reviewer's data.
 
 To try the complete third-party flow:
 
-1. Open [Create workspace](https://app.atlowest.in/sign-up) and use your own email address and a
-   new strong password.
+1. Open [Create workspace](https://app.atlowest.in/sign-up) and use your own email address. For a
+   quick evaluator setup, you may choose the sample password `VoomateDemo2026!`; it is a password
+   suggestion for **your new isolated account**, not a shared login.
 2. Verify the one-time code sent to that email; this creates an isolated workspace owned by you.
 3. Open **Agents**, choose **Add agent**, and configure a Web Agent for your website.
 4. Add approved business knowledge, then use the playground to test grounded answers and page
