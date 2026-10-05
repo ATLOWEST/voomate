@@ -29,12 +29,12 @@
   },
   "dependencies": {
     "@voomate/core": "*",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.3",
     "postgres": "^3.4.5"
   },
   "devDependencies": {
     "@voomate/config": "*",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "^0.31.11",
     "typescript": "^5.7.3"
   }
 }
